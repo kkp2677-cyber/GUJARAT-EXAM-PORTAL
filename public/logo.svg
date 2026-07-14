@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Rounded corner background box (vibrant emerald green) -->
+  <rect x="32" y="32" width="448" height="448" rx="120" ry="120" fill="#10b981" />
+  
+  <!-- Graduation Cap Shadow (subtle offset) -->
+  <polygon points="256,168 406,228 256,288 106,228" fill="#059669" opacity="0.4" />
+  
+  <!-- Cap Under/Base -->
+  <path d="M 180,238 L 180,290 C 180,315 210,330 256,330 C 302,330 332,315 332,290 L 332,238 C 308,255 283,264 256,264 C 229,264 204,255 180,238 Z" fill="#0f172a" />
+  
+  <!-- Graduation Cap Top (Diamond) -->
+  <polygon points="256,150 410,212 256,274 102,212" fill="#334155" />
+  
+  <!-- Tassel Button on Top -->
+  <circle cx="256" cy="212" r="12" fill="#fbbf24" />
+  
+  <!-- Tassel Cord curving down the left side -->
+  <path d="M 256,212 Q 212,216 194,250 L 194,310" fill="none" stroke="#fbbf24" stroke-width="10" stroke-linecap="round" />
+  
+  <!-- Tassel Fringe/Brush at the bottom -->
+  <path d="M 180,310 L 208,310 L 214,354 L 174,354 Z" fill="#fbbf24" />
+  <circle cx="194" cy="312" r="10" fill="#d97706" opacity="0.3" />
+</svg>

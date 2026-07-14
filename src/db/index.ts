@@ -1,0 +1,227 @@
+import { drizzle } from 'drizzle-orm/node-postgres';
+import pg from 'pg';
+import * as schema from './schema.ts';
+import * as dotenv from 'dotenv';
+import fs from 'fs';
+dotenv.config();
+
+const { Pool } = pg;
+
+export const getDbConfig = () => {
+  let host = process.env.SQL_HOST;
+  const user = process.env.SQL_USER || 'ai_studio_app_user';
+  const password = process.env.SQL_PASSWORD || 'HK\\],+{3H7?Hb$B0'; // Escaped the backslash
+  const database = process.env.SQL_DB_NAME || 'cloud_sql_development_database';
+
+  const standardCloudSqlDir = '/cloudsql';
+  const appCloudSqlDir = '/app/cloudsql';
+
+  // If host is provided but doesn't exist (e.g. copied from dev to prod), we should discover it
+  if (host && host.startsWith('/') && !fs.existsSync(host)) {
+    console.warn(`[DB Auto-Discover] Configured SQL_HOST ${host} does not exist. Falling back to auto-discovery.`);
+    host = undefined;
+  }
+
+  if (!host) {
+    
+    try {
+      if (fs.existsSync(standardCloudSqlDir)) {
+        const dirs = fs.readdirSync(standardCloudSqlDir);
+        const connectionDir = dirs.find(d => d.includes(':'));
+        if (connectionDir) {
+          host = `${standardCloudSqlDir}/${connectionDir}`;
+          console.log(`[DB Auto-Discover] Found Cloud SQL socket in ${standardCloudSqlDir}: ${host}`);
+        }
+      }
+    } catch (e) {
+      console.warn('[DB Auto-Discover] Error checking /cloudsql:', e);
+    }
+
+    if (!host) {
+      try {
+        if (fs.existsSync(appCloudSqlDir)) {
+          const dirs = fs.readdirSync(appCloudSqlDir);
+          const connectionDir = dirs.find(d => d.includes(':'));
+          if (connectionDir) {
+            host = `${appCloudSqlDir}/${connectionDir}`;
+            console.log(`[DB Auto-Discover] Found Cloud SQL socket in ${appCloudSqlDir}: ${host}`);
+          }
+        }
+      } catch (e) {
+        console.warn('[DB Auto-Discover] Error checking /app/cloudsql:', e);
+      }
+    }
+  }
+
+  // Final fallback to development host if nothing found
+  if (!host) {
+    host = process.env.SQL_HOST || '/app/cloudsql/river-runner-sgtt6:asia-southeast1:ai-studio-805c3b88';
+    console.log(`[DB Auto-Discover] No socket discovered, using default fallback: ${host}`);
+  }
+
+  return {
+    host,
+    user,
+    password,
+    database,
+    connectionTimeoutMillis: 15000,
+    idleTimeoutMillis: 2000, // Short idle timeout to prune dead connections before container freeze
+    max: 10, // Optimize maximum pool size to reduce potential connection count
+    keepAlive: true, // Enable TCP Keep-Alive
+    keepAliveInitialDelayMillis: 10000, // Delay before sending the first keep-alive packet
+  };
+};
+
+export const createPool = () => {
+  return new Pool(getDbConfig());
+};
+
+const pool = createPool();
+
+function enrichError(err: any): any {
+  if (err && typeof err === 'object') {
+    const cause = err.cause || err.originalError;
+    if (cause) {
+      const causeMsg = cause.message || String(cause);
+      const enriched = new Error(`${err.message} | Cause: ${causeMsg}`);
+      for (const key of Object.getOwnPropertyNames(err)) {
+        if (key !== 'message') {
+          try {
+            (enriched as any)[key] = err[key];
+          } catch (_) {}
+        }
+      }
+      return enriched;
+    }
+  }
+  return err;
+}
+
+// Monkey-patch Pool.query to automatically retry on transient database errors
+const originalPoolQuery = pool.query;
+pool.query = async function (this: any, ...args: any[]) {
+  let lastErr: any;
+  const retries = 5;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      // In pg, pool.query can be callback-based, but Drizzle and our code always use promise-based/async/await.
+      // We safely apply the original query.
+      return await originalPoolQuery.apply(this, args as any);
+    } catch (err: any) {
+      lastErr = err;
+      const errMsg = String(err.message || err);
+      const isTransient = errMsg.includes('Connection terminated') ||
+                          errMsg.includes('unexpectedly') ||
+                          errMsg.includes('terminated') ||
+                          errMsg.includes('closed') ||
+                          errMsg.includes('timeout') ||
+                          errMsg.includes('socket') ||
+                          errMsg.includes('Failed query') ||
+                          errMsg.includes('query failed') ||
+                          errMsg.includes('ECONNRESET');
+      if (isTransient && i < retries) {
+        const delay = 1000 * Math.pow(2, i); // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        console.warn(`[DB Pool Retry] Query failed (attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms... Error:`, errMsg);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw enrichError(err);
+    }
+  }
+  throw enrichError(lastErr);
+} as any;
+
+function patchClient(client: any) {
+  if (client && !client._patchedQuery) {
+    client._patchedQuery = true;
+    const originalClientQuery = client.query;
+    client.query = async function (this: any, ...cArgs: any[]) {
+      let lastErr: any;
+      const retries = 15;
+      const delay = 50;
+      for (let i = 0; i <= retries; i++) {
+        try {
+          return await originalClientQuery.apply(this, cArgs as any);
+        } catch (err: any) {
+          lastErr = err;
+          const errMsg = String(err.message || err);
+          const isTransient = errMsg.includes('Connection terminated') ||
+                              errMsg.includes('unexpectedly') ||
+                              errMsg.includes('terminated') ||
+                              errMsg.includes('closed') ||
+                              errMsg.includes('timeout') ||
+                              errMsg.includes('socket') ||
+                              errMsg.includes('Failed query') ||
+                              errMsg.includes('query failed');
+          if (isTransient && i < retries) {
+            console.warn(`[DB Client Retry] Query failed (attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms... Error:`, errMsg);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            continue;
+          }
+          throw enrichError(err);
+        }
+      }
+      throw enrichError(lastErr);
+    } as any;
+  }
+}
+
+// Monkey-patch Pool.connect to return a client whose query method is also patched, supporting callback and promise styles
+const originalConnect = pool.connect;
+pool.connect = function (this: any, ...args: any[]): any {
+  if (typeof args[0] === 'function') {
+    const originalCallback = args[0];
+    args[0] = function (err: any, client: any, release: any) {
+      if (client) {
+        patchClient(client);
+      }
+      return originalCallback(err, client, release);
+    };
+    return originalConnect.apply(this, args as any);
+  } else {
+    const promise = originalConnect.apply(this, args as any);
+    if (promise && typeof promise.then === 'function') {
+      return promise.then((client: any) => {
+        if (client) {
+          patchClient(client);
+        }
+        return client;
+      });
+    }
+    return promise;
+  }
+} as any;
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle SQL pool client:', err);
+});
+
+export const db = drizzle(pool, { schema });
+
+// Helper to execute database queries with automatic retry on transient connection drops
+export async function queryWithRetry<T>(queryFn: () => Promise<T>, retries = 12, delay = 50): Promise<T> {
+  let lastErr: any;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await queryFn();
+    } catch (err: any) {
+      lastErr = err;
+      const errMsg = String(err.message || err);
+      const isTransient = errMsg.includes('Connection terminated') ||
+                          errMsg.includes('unexpectedly') ||
+                          errMsg.includes('terminated') ||
+                          errMsg.includes('closed') ||
+                          errMsg.includes('timeout') ||
+                          errMsg.includes('socket') ||
+                          errMsg.includes('Failed query') ||
+                          errMsg.includes('query failed');
+      if (isTransient && i < retries) {
+        console.warn(`[DB Retry] Query failed (attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms... Error:`, errMsg);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw enrichError(err);
+    }
+  }
+  throw enrichError(lastErr);
+}

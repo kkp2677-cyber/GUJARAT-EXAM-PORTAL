@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, BellOff, Info, AlertTriangle, Briefcase, FileText, X, CheckCheck } from 'lucide-react';
+import { Bell, BellOff, Info, AlertTriangle, Briefcase, FileText, X, CheckCheck, Trash2 } from 'lucide-react';
 import { PushNotification } from '../types';
 
 export default function NotificationBell() {
@@ -107,14 +107,25 @@ export default function NotificationBell() {
     try {
       const res = await fetch('/api/notifications');
       if (!res.ok) throw new Error('નોટિફિકેશન લાવવામાં નિષ્ફળતા');
-      const data: PushNotification[] = await res.json();
+      const data: any[] = await res.json();
       
+      const normalizedData: PushNotification[] = data.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        body: item.body,
+        type: item.type || 'info',
+        link: item.link || undefined,
+        createdAt: item.createdAt || item.date || new Date().toISOString(),
+        subscriptionPlan: item.subscriptionPlan,
+        subscriptionExpiry: item.subscriptionExpiry
+      }));
+
       const currentNotifs = notificationsRef.current;
       
       // If we already have notifications, check if there's any brand new one to trigger a native notification
-      if (!isSilent && currentNotifs.length > 0 && data.length > 0) {
+      if (!isSilent && currentNotifs.length > 0 && normalizedData.length > 0) {
         const existingIds = new Set(currentNotifs.map(n => n.id));
-        const newNotifs = data.filter(n => !existingIds.has(n.id));
+        const newNotifs = normalizedData.filter(n => !existingIds.has(n.id));
         
         if (newNotifs.length > 0) {
           // Play beautiful alert sound and trigger high-visibility in-app toasts
@@ -132,7 +143,18 @@ export default function NotificationBell() {
         }
       }
 
-      setNotifications(data);
+      // Filter out notifications older than cleared timestamp
+      const clearedAtStr = localStorage.getItem('notifications_cleared_at');
+      let filteredData = normalizedData;
+      if (clearedAtStr) {
+        const clearedAt = new Date(clearedAtStr).getTime();
+        filteredData = normalizedData.filter(n => {
+          const t = new Date(n.createdAt).getTime();
+          return !isNaN(t) && t > clearedAt;
+        });
+      }
+
+      setNotifications(filteredData);
     } catch (err) {
       console.warn('Error fetching notifications (silent check):', err);
     }
@@ -216,6 +238,11 @@ export default function NotificationBell() {
     }
   };
 
+  const handleClearNotifications = () => {
+    localStorage.setItem('notifications_cleared_at', new Date().toISOString());
+    setNotifications([]);
+  };
+
   const togglePopover = () => {
     setIsOpen(!isOpen);
     if (!isOpen) {
@@ -271,9 +298,13 @@ export default function NotificationBell() {
   };
 
   // Format date elegantly
-  const formatTimeAgo = (dateStr: string) => {
+  const formatTimeAgo = (dateStr?: string) => {
     try {
-      const diffMs = Date.now() - new Date(dateStr).getTime();
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      
+      const diffMs = Date.now() - d.getTime();
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMins / 60);
       const diffDays = Math.floor(diffHours / 24);
@@ -410,10 +441,18 @@ export default function NotificationBell() {
             ) : (
               notifications.map((notif, index) => {
                 const isUnread = index < unreadCount;
+                const hasLink = !!notif.link;
+                const CardElement = hasLink ? 'a' : 'div';
+                
                 return (
-                  <div 
+                  <CardElement 
                     key={notif.id}
-                    className={`p-4 transition-all duration-200 hover:bg-slate-55 flex gap-3 ${
+                    href={hasLink ? notif.link : undefined}
+                    target={hasLink ? "_blank" : undefined}
+                    rel={hasLink ? "noopener noreferrer" : undefined}
+                    className={`p-4 transition-all duration-200 flex gap-3 ${
+                      hasLink ? 'cursor-pointer hover:bg-slate-100/70 group' : ''
+                    } ${
                       isUnread ? 'bg-orange-50/20 border-l-2 border-orange-500' : 'bg-white'
                     }`}
                   >
@@ -429,20 +468,21 @@ export default function NotificationBell() {
                           {formatTimeAgo(notif.createdAt)}
                         </span>
                       </div>
-                      <h5 className="font-bold text-slate-800 text-xs mt-1.5 leading-snug break-words">
+                      <h5 className={`font-bold text-slate-800 text-xs mt-1.5 leading-snug break-words ${hasLink ? 'text-blue-600 group-hover:underline flex items-center gap-1' : ''}`}>
                         {notif.title}
+                        {hasLink && <span className="text-[10px] text-blue-500">🔗</span>}
                       </h5>
                       <p className="text-[11px] text-slate-600 mt-1 leading-relaxed break-words">
                         {notif.body}
                       </p>
                     </div>
-                  </div>
+                  </CardElement>
                 );
               })
             )}
           </div>
 
-          {/* Footer View all / Quick Clear indicator & Test Diagnostics */}
+          {/* Footer View all / Quick Clear indicator & Clear Options */}
           <div className="p-3 bg-slate-50 border-t border-gray-100 flex flex-col gap-2.5 px-4">
             <div className="flex justify-between items-center">
               <span className="text-[10px] text-slate-400">
@@ -460,11 +500,12 @@ export default function NotificationBell() {
             </div>
 
             <button
-              onClick={triggerTestNotification}
-              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-extrabold py-2 px-3 rounded-xl border border-blue-100 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              onClick={handleClearNotifications}
+              className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-extrabold py-2 px-3 rounded-xl border border-rose-100 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               type="button"
             >
-              🚀 ટેસ્ટ પુશ એલર્ટ (Test Live Push)
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>🧹 બધા નોટિફિકેશન સાફ કરો (Clear All)</span>
             </button>
           </div>
 

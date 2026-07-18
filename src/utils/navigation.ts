@@ -2,9 +2,10 @@
  * Simple routing helper for clean URLs without React Router
  */
 
-export const navigateToPost = (post: { id: string; slug?: string }) => {
+export const navigateToPost = (post: { id: string; slug?: string; category?: string }) => {
   const targetSlug = post.slug && post.slug.trim() !== '' ? post.slug.trim() : post.id;
-  const url = `/post/${targetSlug}`;
+  const category = post.category || 'job';
+  const url = `/${category}/${targetSlug}/`;
   window.history.pushState({}, '', url);
   window.dispatchEvent(new Event('popstate'));
   window.scrollTo(0, 0);

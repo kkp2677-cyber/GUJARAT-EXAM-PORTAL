@@ -11,14 +11,18 @@ import AdminPanel from './components/AdminPanel';
 import NotificationBell from './components/NotificationBell';
 import BlogCategoryView from './components/BlogCategoryView';
 import BlogPostDetail from './components/BlogPostDetail';
+import ExamInstructionsModal from './components/ExamInstructionsModal';
+import StaticPage from './components/StaticPage';
 import { navigateToHome, navigateToCategory, navigateToSection, navigateToPost } from './utils/navigation';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [currentSection, setCurrentSection] = useState<'home' | 'leaderboard' | 'dashboard' | 'admin' | 'auth' | 'blog' | 'age_calculator'>('home');
+  const [currentSection, setCurrentSection] = useState<'home' | 'leaderboard' | 'dashboard' | 'admin' | 'auth' | 'blog' | 'age_calculator' | 'static_page'>('home');
+  const [activeStaticPageKey, setActiveStaticPageKey] = useState<'about' | 'privacy' | 'terms' | 'disclaimer' | 'refund'>('about');
   const [selectedBlogCategory, setSelectedBlogCategory] = useState<'job' | 'answer_key' | 'result' | 'selection_list' | 'news'>('job');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
+  const [examToConfirm, setExamToConfirm] = useState<Exam | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [examResultView, setExamResultView] = useState(false);
   const [activeBlogPost, setActiveBlogPost] = useState<BlogPost | null>(null);
@@ -26,7 +30,77 @@ export default function App() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [subStatus, setSubStatus] = useState<any>(null);
   const [paymentLoading, setPaymentLoading] = useState<'monthly' | 'yearly' | null>(null);
-  const [sessionError, setSessionError] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    const isAlreadyInstalled = localStorage.getItem('pwa_installed') === 'true';
+    const isDismissed = sessionStorage.getItem('pwa_install_dismissed') === 'true';
+
+    if (isStandalone || isAlreadyInstalled) {
+      localStorage.setItem('pwa_installed', 'true');
+      setShowInstallBanner(false);
+      return;
+    }
+
+    // Check if the app is already installed using the getInstalledRelatedApps API
+    if ('getInstalledRelatedApps' in navigator) {
+      (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
+        if (relatedApps && relatedApps.length > 0) {
+          localStorage.setItem('pwa_installed', 'true');
+          setShowInstallBanner(false);
+        }
+      }).catch(() => {});
+    }
+
+    // iOS check since iOS doesn't fire beforeinstallprompt but can be installed manually
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS && !isDismissed) {
+      setShowInstallBanner(true);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      if (!isDismissed && localStorage.getItem('pwa_installed') !== 'true') {
+        setShowInstallBanner(true);
+      }
+    };
+
+    const handleAppInstalled = () => {
+      localStorage.setItem('pwa_installed', 'true');
+      setShowInstallBanner(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert("તમારા બ્રાઉઝરમાં ઇન્સ્ટોલ કરવા માટે: બ્રાઉઝરના સેટિંગ્સ મેનૂ (ત્રણ ટપકાં) પર ક્લિક કરો અને 'Add to Home screen' અથવા 'Install App' પસંદ કરો.");
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User choice outcome: ${outcome}`);
+    if (outcome === 'accepted') {
+      localStorage.setItem('pwa_installed', 'true');
+    }
+    setDeferredPrompt(null);
+    setShowInstallBanner(false);
+  };
+
+  const handleDismissBanner = () => {
+    sessionStorage.setItem('pwa_install_dismissed', 'true');
+    setShowInstallBanner(false);
+  };
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme');
     return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
@@ -50,6 +124,8 @@ export default function App() {
     script.async = true;
     document.body.appendChild(script);
   }, []);
+
+
 
   useEffect(() => {
     const stored = localStorage.getItem('exam_user');
@@ -101,20 +177,50 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const handleSessionError = () => {
-      setSessionError(true);
+    const handleOpenAuth = (e: Event) => {
+      const mode = (e as CustomEvent).detail || 'register';
+      setAuthMode(mode);
+      navigateToSection('auth');
     };
-    window.addEventListener('session-error', handleSessionError);
+    window.addEventListener('open-auth', handleOpenAuth);
     return () => {
-      window.removeEventListener('session-error', handleSessionError);
+      window.removeEventListener('open-auth', handleOpenAuth);
     };
   }, []);
 
   // URL router state-synchronizer
   const handleUrlRouting = async () => {
     const path = window.location.pathname;
+    const segments = path.split('/').filter(Boolean);
+    const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
     
-    if (path.startsWith('/post/')) {
+    if (segments.length === 2 && validCategories.includes(segments[0])) {
+      const category = segments[0];
+      const slug = decodeURIComponent(segments[1]);
+      if (slug) {
+        setLoadingPost(true);
+        setCurrentSection('blog');
+        try {
+          const res = await fetch(`/api/posts/slug/${encodeURIComponent(slug)}`);
+          if (res.ok) {
+            const postData = await res.json();
+            setActiveBlogPost(postData);
+            setSelectedBlogCategory(category as any);
+            setCurrentSection('blog');
+          } else {
+            console.error('Failed to load post by slug:', slug);
+            setActiveBlogPost(null);
+            setCurrentSection('home');
+          }
+        } catch (err) {
+          console.error('Error fetching post:', err);
+          setActiveBlogPost(null);
+          setCurrentSection('home');
+        } finally {
+          setLoadingPost(false);
+        }
+      }
+    } else if (path.startsWith('/post/')) {
       const slug = decodeURIComponent(path.substring(6)); // Get the part after "/post/"
       if (slug) {
         setLoadingPost(true);
@@ -124,7 +230,10 @@ export default function App() {
           if (res.ok) {
             const postData = await res.json();
             setActiveBlogPost(postData);
+            setSelectedBlogCategory(postData.category || 'job');
             setCurrentSection('blog');
+            // Redirect / rewrite URL in address bar to new category permalink structure
+            window.history.replaceState({}, '', `/${postData.category || 'job'}/${slug}/`);
           } else {
             console.error('Failed to load post by slug:', slug);
             setActiveBlogPost(null);
@@ -165,6 +274,26 @@ export default function App() {
     } else if (path === '/auth') {
       setActiveBlogPost(null);
       setCurrentSection('auth');
+    } else if (path === '/about' || path === '/about/') {
+      setActiveBlogPost(null);
+      setActiveStaticPageKey('about');
+      setCurrentSection('static_page');
+    } else if (path === '/privacy' || path === '/privacy/') {
+      setActiveBlogPost(null);
+      setActiveStaticPageKey('privacy');
+      setCurrentSection('static_page');
+    } else if (path === '/terms' || path === '/terms/') {
+      setActiveBlogPost(null);
+      setActiveStaticPageKey('terms');
+      setCurrentSection('static_page');
+    } else if (path === '/disclaimer' || path === '/disclaimer/') {
+      setActiveBlogPost(null);
+      setActiveStaticPageKey('disclaimer');
+      setCurrentSection('static_page');
+    } else if (path === '/refund' || path === '/refund/') {
+      setActiveBlogPost(null);
+      setActiveStaticPageKey('refund');
+      setCurrentSection('static_page');
     } else if (path === '/age_calculator') {
       setActiveBlogPost(null);
       setCurrentSection('age_calculator');
@@ -186,6 +315,14 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentSection, selectedBlogCategory, activeBlogPost]);
+
+  const handleNavigateToStaticPage = (key: 'about' | 'privacy' | 'terms' | 'disclaimer' | 'refund') => {
+    setActiveStaticPageKey(key);
+    setCurrentSection('static_page');
+    window.history.pushState({}, '', `/${key}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsMobileMenuOpen(false);
+  };
 
   const handleAuthSuccess = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -313,7 +450,7 @@ export default function App() {
       if (!res.ok) throw new Error('કસોટી ડેટા લાવવામાં ભૂલ.');
       const examData = await res.json();
       setExamResultView(false);
-      setActiveExam(examData);
+      setExamToConfirm(examData);
       window.scrollTo(0, 0);
     } catch (err: any) {
       alert(err.message);
@@ -329,27 +466,34 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between font-sans text-gray-800 selection:bg-blue-600 selection:text-white">
       
-      {sessionError && (
-        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-sans text-sm shadow-md sticky top-0 z-50 border-b border-orange-700">
-          <div className="w-full max-w-full px-4 sm:px-6 lg:px-12 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-xl shrink-0">⚠️</span>
-              <p className="font-semibold leading-snug">
-                <strong>કૂકીઝ/સેશન સમસ્યા (Cookie/Session issue):</strong> આઇફ્રેમ સિક્યોરિટીને કારણે મોક ટેસ્ટ કે ડેટા લોડ કરવામાં સમસ્યા છે. આ પોર્ટલને યોગ્ય રીતે વાપરવા માટે, કૃપા કરીને નીચે આપેલ બટનથી તેને નવા ટેબમાં ખોલો.
-              </p>
-            </div>
-            <div className="flex gap-2 shrink-0">
+      {showInstallBanner && (
+        <div className="bg-[#C8D7FF] text-slate-900 border-b-2 border-[#0D95FF] shadow-sm relative z-50 transition-all font-sans">
+          <div className="w-full max-w-full px-4 sm:px-6 lg:px-12 py-3 flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <button
-                onClick={() => window.open('https://competitive-exam-portals.ai.studio/', '_blank')}
-                className="bg-white text-orange-700 hover:bg-slate-100 font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer shadow-sm"
+                onClick={handleDismissBanner}
+                className="text-slate-700 hover:text-slate-950 p-1.5 hover:bg-slate-950/10 rounded-full transition-colors cursor-pointer shrink-0"
+                title="Dismiss"
+                id="pwa-dismiss-button"
               >
-                નવા ટેબમાં ખોલો 🚀
+                <X className="h-5 w-5" />
               </button>
+              <div className="flex flex-col min-w-0">
+                <p className="font-extrabold text-xs sm:text-sm md:text-base tracking-tight leading-snug text-slate-950 flex items-center gap-2">
+                  App ઇન્સ્ટોલ કરો 📱
+                </p>
+                <p className="text-[11px] sm:text-xs md:text-sm text-slate-800 font-medium leading-normal mt-0.5">
+                  ઝડપી, સુરક્ષિત અને શ્રેષ્ઠ ટેસ્ટ અનુભવ માટે પરીક્ષા પોર્ટલ એપ્લિકેશન ડાઉનલોડ કરો.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 flex items-center">
               <button
-                onClick={() => window.open(window.location.href, '_blank')}
-                className="bg-orange-800 hover:bg-orange-900 text-white font-semibold text-xs px-3 py-2 rounded-xl active:scale-95 transition-all cursor-pointer shadow-sm border border-orange-600/30"
+                onClick={handleInstallClick}
+                className="bg-[#0D95FF] hover:bg-[#0084ff] text-white font-extrabold text-xs md:text-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl active:scale-95 transition-all cursor-pointer shadow-lg shadow-blue-500/20"
+                id="pwa-install-button"
               >
-                ડાયરેક્ટ લીંક
+                Install
               </button>
             </div>
           </div>
@@ -631,6 +775,7 @@ export default function App() {
                 >
                   🔖 સેવ કરેલા પ્રશ્નો (Bookmarks)
                 </button>
+
                 <button
                   onClick={() => {
                     setShowPaywall(true);
@@ -729,7 +874,7 @@ export default function App() {
       </header>
 
       {/* MAIN APPLICATION CANVAS CONTENT */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
+      <main className={`max-w-7xl mx-auto ${(currentSection === 'blog' && activeBlogPost) || currentSection === 'static_page' ? 'px-0 py-4 sm:px-6 lg:px-8 sm:py-10' : 'px-4 sm:px-6 lg:px-8 py-10'} flex-grow w-full`}>
         {activeExam ? (
           <ExamEngine 
             exam={activeExam} 
@@ -894,13 +1039,20 @@ export default function App() {
                 </div>
               )
             )}
+
+            {currentSection === 'static_page' && (
+              <StaticPage 
+                pageKey={activeStaticPageKey}
+                onNavigateHome={() => navigateToHome()}
+              />
+            )}
           </>
         )}
       </main>
 
       {/* FOOTER BAR */}
       <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 mt-16 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start border-b border-slate-800 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start border-b border-slate-800 pb-8">
           <div className="space-y-4">
             <h3 className="text-white text-lg font-bold font-sans flex items-center gap-3">
               <img 
@@ -924,7 +1076,16 @@ export default function App() {
               <button onClick={() => navigateToCategory('selection_list')} className="text-left hover:text-white transition-colors cursor-pointer">📋 સિલેક્શન લિસ્ટ</button>
               <button onClick={() => navigateToCategory('news')} className="text-left hover:text-white transition-colors cursor-pointer">📰 સમાચાર</button>
               <button onClick={() => navigateToSection("age_calculator")} className="text-left hover:text-white transition-colors cursor-pointer">🎂 ઉંમર ગણતરી (Age Calculator)</button>
-
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h4 className="text-white text-sm font-bold tracking-wide uppercase">મહત્વપૂર્ણ નીતિઓ</h4>
+            <div className="flex flex-col gap-2 text-sm text-slate-400 text-left">
+              <button onClick={() => handleNavigateToStaticPage('about')} className="text-left hover:text-white transition-colors cursor-pointer">ℹ️ અમારા વિશે (About Us)</button>
+              <button onClick={() => handleNavigateToStaticPage('privacy')} className="text-left hover:text-white transition-colors cursor-pointer">🛡️ પ્રાઇવસી પોલિસી</button>
+              <button onClick={() => handleNavigateToStaticPage('terms')} className="text-left hover:text-white transition-colors cursor-pointer">📜 નિયમો અને શરતો</button>
+              <button onClick={() => handleNavigateToStaticPage('disclaimer')} className="text-left hover:text-white transition-colors cursor-pointer">⚠️ ડિસ્ક્લેમર (Disclaimer)</button>
+              <button onClick={() => handleNavigateToStaticPage('refund')} className="text-left hover:text-white transition-colors cursor-pointer">🔄 રીફંડ પોલિસી</button>
             </div>
           </div>
           <div className="space-y-4">
@@ -943,7 +1104,7 @@ export default function App() {
                 <span>info@Sapex.in</span>
               </div>
               <hr className="border-slate-700 my-2" />
-              <p>© ૨૦૨૬ ગુજરાત પરીક્ષા પોર્ટલ. સર્વાધિકાર સુરક્ષિત.</p>
+              <p>© ૨૦૨૬ ગુજરાત પરીક્ષા પોર્ટલ. All Rights Reserved.</p>
             </div>
           </div>
         </div>
@@ -1030,6 +1191,19 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {examToConfirm && (
+        <ExamInstructionsModal
+          exam={examToConfirm}
+          onConfirm={() => {
+            setActiveExam(examToConfirm);
+            setExamToConfirm(null);
+          }}
+          onCancel={() => {
+            setExamToConfirm(null);
+          }}
+        />
       )}
 
       </footer>

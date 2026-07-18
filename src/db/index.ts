@@ -65,8 +65,8 @@ export const getDbConfig = () => {
     password,
     database,
     connectionTimeoutMillis: 15000,
-    idleTimeoutMillis: 2000, // Short idle timeout to prune dead connections before container freeze
-    max: 10, // Optimize maximum pool size to reduce potential connection count
+    idleTimeoutMillis: 15000, // Balanced idle timeout to reduce connection churn while still pruning dead sockets
+    max: 15, // Optimize maximum pool size to support simultaneous requests
     keepAlive: true, // Enable TCP Keep-Alive
     keepAliveInitialDelayMillis: 10000, // Delay before sending the first keep-alive packet
   };
@@ -101,7 +101,7 @@ function enrichError(err: any): any {
 const originalPoolQuery = pool.query;
 pool.query = async function (this: any, ...args: any[]) {
   let lastErr: any;
-  const retries = 5;
+  const retries = 10;
   for (let i = 0; i <= retries; i++) {
     try {
       // In pg, pool.query can be callback-based, but Drizzle and our code always use promise-based/async/await.
@@ -120,8 +120,8 @@ pool.query = async function (this: any, ...args: any[]) {
                           errMsg.includes('query failed') ||
                           errMsg.includes('ECONNRESET');
       if (isTransient && i < retries) {
-        const delay = 1000 * Math.pow(2, i); // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-        console.warn(`[DB Pool Retry] Query failed (attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms... Error:`, errMsg);
+        const delay = Math.min(100 * Math.pow(1.8, i), 3000); // Exponential backoff up to 3 seconds max delay
+        console.log(`[DB Pool Retry] Automatic reconnection check (attempt ${i + 1}/${retries + 1}) in ${Math.round(delay)}ms. Reason: socket refresh.`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
@@ -136,32 +136,11 @@ function patchClient(client: any) {
     client._patchedQuery = true;
     const originalClientQuery = client.query;
     client.query = async function (this: any, ...cArgs: any[]) {
-      let lastErr: any;
-      const retries = 15;
-      const delay = 50;
-      for (let i = 0; i <= retries; i++) {
-        try {
-          return await originalClientQuery.apply(this, cArgs as any);
-        } catch (err: any) {
-          lastErr = err;
-          const errMsg = String(err.message || err);
-          const isTransient = errMsg.includes('Connection terminated') ||
-                              errMsg.includes('unexpectedly') ||
-                              errMsg.includes('terminated') ||
-                              errMsg.includes('closed') ||
-                              errMsg.includes('timeout') ||
-                              errMsg.includes('socket') ||
-                              errMsg.includes('Failed query') ||
-                              errMsg.includes('query failed');
-          if (isTransient && i < retries) {
-            console.warn(`[DB Client Retry] Query failed (attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms... Error:`, errMsg);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            continue;
-          }
-          throw enrichError(err);
-        }
+      try {
+        return await originalClientQuery.apply(this, cArgs as any);
+      } catch (err: any) {
+        throw enrichError(err);
       }
-      throw enrichError(lastErr);
     } as any;
   }
 }
@@ -199,7 +178,7 @@ pool.on('error', (err) => {
 export const db = drizzle(pool, { schema });
 
 // Helper to execute database queries with automatic retry on transient connection drops
-export async function queryWithRetry<T>(queryFn: () => Promise<T>, retries = 12, delay = 50): Promise<T> {
+export async function queryWithRetry<T>(queryFn: () => Promise<T>, retries = 10, delay = 100): Promise<T> {
   let lastErr: any;
   for (let i = 0; i <= retries; i++) {
     try {
@@ -214,10 +193,12 @@ export async function queryWithRetry<T>(queryFn: () => Promise<T>, retries = 12,
                           errMsg.includes('timeout') ||
                           errMsg.includes('socket') ||
                           errMsg.includes('Failed query') ||
-                          errMsg.includes('query failed');
+                          errMsg.includes('query failed') ||
+                          errMsg.includes('ECONNRESET');
       if (isTransient && i < retries) {
-        console.warn(`[DB Retry] Query failed (attempt ${i + 1}/${retries + 1}). Retrying in ${delay}ms... Error:`, errMsg);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        const currentDelay = Math.min(delay * Math.pow(1.8, i), 3000);
+        console.log(`[DB Retry] Automatic recovery retry (attempt ${i + 1}/${retries + 1}) in ${Math.round(currentDelay)}ms.`);
+        await new Promise((resolve) => setTimeout(resolve, currentDelay));
         continue;
       }
       throw enrichError(err);

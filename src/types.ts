@@ -20,6 +20,10 @@ export interface Exam {
   type: 'mock' | 'bharti';
   questions: Question[];
   answerKeyUploaded: boolean;
+  subject?: string | null;
+  difficulty?: 'easy' | 'difficult' | string | null;
+  totalVacancies?: string | null;
+  examDate?: string | null;
 }
 
 export interface User {
@@ -69,6 +73,8 @@ export interface BlogPost {
   status?: 'draft' | 'published';
   isPinned?: boolean;
   views?: number;
+  focusKeyword?: string;
+  tags?: string;
 }
 
 export interface LeaderboardEntry {

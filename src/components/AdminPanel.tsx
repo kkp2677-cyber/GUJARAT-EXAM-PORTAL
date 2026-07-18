@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, Database } from 'lucide-react';
+import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, Database, DollarSign } from 'lucide-react';
 import { User, BlogPost, Exam, Question, PushNotification, ExamCalendarEvent } from '../types';
 import ClassicEditor from './ClassicEditor';
 import { safeFormatDate } from '../utils/date';
+import { getProxiedImageUrl } from '../utils/image';
+
+export const MOCK_TEST_SUBJECTS = [
+  'સામાન્ય જ્ઞાન',
+  'ભાષા અને વ્યાકરણ',
+  'અંગ્રેજી વ્યાકરણ',
+  'ગણિત અને તાર્કિક કસોટી',
+  'વિજ્ઞાન અને ટેકનોલોજી',
+  'કરંટ અફેર્સ',
+  'કોમ્પ્યુટર જ્ઞાન',
+  'જાહેર વહીવટ અને મનોવિજ્ઞાન'
+];
 
 export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'cms' | 'add-exam' | 'notifications' | 'calendar' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'cms' | 'add-exam' | 'notifications' | 'calendar' | 'monetization' | 'db-utility' | 'otp-integration' | 'payment-integration' | 'seo-settings'>('users');
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
   const [smsGatewayType, setSmsGatewayType] = useState('disabled');
@@ -17,6 +29,17 @@ export default function AdminPanel() {
   const [smsTwilioSid, setSmsTwilioSid] = useState('');
   const [smsTwilioAuthToken, setSmsTwilioAuthToken] = useState('');
   const [smsTwilioFrom, setSmsTwilioFrom] = useState('');
+  const [sitemapBaseUrl, setSitemapBaseUrl] = useState('');
+  const [sitemapPostsLimit, setSitemapPostsLimit] = useState('50000');
+  const [sitemapChangeFreq, setSitemapChangeFreq] = useState('daily');
+  const [sitemapPriority, setSitemapPriority] = useState('0.8');
+  const [sitemapIncludeImages, setSitemapIncludeImages] = useState(true);
+  const [googleAnalyticsId, setGoogleAnalyticsId] = useState('');
+  const [customHeadCode, setCustomHeadCode] = useState('');
+  const [adsPostBelowHeader, setAdsPostBelowHeader] = useState('');
+  const [adsPostBelowThumb, setAdsPostBelowThumb] = useState('');
+  const [adsPostAboveRelated, setAdsPostAboveRelated] = useState('');
+  const [adsSidebarBottom, setAdsSidebarBottom] = useState('');
   const [settingsMsg, setSettingsMsg] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -83,6 +106,12 @@ export default function AdminPanel() {
   });
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // States for DB Utility
+  const [sqlCommand, setSqlCommand] = useState('');
+  const [sqlResult, setSqlResult] = useState<any>(null);
+  const [dbStatus, setDbStatus] = useState<{connected: boolean, error?: string} | null>(null);
+  const [dbInfo, setDbInfo] = useState<any>(null);
 
   // States for CMS
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -97,6 +126,8 @@ export default function AdminPanel() {
     slug: string;
     status: 'draft' | 'published';
     isPinned: boolean;
+    focusKeyword: string;
+    tags: string;
   }>({
     category: 'job',
     title: '',
@@ -106,9 +137,117 @@ export default function AdminPanel() {
     metaDesc: '',
     slug: '',
     status: 'published',
-    isPinned: false
+    isPinned: false,
+    focusKeyword: '',
+    tags: ''
   });
   const [currentPostId, setCurrentPostId] = useState<string | null>(null);
+
+  // States for Static Pages Management
+  const [cmsSubTab, setCmsSubTab] = useState<'posts' | 'static-pages'>('posts');
+  const [selectedStaticPage, setSelectedStaticPage] = useState<'about' | 'privacy' | 'terms' | 'disclaimer' | 'refund'>('about');
+  const [staticPageEditorContent, setStaticPageEditorContent] = useState('');
+
+  const DEFAULT_STATIC_PAGES = {
+    about: `<h3>અમારા વિશે (About Us)</h3>
+<p>અમારી આ ઓફિશિયલ શૈક્ષણિક અને જોબ અપડેટ પોર્ટલ પર આપનું હાર્દિક સ્વાગત છે.</p>
+<p>અમારો મુખ્ય ઉદ્દેશ્ય ગુજરાતના તમામ વિદ્યાર્થીઓ અને નોકરીની તૈયારી કરતા ઉમેદવારો સુધી સાચી, સચોટ અને સમયસર માહિતી પહોંચાડવાનો છે. અમે ગુજરાત ગૌણ સેવા પસંદગી મંડળ (GSSSB), ગુજરાત જાહેર સેવા આયોગ (GPSC), ગુજરાત માધ્યમિક અને ઉચ્ચતર માધ્યમિક શિક્ષણ બોર્ડ (GSEB), અને અન્ય વિવિધ સરકારી ભરતી બોર્ડની માહિતી પ્રદાન કરીએ છીએ.</p>
+<h4>અમારું લક્ષ્ય (Our Mission)</h4>
+<p>ગુજરાતના ગ્રામીણ અને શહેરી વિસ્તારના તમામ ઉમેદવારોને સ્પર્ધાત્મક પરીક્ષાઓની પૂર્વ-તૈયારી માટે શ્રેષ્ઠ પ્લેટફોર્મ પૂરું પાડવું, જ્યાં તેઓ ઓનલાઇન મોક ટેસ્ટ આપી શકે, લેટેસ્ટ રિઝલ્ટ અને આન્સર કી જોઈ શકે અને મફત અભ્યાસ સામગ્રી મેળવી શકે.</p>
+<h3>અમે શું પ્રદાન કરીએ છીએ?</h3>
+<ul>
+  <li><strong>સરકારી ભરતીની વિગતો:</strong> તમામ નવીનતમ નોકરીઓ (Latest Jobs), ઓનલાઈન અરજી કરવાની લિંક્સ અને સત્તાવાર જાહેરાતો.</li>
+  <li><strong>ઓનલાઈન પરીક્ષા એન્જિન (Mock Tests):</strong> વિવિધ વિષયો અને પરીક્ષાઓ માટે લાઈવ મોક ટેસ્ટ અને લીડરબોર્ડ રેન્કિંગ.</li>
+  <li><strong>પરિણામો અને આન્સર કી:</strong> બોર્ડ અને યુનિવર્સિટી પરીક્ષાઓની ફાઈનલ આન્સર કી અને સત્તાવાર રીઝલ્ટની ત્વરિત લિંક્સ.</li>
+  <li><strong>અભ્યાસ સામગ્રી:</strong> પાઠ્યપુસ્તકો, મહત્વના પ્રશ્નો અને વર્તમાન પ્રવાહો (Current Affairs) ના લેટેસ્ટ અપડેટ્સ.</li>
+</ul>
+<h3>અમારો સંપર્ક કરો</h3>
+<p>જો તમારી પાસે કોઈ પ્રશ્નો, સૂચનો અથવા સહયોગ માટેના પ્રસ્તાવ હોય, તો તમે અમારા સત્તાવાર ઈમેઈલ આઈડી પર સંપર્ક કરી શકો છો. અમે તમને મદદ કરવા માટે હંમેશાં તત્પર રહીશું.</p>`,
+
+    privacy: `<h3>પ્રાઇવસી પોલિસી (Privacy Policy)</h3>
+<p>છેલ્લે અપડેટ કરેલ: જુલાઈ ૧૫, ૨૦૨૬</p>
+<p>અમે તમારા અંગત ડેટાની સુરક્ષા અને તમારી ગોપનીયતાનું સન્માન કરીએ છીએ. આ પ્રાઇવસી પોલિસી દસ્તાવેજમાં વિગતવાર દર્શાવવામાં આવ્યું છે કે જ્યારે તમે અમારી એપ્લિકેશનનો ઉપયોગ કરો છો ત્યારે કઈ માહિતી એકત્રિત કરવામાં આવે છે અને તેનો ઉપયોગ કેવી રીતે થાય છે.</p>
+<h3>૧. માહિતી એકત્રીકરણ</h3>
+<p>જ્યારે તમે અમારી એપ્લિકેશનમાં લોગઈન કરો છો અથવા ટેસ્ટ આપો છો, ત્યારે અમે નીચે મુજબની ન્યૂનતમ માહિતી એકત્રિત કરીએ છીએ:</p>
+<ul>
+  <li><strong>પ્રોફાઇલ માહિતી:</strong> તમારું નામ, ઇમેઇલ એડ્રેસ અને પ્રોફાઇલ પિક્ચર (જ્યારે તમે Google વગેરે સોશિયલ લોગઈનનો ઉપયોગ કરો છો).</li>
+  <li><strong>મોબાઈલ નંબર:</strong> વેરિફિકેશન અને એકાઉન્ટ રીકવરી હેતુ માટે (જો લાગુ હોય તો).</li>
+  <li><strong>પરીક્ષાનો સ્કોર અને પ્રગતિ:</strong> મોક ટેસ્ટમાં તમારા મેળવેલા ગુણ અને રેન્ક જેથી અમે લીડરબોર્ડ દર્શાવી શકીએ.</li>
+</ul>
+<h3>૨. માહિતીનો ઉપયોગ</h3>
+<p>અમે એકત્રિત કરેલી માહિતીનો ઉપયોગ નીચેના હેતુઓ માટે કરીએ છીએ:</p>
+<ul>
+  <li>તમારી પ્રોફાઇલ અને લીડરબોર્ડ રેન્કિંગ મેનેજ કરવા માટે.</li>
+  <li>તમને મહત્વપૂર્ણ ભરતી સૂચનાઓ (Notifications) મોકલવા માટે.</li>
+  <li>એપ્લિકેશનની કામગીરી અને યુઝર અનુભવને બહેતર બનાવવા માટે.</li>
+</ul>
+<h3>૩. જાહેરાતો અને કૂકીઝ (Cookies & AdSense)</h3>
+<p>અમે આ સાઇટને મફત રાખવા માટે થર્ડ પાર્ટી જાહેરાતો (દા.ત. Google AdSense) નો ઉપયોગ કરીએ છીએ. આ જાહેરાત કંપનીઓ તમારા રુચિ આધારિત જાહેરાતો દર્શાવવા માટે કૂકીઝનો ઉપયોગ કરી શકે છે. તમે તમારા બ્રાઉઝર સેટિંગ્સમાંથી કૂકીઝને અક્ષમ કરી શકો છો.</p>
+<h3>૪. ડેટા સુરક્ષા</h3>
+<p>અમે તમારા અંગત ડેટાને અનધિકૃત ઍક્સેસથી બચાવવા માટે માનક સુરક્ષા પગલાંનો ઉપયોગ કરીએ છીએ. અમે ક્યારેય તમારો ડેટા કોઈ ત્રીજી કંપનીને વેચતા કે શેર કરતા નથી.</p>`,
+
+    terms: `<h3>નિયમો અને શરતો (Terms & Conditions)</h3>
+<p>છેલ્લે અપડેટ કરેલ: જુલાઈ ૧૫, ૨૦૨૬</p>
+<p>આ એપ્લિકેશનનો ઉપયોગ કરીને, તમે આ નિયમો અને શરતોથી બંધાયેલા રહેવા માટે સંમત થાઓ છો. જો તમે આ શરતો સાથે સંમત ન હોવ, તો કૃપા કરીને આ સેવાનો ઉપયોગ કરશો નહીં.</p>
+<h3>૧. સેવાનો ઉપયોગ</h3>
+<p>તમે આ એપ્લિકેશનનો ઉપયોગ ફક્ત તમારા વ્યક્તિગત અને બિન-વ્યાવસાયિક શૈક્ષણિક હેતુઓ માટે જ કરી શકો છો. પ્લેટફોર્મના કન્ટેન્ટને અનધિકૃત રીતે કોપી કરવી કે અન્ય કોઈ રીતે દુરુપયોગ કરવો કાયદાકીય ગુનો બને છે.</p>
+<h3>૨. યુઝર એકાઉન્ટ અને આચારસંહિતા</h3>
+<p>મોક ટેસ્ટ આપવા અને લીડરબોર્ડમાં ભાગ લેવા માટે સચોટ માહિતી આપવી જરૂરી છે. કોઈપણ પ્રકારની અનૈતિક પદ્ધતિઓનો ઉપયોગ કરી મોક ટેસ્ટમાં વધુ માર્ક્સ મેળવવાનો પ્રયાસ કરનાર યુઝરનું એકાઉન્ટ કોઈપણ પૂર્વ ચેતવણી વિના સસ્પેન્ડ કરવામાં આવશે.</p>
+<h3>૩. બૌદ્ધિક સંપદા અધિકારો (Intellectual Property)</h3>
+<p>આ એપ્લિકેશન પર ઉપલબ્ધ તમામ મટીરીયલ, લોગો, ક્વિઝ અને સોફ્ટવેર કોડ અમારી પ્રોપર્ટી છે અને કોપીરાઈટ કાયદા હેઠળ સુરક્ષિત છે.</p>
+<h3>૪. શરતોમાં ફેરફાર</h3>
+<p>અમારી પાસે કોઈપણ સમયે આ નિયમો અને શરતો બદલવાનો સંપૂર્ણ અધિકાર અનામત છે. કોઈપણ ફેરફાર અહીં તરત જ પ્રકાશિત કરવામાં આવશે.</p>`,
+
+    disclaimer: `<h3>ડિસ્ક્લેમર (Disclaimer)</h3>
+<p>⚠️ <strong>સરકારી સંગઠન સાથે અસંબંધિતતાની જાહેરાત</strong></p>
+<p>આ એપ્લિકેશન ખાનગી શૈક્ષણિક પ્લેટફોર્મ છે. આ એપ્લિકેશન કોઈ પણ સરકારી વિભાગ, સંગઠન, બોર્ડ કે સત્તાવાર સરકારી સંસ્થા સાથે સીધી કે આડકતરી રીતે સંકળાયેલી નથી.</p>
+<h3>૧. માહિતીની સચોટતા</h3>
+<p>અમારી એપ્લિકેશન પર મૂકવામાં આવતી ભરતી, પરિણામ, જીએસઈબી પરીક્ષા કે આન્સર કીની તમામ વિગતો સત્તાવાર સરકારી વેબસાઇટ્સ (જેમ કે ojas.gujarat.gov.in, gseb.org, વગેરે) અને સમાચાર માધ્યમોમાંથી એકત્રિત કરવામાં આવે છે. અમે બને એટલી સચોટ માહિતી આપવાનો પ્રયત્ન કરીએ છીએ, તેમ છતાં ઉમેદવારોને વિનંતી કે કોઈ પણ મોટી અરજી કરતાં પહેલાં સંબંધિત વિભાગની અધિકૃત વેબસાઇટની ચકાસણી જરૂર કરી લેવી. માહિતીની કોઈ પણ અસચોટતા માટે અમે જવાબદાર રહીશું નહીં.</p>
+<h3>૨. પરીક્ષાઓ અને પરિણામો</h3>
+<p>આ એપ્લિકેશનમાં પૂરી પાડવામાં આવતી મોક ટેસ્ટ માત્ર પ્રેક્ટિસ અને સ્વ-મૂલ્યાંકન માટે છે. તેમાં મેળવેલા પરિણામોને સત્તાવાર બોર્ડ કે ભરતી પરિણામો સાથે કોઈ લેવાદેવા નથી.</p>
+<h3>૩. એક્સટર્નલ લિંક્સ (External Links)</h3>
+<p>યુઝર્સની સુવિધા માટે અમે સત્તાવાર સરકારી પરિપત્રો કે જાહેરાતની PDF ફાઇલોની લિંક્સ આપીએ છીએ. આ થર્ડ-પાર્ટી વેબસાઇટ્સના કન્ટેન્ટ કે તેમની નીતિઓ માટે અમે જવાબદાર નથી.</p>`,
+
+    refund: `<h3>રીફંડ પોલિસી (Refund Policy)</h3>
+<p>છેલ્લે અપડેટ કરેલ: જુલાઈ ૧存, ૨૦૨૬</p>
+<p>અમારી એપ્લિકેશન મુખ્યત્વે તમામ મોક ટેસ્ટ અને ભરતીની માહિતી મફતમાં પ્રદાન કરવા માટે કટિબદ્ધ છે.</p>
+<h3>૧. પ્રીમિયમ ટેસ્ટ સિરીઝ અને ચૂકવણી</h3>
+<p>ભવિષ્યમાં જો કોઈ વિશિષ્ટ પ્રીમિયમ ટેસ્ટ સિરીઝ, ઓનલાઇન કોર્સ અથવા વિશિષ્ટ ઈ-પુસ્તક (e-books) માટે યુઝર પેઇડ સબ્સ્ક્રિપ્શન ખરીદે છે, તો નીચે મુજબના નિયમો લાગુ પડશે:</p>
+<ul>
+  <li><strong>ડિજિટલ કન્ટેન્ટ:</strong> અમારા તમામ ઉત્પાદનો ડિજિટલ સ્વરૂપે હોવાથી ખરીદી સફળ થયા પછી તેને રદ (Cancel) કરી શકાતી નથી.</li>
+  <li><strong>નો-રીફંડ પોલિસી:</strong> એકવાર ખરીદી લીધેલા કોર્સ અથવા સબ્સ્ક્રિપ્શનનું પેમેન્ટ કોઈપણ સંજોગોમાં પરત (Refund) કરવામાં આવશે નહીં.</li>
+</ul>
+<h3>૨. ટેકનિકલ સમસ્યાઓના કિસ્સામાં</h3>
+<p>જો તમારા બેંક ખાતામાંથી રકમ કપાઈ ગઈ હોય પરંતુ સબ્સ્ક્રિષ્ન એક્ટિવેટ ન થયું હોય, તો ચિંતા કરશો નહીં. તમે પેમેન્ટ પ્રૂફ (ટ્રાન્ઝેક્શન આઈડી અને સ્ક્રીનશોટ) સાથે અમારા સપોર્ટ ઈમેઈલ પર સંપર્ક કરી શકો છો. અમે ૨૪ થી ૪૮ કલાકમાં તમારી સમસ્યાનું નિરાકરણ લાવીશું અને કાં તો સબ્સ્ક્રિપ્શન એક્ટિવ કરીશું અથવા રકમ પરત કરવા જરૂરી સહાય કરીશું.</p>`
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem(`static_page_${selectedStaticPage}`);
+    if (stored) {
+      setStaticPageEditorContent(stored);
+    } else {
+      setStaticPageEditorContent((DEFAULT_STATIC_PAGES as any)[selectedStaticPage] || '');
+    }
+  }, [selectedStaticPage]);
+
+  const handleSaveStaticPage = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem(`static_page_${selectedStaticPage}`, staticPageEditorContent);
+    showToast('પેજ સફળતાપૂર્વક સાચવવામાં આવ્યું (Page Saved Successfully)!', 'success');
+  };
+
+  const handleResetStaticPage = () => {
+    setConfirmModal({
+      title: 'રીસેટ કરો',
+      message: 'શું તમે આ પેજને મૂળ ગુજરાતી લખાણ (Default text) માં રીસેટ કરવા માંગો છો?',
+      onConfirm: () => {
+        localStorage.removeItem(`static_page_${selectedStaticPage}`);
+        setStaticPageEditorContent((DEFAULT_STATIC_PAGES as any)[selectedStaticPage] || '');
+        showToast('પેજ મૂળ લખાણમાં રીસેટ થયું!', 'success');
+        setConfirmModal(null);
+      }
+    });
+  };
 
   const slugify = (text: string) => {
     return text
@@ -126,6 +265,10 @@ export default function AdminPanel() {
   const [examDuration, setExamDuration] = useState(60);
   const [examTotalQuestions, setExamTotalQuestions] = useState(5);
   const [examType, setExamType] = useState<'mock' | 'bharti'>('mock');
+  const [examSubject, setExamSubject] = useState('');
+  const [examDifficulty, setExamDifficulty] = useState<'easy' | 'difficult' | string>('easy');
+  const [examTotalVacancies, setExamTotalVacancies] = useState('');
+  const [examDateValue, setExamDateValue] = useState('');
   const [questionsJson, setQuestionsJson] = useState<Question[]>([]);
   const [jsonError, setJsonError] = useState('');
   const [jsonSuccess, setJsonSuccess] = useState('');
@@ -153,6 +296,51 @@ export default function AdminPanel() {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'db-utility') {
+      fetchDbStatus();
+    }
+  }, [activeTab]);
+
+  const fetchDbStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/db-utility/status', {
+        headers: { 'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}` }
+      });
+      const data = await res.json();
+      setDbStatus(data);
+      
+      if (data.connected) {
+        const resInfo = await fetch('/api/admin/db-utility/info', {
+          headers: { 'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}` }
+        });
+        const dataInfo = await resInfo.json();
+        setDbInfo(dataInfo);
+      }
+    } catch (e: any) {
+      setDbStatus({ connected: false, error: e.message });
+    }
+  };
+
+  const handleRunSql = async () => {
+    try {
+      const res = await fetch('/api/admin/db-utility/run-sql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}`
+        },
+        body: JSON.stringify({ sqlStatement: sqlCommand })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSqlResult(data.rows);
+      showToast('SQL કમાન્ડ સફળતાપૂર્વક ચાલ્યો!');
+    } catch (e: any) {
+      showToast(e.message, 'error');
+    }
+  };
+
   const fetchSettings = async () => {
     try {
       const res = await fetch('/api/admin/settings', {
@@ -176,6 +364,17 @@ export default function AdminPanel() {
       setSmsTwilioSid(data.smsTwilioSid || '');
       setSmsTwilioAuthToken(data.smsTwilioAuthToken || '');
       setSmsTwilioFrom(data.smsTwilioFrom || '');
+      setSitemapBaseUrl(data.sitemapBaseUrl || '');
+      setSitemapPostsLimit(data.sitemapPostsLimit || '50000');
+      setSitemapChangeFreq(data.sitemapChangeFreq || 'daily');
+      setSitemapPriority(data.sitemapPriority || '0.8');
+      setSitemapIncludeImages(data.sitemapIncludeImages !== false);
+      setGoogleAnalyticsId(data.googleAnalyticsId || '');
+      setCustomHeadCode(data.customHeadCode || '');
+      setAdsPostBelowHeader(data.adsPostBelowHeader || '');
+      setAdsPostBelowThumb(data.adsPostBelowThumb || '');
+      setAdsPostAboveRelated(data.adsPostAboveRelated || '');
+      setAdsSidebarBottom(data.adsSidebarBottom || '');
     } catch (err: any) {
       console.warn('Silent note: Failed to fetch settings:', err);
     }
@@ -339,7 +538,18 @@ export default function AdminPanel() {
           smsGatewayTemplate,
           smsTwilioSid,
           smsTwilioAuthToken,
-          smsTwilioFrom
+          smsTwilioFrom,
+          sitemapBaseUrl,
+          sitemapPostsLimit,
+          sitemapChangeFreq,
+          sitemapPriority,
+          sitemapIncludeImages,
+          googleAnalyticsId,
+          customHeadCode,
+          adsPostBelowHeader,
+          adsPostBelowThumb,
+          adsPostAboveRelated,
+          adsSidebarBottom
         })
       });
       if (!res.ok) throw new Error('સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.');
@@ -349,6 +559,66 @@ export default function AdminPanel() {
     } catch (err: any) {
       alert(err.message);
     }
+  };
+
+  const saveSpecificSettings = async (payload: any, successMsg: string) => {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.');
+      setSettingsMsg(successMsg);
+      setTimeout(() => setSettingsMsg(''), 4000);
+      fetchSettings();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleSaveRazorpay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveSpecificSettings({
+      razorpayKeyId,
+      razorpayKeySecret
+    }, 'રેઝરપે પેમેન્ટ સેટિંગ્સ સફળતાપૂર્વક અપડેટ થયા.');
+  };
+
+  const handleSaveSMS = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveSpecificSettings({
+      smsGatewayType,
+      smsGatewayUrl,
+      smsGatewayHeaders,
+      smsGatewayBody,
+      smsGatewayTemplate,
+      smsTwilioSid,
+      smsTwilioAuthToken,
+      smsTwilioFrom
+    }, 'એસએમએસ ગેટવે સેટિંગ્સ સફળતાપૂર્વક અપડેટ થયા.');
+  };
+
+  const handleSaveSitemap = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveSpecificSettings({
+      sitemapBaseUrl,
+      sitemapPostsLimit,
+      sitemapChangeFreq,
+      sitemapPriority,
+      sitemapIncludeImages
+    }, 'સાઇટમેપ સેટિંગ્સ સફળતાપૂર્વક અપડેટ થયા.');
+  };
+
+  const handleSaveAnalytics = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveSpecificSettings({
+      googleAnalyticsId,
+      customHeadCode
+    }, 'ગૂગલ એનાલિટિક્સ અને કસ્ટમ કોડ સફળતાપૂર્વક અપડેટ થયા.');
   };
 
   const handleExportDatabase = async () => {
@@ -431,7 +701,9 @@ export default function AdminPanel() {
         metaDesc: '',
         slug: '',
         status: 'published',
-        isPinned: false
+        isPinned: false,
+        focusKeyword: '',
+        tags: ''
       });
       fetchPosts();
     } catch (err: any) {
@@ -450,7 +722,9 @@ export default function AdminPanel() {
       metaDesc: post.metaDesc || '',
       slug: post.slug || '',
       status: post.status || 'published',
-      isPinned: !!post.isPinned
+      isPinned: !!post.isPinned,
+      focusKeyword: post.focusKeyword || '',
+      tags: post.tags || ''
     });
     setIsEditingPost(true);
   };
@@ -538,7 +812,11 @@ export default function AdminPanel() {
           totalQuestions: examTotalQuestions,
           type: examType,
           questions: questionsJson,
-          answerKeyUploaded: examType === 'mock' ? true : false // Mock has answers, Bharti key can be toggled later
+          answerKeyUploaded: examType === 'mock' ? true : false, // Mock has answers, Bharti key can be toggled later
+          subject: examType === 'mock' ? examSubject : null,
+          difficulty: examType === 'mock' ? examDifficulty : null,
+          totalVacancies: examType === 'bharti' ? examTotalVacancies : null,
+          examDate: examType === 'bharti' ? examDateValue : null
         })
       });
 
@@ -548,6 +826,10 @@ export default function AdminPanel() {
       setExamName('');
       setExamDuration(60);
       setExamType('mock');
+      setExamSubject('');
+      setExamDifficulty('easy');
+      setExamTotalVacancies('');
+      setExamDateValue('');
       setExamTotalQuestions(5);
       setQuestionsJson([]);
       setJsonSuccess('');
@@ -570,6 +852,10 @@ export default function AdminPanel() {
       setExamType(fullExam.type);
       setExamTotalQuestions(fullExam.totalQuestions);
       setQuestionsJson(fullExam.questions);
+      setExamSubject(fullExam.subject || '');
+      setExamDifficulty(fullExam.difficulty || 'easy');
+      setExamTotalVacancies(fullExam.totalVacancies || '');
+      setExamDateValue(fullExam.examDate || '');
       setJsonSuccess(`પરીક્ષાના સબમિટ કરેલ ${fullExam.questions.length} પ્રશ્નો લોડ થયા!`);
       
       const formElement = document.getElementById('exam-builder-form');
@@ -604,6 +890,10 @@ export default function AdminPanel() {
             setExamName('');
             setExamDuration(60);
             setExamType('mock');
+            setExamSubject('');
+            setExamDifficulty('easy');
+            setExamTotalVacancies('');
+            setExamDateValue('');
             setExamTotalQuestions(5);
             setQuestionsJson([]);
             setJsonSuccess('');
@@ -871,12 +1161,46 @@ export default function AdminPanel() {
           <Calendar className="h-4 w-4" /> પરીક્ષા કૅલેન્ડર (Calendar)
         </button>
         <button
-          onClick={() => setActiveTab('settings')}
+          onClick={() => {
+            setActiveTab('monetization');
+          }}
           className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
-            activeTab === 'settings' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
+            activeTab === 'monetization' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <Settings className="h-4 w-4" /> સેટિંગ
+          <DollarSign className="h-4 w-4 text-emerald-600" /> મોનેટાઈઝેશન (Monetization)
+        </button>
+        <button
+          onClick={() => setActiveTab('db-utility')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
+            activeTab === 'db-utility' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
+          }`}
+        >
+          <Database className="h-4 w-4" /> DB Utility
+        </button>
+        <button
+          onClick={() => setActiveTab('otp-integration')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
+            activeTab === 'otp-integration' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
+          }`}
+        >
+          <Send className="h-4 w-4" /> OTP Integration
+        </button>
+        <button
+          onClick={() => setActiveTab('payment-integration')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
+            activeTab === 'payment-integration' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
+          }`}
+        >
+          <CreditCard className="h-4 w-4" /> Payment Integration
+        </button>
+        <button
+          onClick={() => setActiveTab('seo-settings')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
+            activeTab === 'seo-settings' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
+          }`}
+        >
+          <Settings className="h-4 w-4" /> SEO Setting
         </button>
       </div>
 
@@ -1133,7 +1457,34 @@ export default function AdminPanel() {
         {/* TAB 2: CMS POSTS MANAGEMENT */}
         {activeTab === 'cms' && (
           <div className="space-y-8">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+            {/* CMS Sub-Tabs selector */}
+            <div className="flex border-b border-gray-150 gap-4 mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCmsSubTab('posts');
+                  setIsEditingPost(false);
+                }}
+                className={`pb-3 text-sm font-bold border-b-2 px-1 transition-all cursor-pointer ${
+                  cmsSubTab === 'posts' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                📝 હોમપેજ પોસ્ટ્સ (Home Posts)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCmsSubTab('static-pages')}
+                className={`pb-3 text-sm font-bold border-b-2 px-1 transition-all cursor-pointer ${
+                  cmsSubTab === 'static-pages' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                📄 સ્ટેટિક પેજીસ (Static Pages - Footer Links)
+              </button>
+            </div>
+
+            {cmsSubTab === 'posts' ? (
+              <>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <h3 className="text-xl font-bold text-gray-900 font-sans">બ્લોગ્સ અને નોટિફિકેશન વ્યવસ્થાપન</h3>
               {!isEditingPost && (
                 <button
@@ -1148,7 +1499,9 @@ export default function AdminPanel() {
                       metaDesc: '',
                       slug: '',
                       status: 'published',
-                      isPinned: false
+                      isPinned: false,
+                      focusKeyword: '',
+                      tags: ''
                     });
                     setIsEditingPost(true);
                   }}
@@ -1189,47 +1542,44 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  {/* Left Column (Content Editor) */}
-                  <div className="lg:col-span-3 space-y-6">
-                    {/* Title Block & Editor */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
-                      <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">પોસ્ટનું શીર્ષક (Title)</label>
-                        <input
-                          type="text"
-                          required
-                          value={postForm.title}
-                          onChange={(e) => {
-                            const newTitle = e.target.value;
-                            const oldSlugFromTitle = slugify(postForm.title);
-                            setPostForm(prev => {
-                              const updates: any = { title: newTitle };
-                              if (!prev.slug || prev.slug === oldSlugFromTitle) {
-                                updates.slug = slugify(newTitle);
-                              }
-                              return { ...prev, ...updates };
-                            });
-                          }}
-                          className="w-full px-0 py-2.5 border-b border-gray-200 focus:border-blue-500 outline-none text-xl md:text-2xl font-black text-slate-800 placeholder-slate-300 font-sans transition-colors"
-                          placeholder="અહીં શીર્ષક લખો (Enter title here)"
-                        />
-                      </div>
+                <div className="max-w-5xl mx-auto space-y-6">
+                  {/* Title Block & Editor */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">પોસ્ટનું શીર્ષક (Title)</label>
+                      <input
+                        type="text"
+                        required
+                        value={postForm.title}
+                        onChange={(e) => {
+                          const newTitle = e.target.value;
+                          const oldSlugFromTitle = slugify(postForm.title);
+                          setPostForm(prev => {
+                            const updates: any = { title: newTitle };
+                            if (!prev.slug || prev.slug === oldSlugFromTitle) {
+                              updates.slug = slugify(newTitle);
+                            }
+                            return { ...prev, ...updates };
+                          });
+                        }}
+                        className="w-full px-0 py-2.5 border-b border-gray-200 focus:border-blue-500 outline-none text-xl md:text-2xl font-black text-slate-800 placeholder-slate-300 font-sans transition-colors"
+                        placeholder="અહીં શીર્ષક લખો (Enter title here)"
+                      />
+                    </div>
 
-                      {/* Content editor */}
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">વિગતવાર સામગ્રી (Content)</label>
-                        <ClassicEditor
-                          value={postForm.content}
-                          onChange={(htmlContent) => setPostForm({ ...postForm, content: htmlContent })}
-                          placeholder="અહીં આકર્ષક અપડેટ અને તેની અંદરની પ્રક્રિયાઓ, લાયકાત કે વિગતો લખવાનું શરૂ કરો..."
-                        />
-                      </div>
+                    {/* Content editor */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">વિગતવાર સામગ્રી (Content)</label>
+                      <ClassicEditor
+                        value={postForm.content}
+                        onChange={(htmlContent) => setPostForm({ ...postForm, content: htmlContent })}
+                        placeholder="અહીં આકર્ષક અપડેટ અને તેની અંદરની પ્રક્રિયાઓ, લાયકાત કે વિગતો લખવાનું શરૂ કરો..."
+                      />
                     </div>
                   </div>
 
-                  {/* Right Column (Sidebar Settings) */}
-                  <div className="space-y-6">
+                  {/* Settings Boxes - now below editor */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Category Box */}
                     <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
                       <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide border-b border-gray-100 pb-2 flex items-center gap-1.5">
@@ -1326,7 +1676,7 @@ export default function AdminPanel() {
                         <div className="pt-1">
                           <span className="block text-[9px] uppercase font-bold text-slate-400">URL પ્રિવ્યુ:</span>
                           <span className="block text-[9px] text-blue-600 font-mono break-all leading-normal pt-0.5">
-                            https://gujaratexam.in/post/{postForm.slug}
+                            https://gujaratexam.in/{postForm.category || 'category'}/{postForm.slug}/
                           </span>
                         </div>
                       )}
@@ -1347,7 +1697,7 @@ export default function AdminPanel() {
                       {postForm.thumbnail && (
                         <div className="border border-gray-150 rounded-xl overflow-hidden bg-slate-50 aspect-video relative group">
                           <img
-                            src={postForm.thumbnail}
+                            src={getProxiedImageUrl(postForm.thumbnail, 600)}
                             alt="Preview"
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
@@ -1365,30 +1715,54 @@ export default function AdminPanel() {
                     </div>
 
                     {/* SEO Meta Box */}
-                    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3">
+                    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3 md:col-span-2">
                       <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide border-b border-gray-100 pb-2 flex items-center gap-1.5">
                         🌐 SEO મેટા ટેગ્સ (Meta Tags)
                       </h4>
-                      <div className="space-y-2">
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-0.5">SEO મેટા શીર્ષક (Meta Title)</label>
-                          <input
-                            type="text"
-                            value={postForm.metaTitle}
-                            onChange={(e) => setPostForm({ ...postForm, metaTitle: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-blue-500 outline-none text-slate-700"
-                            placeholder="નિયત કીવર્ડ્સ સાથેનું શીર્ષક"
-                          />
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">SEO મેટા શીર્ષક (Meta Title)</label>
+                            <input
+                              type="text"
+                              value={postForm.metaTitle}
+                              onChange={(e) => setPostForm({ ...postForm, metaTitle: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-blue-500 outline-none text-slate-700"
+                              placeholder="નિયત કીવર્ડ્સ સાથેનું શીર્ષક"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">SEO મેટા વર્ણન (Meta Desc)</label>
+                            <textarea
+                              rows={2}
+                              value={postForm.metaDesc}
+                              onChange={(e) => setPostForm({ ...postForm, metaDesc: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-blue-500 outline-none text-slate-700 resize-none"
+                              placeholder="પેજ વિશેનું ટૂંકું આકર્ષક વર્ણન"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-0.5">SEO મેટા વર્ણન (Meta Desc)</label>
-                          <textarea
-                            rows={2}
-                            value={postForm.metaDesc}
-                            onChange={(e) => setPostForm({ ...postForm, metaDesc: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-blue-500 outline-none text-slate-700 resize-none"
-                            placeholder="પેજ વિશેનું ટૂંકું આકર્ષક વર્ણન"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">ફોકસ કીવર્ડ (Focus Keyword) - SEO માટે</label>
+                            <input
+                              type="text"
+                              value={postForm.focusKeyword}
+                              onChange={(e) => setPostForm({ ...postForm, focusKeyword: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-blue-500 outline-none text-slate-700"
+                              placeholder="દા.ત. વન રક્ષક ભરતી ૨૦૨૬"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">ટેગ્સ (Tags) - અલ્પવિરામ (,) થી અલગ કરો</label>
+                            <input
+                              type="text"
+                              value={postForm.tags}
+                              onChange={(e) => setPostForm({ ...postForm, tags: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:border-blue-500 outline-none text-slate-700"
+                              placeholder="દા.ત. સરકારી નોકરી, નવી ભરતી, ૨૦૨૬"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1458,6 +1832,86 @@ export default function AdminPanel() {
                 ))}
               </div>
             )}
+              </>
+            ) : (
+              <div className="space-y-6">
+                <div className="border-b border-gray-100 pb-3">
+                  <h3 className="text-xl font-bold text-gray-900 font-sans">સ્ટેટિક પેજ વ્યવસ્થાપન (Static Pages CMS)</h3>
+                  <p className="text-xs text-gray-500 mt-1">વેબસાઇટના ફૂટરમાં દેખાતી લિંક્સ (જેમ કે અમારા વિશે, પ્રાઇવસી પોલિસી વગેરે) ના લખાણમાં અહીંથી ફેરફાર કરો.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {/* Left sidebar - Pages list */}
+                  <div className="lg:col-span-1 space-y-2">
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">પેજ પસંદ કરો (Select Page)</label>
+                    {[
+                      { key: 'about', name: 'અમારા વિશે (About Us)', color: 'border-blue-500 bg-blue-50/50 text-blue-700' },
+                      { key: 'privacy', name: 'પ્રાઇવસી પોલિસી (Privacy Policy)', color: 'border-emerald-500 bg-emerald-50/50 text-emerald-700' },
+                      { key: 'terms', name: 'નિયમો અને શરતો (Terms & Conditions)', color: 'border-amber-500 bg-amber-50/50 text-amber-700' },
+                      { key: 'disclaimer', name: 'ડિસ્ક્લેમર (Disclaimer)', color: 'border-purple-500 bg-purple-50/50 text-purple-700' },
+                      { key: 'refund', name: 'રીફંડ પોલિસી (Refund Policy)', color: 'border-sky-500 bg-sky-50/50 text-sky-700' }
+                    ].map((pg) => {
+                      const isSelected = selectedStaticPage === pg.key;
+                      return (
+                        <button
+                          key={pg.key}
+                          type="button"
+                          onClick={() => setSelectedStaticPage(pg.key as any)}
+                          className={`w-full text-left p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                            isSelected 
+                              ? `${pg.color} border-current shadow-sm scale-[1.02]` 
+                              : 'border-gray-250 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span>{pg.name}</span>
+                          {isSelected && <span className="text-xs">●</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Right side - Editor */}
+                  <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                    <form onSubmit={handleSaveStaticPage} className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <h4 className="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
+                          📝 {selectedStaticPage === 'about' && 'અમારા વિશે (About Us) સંપાદિત કરો'}
+                          {selectedStaticPage === 'privacy' && 'પ્રાઇવસી પોલિસી (Privacy Policy) સંપાદિત કરો'}
+                          {selectedStaticPage === 'terms' && 'નિયમો અને શરતો (Terms & Conditions) સંપાદિત કરો'}
+                          {selectedStaticPage === 'disclaimer' && 'ડિસ્ક્લેમર (Disclaimer) સંપાદિત કરો'}
+                          {selectedStaticPage === 'refund' && 'રીફંડ પોલિસી (Refund Policy) સંપાદિત કરો'}
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={handleResetStaticPage}
+                          className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors px-2 py-1 rounded bg-red-50 cursor-pointer"
+                        >
+                          મૂળ લખાણ પર લાવો (Reset to Default)
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">પેજની સામગ્રી (Page Content HTML)</label>
+                        <ClassicEditor
+                          value={staticPageEditorContent}
+                          onChange={(html) => setStaticPageEditorContent(html)}
+                          placeholder="અહીં પેજનું લખાણ લખો..."
+                        />
+                      </div>
+
+                      <div className="flex justify-end pt-3 border-t border-gray-100">
+                        <button
+                          type="submit"
+                          className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow cursor-pointer transition-colors"
+                        >
+                          સાચવો (Save Changes)
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1489,16 +1943,70 @@ export default function AdminPanel() {
                       placeholder="દા.ત. વન રક્ષક મોક ટેસ્ટ - ૧૨"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">પરીક્ષા કેટેગરી (Exam Type)</label>
-                    <select
-                      value={examType}
-                      onChange={(e) => setExamType(e.target.value as any)}
-                      className="w-full px-4 py-2.5 border bg-white rounded-xl text-sm"
-                    >
-                      <option value="mock">મોક ટેસ્ટ (Mock Test)</option>
-                      <option value="bharti">ભરતી પરીક્ષા (Bharti Exam)</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">પરીક્ષા કેટેગરી (Exam Type)</label>
+                      <select
+                        value={examType}
+                        onChange={(e) => setExamType(e.target.value as any)}
+                        className="w-full px-4 py-2.5 border bg-white rounded-xl text-sm"
+                      >
+                        <option value="mock">મોક ટેસ્ટ (Mock Test)</option>
+                        <option value="bharti">ભરતી પરીક્ષા (Bharti Exam)</option>
+                      </select>
+                    </div>
+                    {examType === 'mock' ? (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1 text-slate-700 font-extrabold">કઠિનતા સ્તર (Difficulty Level)</label>
+                          <select
+                            value={examDifficulty}
+                            onChange={(e) => setExamDifficulty(e.target.value)}
+                            className="w-full px-4 py-2.5 border bg-white rounded-xl text-sm border-slate-300 focus:border-slate-500 focus:ring-1 focus:ring-slate-500 font-semibold"
+                          >
+                            <option value="easy">Easy (સરળ)</option>
+                            <option value="difficult">Difficult (અઘરું)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1 text-blue-700 font-extrabold">વિષય પસંદ કરો (Subject)</label>
+                          <select
+                            required
+                            value={examSubject}
+                            onChange={(e) => setExamSubject(e.target.value)}
+                            className="w-full px-4 py-2.5 border bg-white rounded-xl text-sm border-blue-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold"
+                          >
+                            <option value="">-- વિષય પસંદ કરો --</option>
+                            {MOCK_TEST_SUBJECTS.map((sub) => (
+                              <option key={sub} value={sub}>{sub}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1 text-teal-700 font-extrabold">કુલ જગ્યાઓ (Total Vacancies)</label>
+                          <input
+                            type="text"
+                            value={examTotalVacancies}
+                            onChange={(e) => setExamTotalVacancies(e.target.value)}
+                            className="w-full px-4 py-2.5 border rounded-xl text-sm border-teal-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-semibold"
+                            placeholder="દા.ત. 1200+ અથવા 850"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1 text-amber-700 font-extrabold">પરીક્ષા તારીખ (Exam Date)</label>
+                          <input
+                            type="text"
+                            value={examDateValue}
+                            onChange={(e) => setExamDateValue(e.target.value)}
+                            className="w-full px-4 py-2.5 border rounded-xl text-sm border-amber-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-semibold"
+                            placeholder="દા.ત. 24/08/2026"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1688,6 +2196,40 @@ export default function AdminPanel() {
                           </div>
                         </div>
                         <h5 className="font-bold text-gray-800 text-sm leading-snug line-clamp-2 min-h-[40px]">{exam.name}</h5>
+                        
+                        {/* Custom fields based on category */}
+                        {exam.type === 'mock' ? (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {exam.subject && (
+                              <span className="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-md">
+                                🏷️ {exam.subject}
+                              </span>
+                            )}
+                            {exam.difficulty && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                exam.difficulty === 'difficult'
+                                  ? 'bg-red-50 text-red-700 border-red-100'
+                                  : 'bg-green-50 text-green-700 border-green-100'
+                              }`}>
+                                {exam.difficulty === 'difficult' ? '🔴 Difficult' : '🟢 Easy'}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {exam.totalVacancies && (
+                              <span className="text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-md">
+                                💼 જગ્યાઓ: {exam.totalVacancies}
+                              </span>
+                            )}
+                            {exam.examDate && (
+                              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md">
+                                📅 તારીખ: {exam.examDate}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-2 mt-4 text-xs text-gray-500 border-t border-gray-100/70 pt-3">
                           <div>
                             <span className="block text-[10px] uppercase text-gray-400 font-bold">સમયગાળો</span>
@@ -1745,9 +2287,9 @@ export default function AdminPanel() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Left Column: Create Notification Form */}
-              <form onSubmit={handleNotifSubmit} className="lg:col-span-6 space-y-5 bg-slate-50/50 p-6 rounded-2xl border border-gray-150">
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Create Notification Form */}
+              <form onSubmit={handleNotifSubmit} className="space-y-5 bg-slate-50/50 p-6 rounded-2xl border border-gray-150">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider">નવું નોટિફિકેશન મોકલો</h4>
                 
                 <div className="space-y-1">
@@ -1809,8 +2351,8 @@ export default function AdminPanel() {
                 </button>
               </form>
 
-              {/* Right Column: Sent Notifications list / Broadcast Log */}
-              <div className="lg:col-span-6 space-y-4">
+              {/* Broadcast Log - Now below the form */}
+              <div className="space-y-4">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider">બ્રોડકાસ્ટ હિસ્ટ્રી (Broadcast Log)</h4>
                 
                 <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
@@ -2121,56 +2663,207 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* TAB 6: PAYMENT & LOGIN GATEWAY MANAGEMENT (Settings) */}
-        {activeTab === 'settings' && (
+        {/* TAB 5.5: MONETIZATION & ADSENSE MANAGEMENT */}
+        {activeTab === 'monetization' && (
           <div className="space-y-8 animate-fade-in">
             <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
-              <Settings className="h-5 w-5 text-indigo-600" /> પેમેન્ટ અને કનેક્શન સેટિંગ્સ (Gateways)
+              <DollarSign className="h-5 w-5 text-emerald-600" /> મોનેટાઈઝેશન અને એડસેન્સ વ્યવસ્થાપન (Monetization & Ads)
             </h3>
-            
+
+            <p className="text-sm text-gray-655 leading-relaxed font-sans">
+              ગૂગલ એડસેન્સ (Google AdSense) અથવા અન્ય પબ્લિશર નેટવર્કના રિસ્પોન્સિવ એડ કોડ્સ (Responsive Ad HTML/JS Code) અહિયાં ગોઠવો.
+              સિંગલ બ્લોગ પોસ્ટ અને સાઇડબારમાં ચોક્કસ સ્થાનો પર આપમેળે જાહેરાતો સક્રિય થશે. જો કોઈ જગ્યામાં કોડ ખાલી રાખશો, તો તે સ્પેસ લેઆઉટમાં અદ્રશ્ય (Transparent) રહેશે અને જગ્યા બગડશે નહિ.
+            </p>
+
             {settingsMsg && (
-              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100 animate-pulse">
+              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100 animate-pulse font-sans">
                 {settingsMsg}
               </div>
             )}
 
             <form onSubmit={handleSaveSettings} className="space-y-8">
-              {/* Razorpay Section */}
-              <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5">
-                <div className="border-b pb-2">
-                  <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-blue-600" /> રેઝરપે પેમેન્ટ ગેટવે (Razorpay Integration)
-                  </h4>
-                  <p className="text-xs text-gray-500 mt-1">યુઝર પ્રીમિયમ સબ્સ્ક્રિપ્શન ખરીદી શકે તે માટે Razorpay API Keys સેટ કરો.</p>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Razorpay Key ID</label>
-                    <input
-                      type="text"
-                      value={razorpayKeyId}
-                      onChange={(e) => setRazorpayKeyId(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                      placeholder="rzp_test_..."
-                    />
+                {/* Placement 1: Single Post Below Header */}
+                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૧</span> સિંગલ પોસ્ટ: હેડરની નીચે
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 font-sans">પોસ્ટના મુખ્ય ટાઇટલ અને લેખકની માહિતીની બરાબર નીચે દેખાશે.</p>
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Razorpay Key Secret</label>
-                    <input
-                      type="password"
-                      value={razorpayKeySecret}
-                      onChange={(e) => setRazorpayKeySecret(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                      placeholder="Enter secret key..."
+                    <textarea
+                      value={adsPostBelowHeader}
+                      onChange={(e) => setAdsPostBelowHeader(e.target.value)}
+                      rows={6}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-mono"
+                      placeholder="<!-- Paste responsive AdSense code here -->"
                     />
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-400">સિક્રેટ કી સર્વર પર સુરક્ષિત રીતે સેવ થશે અને ક્લાયન્ટ બ્રાઉઝર પર મોકલવામાં આવશે નહીં.</p>
+
+                {/* Placement 2: Single Post Below Thumbnail */}
+                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૨</span> સિંગલ પોસ્ટ: થંબનેલ નીચે કન્ટેન્ટ પહેલા
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 font-sans">પોસ્ટના મુખ્ય ફોટો (Thumbnail) ની બરાબર નીચે અને લખાણ (Content) ની શરૂઆત પહેલા દેખાશે.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <textarea
+                      value={adsPostBelowThumb}
+                      onChange={(e) => setAdsPostBelowThumb(e.target.value)}
+                      rows={6}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-mono"
+                      placeholder="<!-- Paste responsive AdSense code here -->"
+                    />
+                  </div>
+                </div>
+
+                {/* Placement 3: Single Post Above Related Content */}
+                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૩</span> સંબંધિત અન્ય માહિતી અને સમાચારની ઉપર
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 font-sans">પોસ્ટના અંતમાં "સંબંધિત સમાચાર" અથવા "તાજા સમાચાર" સેક્શન શરૂ થાય તેની બરાબર ઉપર દેખાશે.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <textarea
+                      value={adsPostAboveRelated}
+                      onChange={(e) => setAdsPostAboveRelated(e.target.value)}
+                      rows={6}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-mono"
+                      placeholder="<!-- Paste responsive AdSense code here -->"
+                    />
+                  </div>
+                </div>
+
+                {/* Placement 4: Sidebar Bottom */}
+                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૪</span> સાઇડબારમાં સૌથી નીચે
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 font-sans">વેબસાઇટના જમણી બાજુના સાઇડબારમાં બધા વિજેટ્સની નીચે સૌથી છેલ્લે દેખાશે.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <textarea
+                      value={adsSidebarBottom}
+                      onChange={(e) => setAdsSidebarBottom(e.target.value)}
+                      rows={6}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-800 font-mono"
+                      placeholder="<!-- Paste responsive AdSense code here -->"
+                    />
+                  </div>
+                </div>
+
               </div>
 
-              {/* Flexible SMS OTP Integration */}
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div className="pt-2 font-sans">
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl text-sm flex items-center gap-2 hover:bg-emerald-700 shadow-md cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Check className="h-4 w-4" /> બધી મોનેટાઈઝેશન સેટિંગ્સ સાચવો (Save Ad Settings)
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 6: DB UTILITY */}
+        {activeTab === 'db-utility' && (
+          <div className="space-y-6 animate-fade-in">
+            <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
+              <Database className="h-5 w-5 text-indigo-600" /> ડેટાબેઝ યુટિલિટી
+            </h3>
+            
+            {/* Database Status */}
+            <div className={`p-4 border rounded-xl ${dbStatus?.connected ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+              <h4 className="font-bold mb-1">ડેટાબેઝ સ્ટેટ્સ</h4>
+              <p>{dbStatus?.connected ? '✅ ડેટાબેઝ કનેક્ટેડ છે.' : `❌ એરર: ${dbStatus?.error || 'કનેક્શન નિષ્ફળ'}`}</p>
+              
+              {dbStatus?.connected && dbInfo && (
+                <div className="mt-4 pt-4 border-t border-emerald-200">
+                  <p><strong>ડેટાબેઝ નામ :</strong> {dbInfo.dbName}</p>
+                  <div className="mt-2 space-y-3">
+                    {dbInfo.tables.map((table: any) => (
+                      <div key={table.name} className="bg-emerald-100/50 p-3 rounded-lg">
+                        <p><strong>ટેબલનું નામ :</strong> {table.name}</p>
+                        <p className="font-semibold mt-1">ટેબલના ફિલ્ડ</p>
+                        {table.columns.map((col: string, idx: number) => (
+                          <p key={col} className="text-sm">({idx + 1}) {col}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* SQL Command Runner */}
+            <div className="space-y-2">
+              <h4 className="font-bold text-gray-800">SQL કમાન્ડ ચલાવો</h4>
+              <textarea 
+                className="w-full h-32 p-3 border rounded-xl font-mono text-sm" 
+                placeholder="SELECT * FROM users LIMIT 10;"
+                value={sqlCommand}
+                onChange={(e) => setSqlCommand(e.target.value)}
+              ></textarea>
+              <button 
+                onClick={handleRunSql}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                કમાન્ડ ચલાવો
+              </button>
+            </div>
+
+            {sqlResult && (
+              <div className="mt-4 p-4 border rounded-xl bg-gray-50 overflow-auto">
+                <h4 className="font-bold mb-2">પરિણામ:</h4>
+                <pre className="text-xs font-mono">{JSON.stringify(sqlResult, null, 2)}</pre>
+              </div>
+            )}
+
+            {/* Database Export Section */}
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5 mt-6 animate-fade-in">
+              <div className="border-b pb-2">
+                <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Database className="h-4 w-4 text-emerald-600" /> ડેટાબેઝ બેકઅપ અને એક્સપોર્ટ (Database Backup & Export)
+                </h4>
+                <p className="text-xs text-gray-500 mt-1">આ એપ્લિકેશનના તમામ ટેબલ્સ (યુઝર્સ, પરીક્ષાઓ, પરિણામો, પોસ્ટ્સ, કેલેન્ડર વગેરે) નો ડેટા JSON ફોર્મેટમાં ડાઉનલોડ કરો.</p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="block text-xs font-bold text-slate-700">સંપૂર્ણ એપ્લિકેશન ડેટા સેવ કરો</span>
+                  <p className="text-xs text-slate-400">બેકઅપ ફાઇલમાં તમામ યૂઝર્સ, બ્લોગ પોસ્ટ્સ અને એક્ઝામ ડેટા સમાવિષ્ટ છે.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExportDatabase}
+                  disabled={isExporting}
+                  className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download className="h-4 w-4" /> {isExporting ? 'એક્સપોર્ટ થઈ રહ્યું છે...' : 'ડેટાબેઝ ડાઉનલોડ કરો (.JSON)'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: OTP INTEGRATION */}
+        {activeTab === 'otp-integration' && (
+          <div className="space-y-8 animate-fade-in">
+            <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
+              <Send className="h-5 w-5 text-emerald-600" /> OTP Integration
+            </h3>
+            
+            {/* Flexible SMS OTP Integration */}
+            <form onSubmit={handleSaveSMS} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
                 <div className="border-b pb-2">
                   <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                     <Send className="h-4 w-4 text-emerald-600" /> મોબાઈલ વેરિફિકેશન ગેટવે (Flexible SMS OTP Integration)
@@ -2283,42 +2976,228 @@ export default function AdminPanel() {
                     )}
                   </div>
                 )}
-              </div>
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <Check className="h-3.5 w-3.5" /> એસએમએસ સેટિંગ્સ સાચવો (Save SMS Gateway)
+                  </button>
+                </div>
+              </form>
+          </div>
+        )}
 
-              <div className="pt-2">
+        {/* TAB 8: PAYMENT INTEGRATION */}
+        {activeTab === 'payment-integration' && (
+          <div className="space-y-8 animate-fade-in">
+            <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-blue-600" /> Payment Integration
+            </h3>
+            
+            {/* Razorpay Section */}
+            <form onSubmit={handleSaveRazorpay} className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5">
+              <div className="border-b pb-2">
+                <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-blue-600" /> રેઝરપે પેમેન્ટ ગેટવે (Razorpay Integration)
+                </h4>
+                <p className="text-xs text-gray-500 mt-1">યુઝર પ્રીમિયમ સબ્સ્ક્રિપ્શન ખરીદી શકે તે માટે Razorpay API Keys સેટ કરો.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Razorpay Key ID</label>
+                  <input
+                    type="text"
+                    value={razorpayKeyId}
+                    onChange={(e) => setRazorpayKeyId(e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="rzp_test_..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Razorpay Key Secret</label>
+                  <input
+                    type="password"
+                    value={razorpayKeySecret}
+                    onChange={(e) => setRazorpayKeySecret(e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="Enter secret key..."
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400">સિક્રેટ કી સર્વર પર સુરક્ષિત રીતે સેવ થશે અને ક્લાયન્ટ બ્રાઉઝર પર મોકલવામાં આવશે નહીં.</p>
+              <div className="pt-2 flex justify-end">
                 <button
                   type="submit"
-                  className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md transition-colors cursor-pointer text-sm flex items-center gap-2"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs flex items-center gap-2 cursor-pointer"
                 >
-                  <Check className="h-4 w-4" /> બધી ગેટવે સેટિંગ્સ સાચવો (Save All Settings)
+                  <Check className="h-3.5 w-3.5" /> રેઝરપે સેટિંગ્સ સાચવો (Save Razorpay)
                 </button>
               </div>
             </form>
+          </div>
+        )}
 
-            {/* Database Export Section */}
-            <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5 mt-6 animate-fade-in">
-              <div className="border-b pb-2">
-                <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <Database className="h-4 w-4 text-emerald-600" /> ડેટાબેઝ બેકઅપ અને એક્સપોર્ટ (Database Backup & Export)
-                </h4>
-                <p className="text-xs text-gray-500 mt-1">આ એપ્લિકેશનના તમામ ટેબલ્સ (યુઝર્સ, પરીક્ષાઓ, પરિણામો, પોસ્ટ્સ, કેલેન્ડર વગેરે) નો ડેટા JSON ફોર્મેટમાં ડાઉનલોડ કરો.</p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="block text-xs font-bold text-slate-700">સંપૂર્ણ એપ્લિકેશન ડેટા સેવ કરો</span>
-                  <p className="text-xs text-slate-400">બેકઅપ ફાઇલમાં તમામ યૂઝર્સ, બ્લોગ પોસ્ટ્સ અને એક્ઝામ ડેટા સમાવિષ્ટ છે.</p>
+        {/* TAB 9: SEO SETTINGS */}
+        {activeTab === 'seo-settings' && (
+          <div className="space-y-8 animate-fade-in">
+            <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
+              <Settings className="h-5 w-5 text-indigo-600" /> SEO સેટિંગ્સ (SEO Settings)
+            </h3>
+              {/* XML Sitemap Settings Card */}
+              <form onSubmit={handleSaveSitemap} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
+                <div className="border-b pb-2 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-orange-600" /> XML સાઇટમેપ સેટિંગ્સ (Sitemap Settings)
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1">ગૂગલ અને અન્ય સર્ચ એન્જિનમાં પોસ્ટ અને છબીઓને ઇન્ડેક્સ કરવા માટે સાઇટમેપ સેટ કરો.</p>
+                  </div>
+                  <a
+                    href="/sitemap.xml"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg border border-orange-200/50 self-start md:self-center transition-all shadow-xs cursor-pointer"
+                  >
+                    <Eye className="h-3 w-3" /> સાઇટમેપ ફાઇલ જુઓ (View Sitemap)
+                  </a>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleExportDatabase}
-                  disabled={isExporting}
-                  className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Download className="h-4 w-4" /> {isExporting ? 'એક્સપોર્ટ થઈ રહ્યું છે...' : 'ડેટાબેઝ ડાઉનલોડ કરો (.JSON)'}
-                </button>
-              </div>
-            </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">વેબસાઇટ બેઝ URL (Website Base URL)</label>
+                    <input
+                      type="url"
+                      value={sitemapBaseUrl}
+                      onChange={(e) => setSitemapBaseUrl(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 font-sans"
+                      placeholder="https://gujaratexam.in"
+                    />
+                    <p className="text-[10px] text-gray-400">ખાલી રાખશો તો વર્તમાન હોસ્ટ ઓટોમેટીક સેટ થશે.</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">પોસ્ટ મર્યાદા (Maximum Posts in Sitemap)</label>
+                    <input
+                      type="number"
+                      value={sitemapPostsLimit}
+                      onChange={(e) => setSitemapPostsLimit(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 font-sans"
+                      placeholder="50000"
+                      min="1"
+                    />
+                    <p className="text-[10px] text-gray-400">સાઇટમેપમાં વધુમાં વધુ કેટલી પોસ્ટ સામેલ કરવી તે નક્કી કરો (મહત્તમ ૫૦,૦૦૦).</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">ફેરફાર આવર્તન (Change Frequency)</label>
+                    <select
+                      value={sitemapChangeFreq}
+                      onChange={(e) => setSitemapChangeFreq(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 font-sans"
+                    >
+                      <option value="always">હંમેશા (Always)</option>
+                      <option value="hourly">કલાકદીઠ (Hourly)</option>
+                      <option value="daily">દૈનિક (Daily)</option>
+                      <option value="weekly">સાપ્તાહિક (Weekly)</option>
+                      <option value="monthly">માસિક (Monthly)</option>
+                      <option value="yearly">વાર્ષિક (Yearly)</option>
+                      <option value="never">ક્યારેય નહીં (Never)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">પોસ્ટ અગ્રતા (Post Priority - 0.0 to 1.0)</label>
+                    <select
+                      value={sitemapPriority}
+                      onChange={(e) => setSitemapPriority(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 font-sans"
+                    >
+                      <option value="1.0">1.0 (સર્વોચ્ચ)</option>
+                      <option value="0.9">0.9</option>
+                      <option value="0.8">0.8 (સામાન્ય પોસ્ટ)</option>
+                      <option value="0.7">0.7</option>
+                      <option value="0.6">0.6</option>
+                      <option value="0.5">0.5</option>
+                      <option value="0.4">0.4</option>
+                      <option value="0.3">0.3</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-3 flex items-center justify-between gap-4 border-t border-gray-150">
+                  <div className="space-y-0.5">
+                    <span className="block text-xs font-bold text-gray-700">થમ્બનેઇલ છબીઓ સામેલ કરો (Include Thumbnails)</span>
+                    <p className="text-[10px] text-gray-400">જ્યારે પોસ્ટમાં થમ્બનેઇલ સેટ હોય, ત્યારે તેને Google Image Sitemap નિયમો અનુસાર XML માં ઇન્ડેક્સ કરવી.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSitemapIncludeImages(!sitemapIncludeImages)}
+                    className="text-indigo-600 focus:outline-none cursor-pointer"
+                  >
+                    {sitemapIncludeImages ? (
+                      <ToggleRight className="h-8 w-8 text-indigo-600" />
+                    ) : (
+                      <ToggleLeft className="h-8 w-8 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="pt-2 flex justify-end border-t border-gray-100">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-md transition-all text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <Check className="h-3.5 w-3.5" /> સાઇટમેપ સેટિંગ્સ સાચવો (Save Sitemap)
+                  </button>
+                </div>
+              </form>
+
+              {/* Google Analytics & Custom Head Code Settings Card */}
+              <form onSubmit={handleSaveAnalytics} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
+                <div className="border-b pb-2">
+                  <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-indigo-600" /> ગૂગલ એનાલિટિક્સ અને કસ્ટમ કોડ (Google Analytics & Custom Code)
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">વેબસાઇટ મુલાકાતીઓનું ટ્રેકિંગ અને સર્ચ એન્જિન વેરિફિકેશન માટે ટ્રેકિંગ આઈડી અને વધારાનો હેડ કોડ ઉમેરો.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Google Analytics Measurement ID (G-ID)</label>
+                    <input
+                      type="text"
+                      value={googleAnalyticsId}
+                      onChange={(e) => setGoogleAnalyticsId(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 font-sans"
+                      placeholder="G-XXXXXXXXXX"
+                    />
+                    <p className="text-[10px] text-gray-400">દા.ત. G-B2E8F19Z3W. આ આઈડી ઉમેરવાથી ગૂગલ એનાલિટિક્સનું કનેક્શન આપમેળે સક્રિય થશે.</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Custom Head Code (HTML / Scripts / Meta Tags)</label>
+                    <textarea
+                      value={customHeadCode}
+                      onChange={(e) => setCustomHeadCode(e.target.value)}
+                      rows={4}
+                      className="w-full p-3 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 font-mono"
+                      placeholder="<!-- Paste your verification meta tag, CSS links or custom tracking scripts here -->"
+                    />
+                    <p className="text-[10px] text-gray-400">ગૂગલ સર્ચ કન્સોલ વેરિફિકેશન, એડસેન્સ કોડ અથવા અન્ય કોઇપણ કસ્ટમ સ્ક્રિપ્ટો સીધા જ સાઇટના &lt;head&gt; ટેગમાં ઇન્જેક્ટ કરવા માટે અહિયાં પેસ્ટ કરો.</p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end border-t border-gray-100">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <Check className="h-3.5 w-3.5" /> એનાલિટિક્સ અને કસ્ટમ કોડ સાચવો (Save Analytics)
+                  </button>
+                </div>
+              </form>
           </div>
         )}
 

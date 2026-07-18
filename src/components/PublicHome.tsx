@@ -19,7 +19,6 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
   const [exams, setExams] = useState<Exam[]>([]);
   const [examsLoading, setExamsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [sessionError, setSessionError] = useState(false);
   
   // Calendar States
   const [calendarEvents, setCalendarEvents] = useState<ExamCalendarEvent[]>([]);
@@ -45,12 +44,6 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
   useEffect(() => {
     fetch('/api/posts')
       .then(res => {
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          setSessionError(true);
-          window.dispatchEvent(new CustomEvent('session-error'));
-          throw new Error("AI Studio session issue. Received HTML instead of JSON.");
-        }
         if (!res.ok) {
           throw new Error(`HTTP error! Status: ${res.status}`);
         }
@@ -77,12 +70,6 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
     // Fetch exams
     fetch('/api/exams')
       .then(res => {
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          setSessionError(true);
-          window.dispatchEvent(new CustomEvent('session-error'));
-          throw new Error("AI Studio session issue. Received HTML instead of JSON.");
-        }
         if (!res.ok) {
           throw new Error(`HTTP error! Status: ${res.status}`);
         }
@@ -100,12 +87,6 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
     // Fetch calendar events
     fetch('/api/calendar')
       .then(res => {
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          setSessionError(true);
-          window.dispatchEvent(new CustomEvent('session-error'));
-          throw new Error("AI Studio session issue. Received HTML instead of JSON.");
-        }
         if (!res.ok) {
           throw new Error(`HTTP error! Status: ${res.status}`);
         }
@@ -203,16 +184,17 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
     return (
       <div className={`${colorClasses.bg} p-4.5 rounded-2xl border ${colorClasses.border} flex flex-col justify-between h-full hover:shadow-md transition-all duration-200`}>
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <span className={`p-2 rounded-xl ${colorClasses.badgeBg}`}>
-              <IconComponent className="h-5.5 w-5.5" />
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-150">
+            <div className="flex items-center gap-2">
+              <span className={`p-1.5 rounded-xl ${colorClasses.badgeBg}`}>
+                <IconComponent className="h-4.5 w-4.5" />
+              </span>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900">{title}</h3>
+            </div>
+            <span className={`text-xs font-extrabold ${colorClasses.text} bg-white/80 px-2 py-0.5 rounded-md border border-white/50 shadow-xs font-mono`}>
+              {totalCount}
             </span>
-            <span className={`text-[11px] font-bold ${colorClasses.text} bg-white/70 px-2.5 py-0.5 rounded-full border border-white/50 shadow-sm`}>{engTitle}</span>
           </div>
-          <h3 className="text-base font-bold text-gray-900 mb-3 border-b border-gray-150 pb-1.5 flex items-center justify-between">
-            <span>{title}</span>
-            <span className="text-[9px] bg-slate-200/50 text-slate-600 px-1.5 py-0.5 rounded font-bold font-mono">{totalCount}</span>
-          </h3>
           <div className="space-y-4 mt-2">
             {items.length === 0 ? (
               <p className="text-xs text-gray-500 py-3 text-center">ટૂંક સમયમાં ઉમેરવામાં આવશે</p>
@@ -282,22 +264,6 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
 
   return (
     <div className="space-y-10 py-2">
-      {sessionError && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm font-sans animate-pulse">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">⚠️</span>
-            <p>
-              <strong>કૂકીઝ/સેશન સમસ્યા:</strong> જો તમને અહીં પરીક્ષાઓ અથવા પોસ્ટ્સ ન દેખાય, તો કૃપા કરીને <strong>આ પેજને નવા ટેબમાં ખોલો</strong> અથવા બ્રાઉઝરમાં કૂકીઝ (Cookies) મંજૂર કરો.
-            </p>
-          </div>
-          <button
-            onClick={() => window.open(window.location.href, '_blank')}
-            className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg active:scale-95 transition-all cursor-pointer"
-          >
-            નવા ટેબમાં ખોલો
-          </button>
-        </div>
-      )}
       {/* Hero Banner Section */}
       <section className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-950 text-white p-6 md:p-10 shadow-2xl">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/10 to-transparent"></div>
@@ -343,53 +309,87 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
         ) : exams.length === 0 ? (
           <p className="text-gray-500">હાલમાં કોઈ પરીક્ષાઓ ઉપલબ્ધ નથી.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {exams.map((exam) => (
-              <div key={exam.id} className={`border rounded-2xl p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-slate-50/50 ${
-                exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
-              }`}>
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    {exam.type === 'bharti' ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                        💼 સત્તાવાર ભરતી
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
-                        📝 સામાન્ય મોક ટેસ્ટ
-                      </span>
-                    )}
-                  </div>
-                  
-                  <h4 className="font-extrabold text-gray-800 text-base leading-snug">{exam.name}</h4>
-                  <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> {exam.totalQuestions} પ્રશ્નો</span>
-                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {exam.duration} મિનિટ</span>
-                  </div>
-                  
-                  {exam.type === 'bharti' && (
-                    <div className="mt-2.5">
-                      {exam.answerKeyUploaded ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 bg-emerald-50 font-bold px-2 py-0.5 rounded-full border border-emerald-100">✔ ઓફિશિયલ આન્સર કી ઉપલબ્ધ</span>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {exams.slice(0, 4).map((exam) => (
+                <div key={exam.id} className={`border rounded-2xl p-3.5 sm:p-4 md:p-5 hover:shadow-xl transition-all flex flex-col justify-between bg-slate-50/50 ${
+                  exam.type === 'bharti' ? 'border-indigo-150 hover:border-indigo-500 shadow-sm' : 'border-blue-150 hover:border-blue-500 shadow-sm'
+                }`}>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-3 border-b border-slate-100 pb-2 w-full">
+                      {exam.type === 'bharti' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-indigo-100">
+                          💼 સત્તાવાર ભરતી
+                        </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 bg-amber-50 font-bold px-2 py-0.5 rounded-full border border-amber-100">⏳ પરિણામ બાકી (આન્સર કી અપલોડ બાકી)</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-blue-100">
+                          📝 મોક ટેસ્ટ
+                        </span>
+                      )}
+                      {exam.type === 'bharti' && exam.totalVacancies && (
+                        <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] sm:text-[10px] md:text-[11px] font-bold">
+                          <span className="bg-teal-50 text-teal-800 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border border-teal-100 flex items-center gap-1 font-sans">
+                            💼 જગ્યાઓ: <strong className="font-extrabold">{exam.totalVacancies}</strong>
+                          </span>
+                        </div>
                       )}
                     </div>
-                  )}
+                    
+                    <h4 className="font-black text-gray-800 text-lg md:text-xl leading-snug tracking-tight mb-2.5">{exam.name}</h4>
+                    <div className="flex flex-wrap gap-4 text-sm font-semibold text-gray-500 mb-3">
+                      {exam.type === 'bharti' && exam.examDate && (
+                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-slate-400" /> પરીક્ષા તારીખ: {exam.examDate}</span>
+                      )}
+                      <span className="flex items-center gap-1.5"><FileText className="h-4 w-4 text-slate-400" /> {exam.totalQuestions} પ્રશ્નો</span>
+                      <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-slate-400" /> {exam.duration} મિનિટ</span>
+                    </div>
+                    
+                    {exam.type === 'bharti' && (
+                      <div className="mt-3">
+                        {exam.answerKeyUploaded ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 font-bold px-2.5 py-1 rounded-full border border-emerald-100">✔ ઓફિશિયલ આન્સર કી ઉપલબ્ધ</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 font-bold px-2.5 py-1 rounded-full border border-amber-100">⏳ પરિણામ બાકી (આન્સર કી અપલોડ બાકી)</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={() => onGoToMockTests && onGoToMockTests()}
-                  className={`mt-4 text-white font-bold py-2 rounded-xl cursor-pointer shadow-lg active:scale-[0.98] transition-all text-sm ${
-                    exam.type === 'bharti' 
-                      ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/15' 
-                      : 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/15'
-                  }`}
-                >
-                  ડેશબોર્ડમાં ટેસ્ટ જુઓ
-                </button>
+              ))}
+            </div>
+
+            {/* Professional Banner & CTA */}
+            <div className="mt-8 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <Sparkles className="h-40 w-40" />
               </div>
-            ))}
-          </div>
+              <div className="relative z-10 space-y-2 text-center md:text-left max-w-2xl">
+                <h4 className="text-lg md:text-xl font-extrabold tracking-tight font-sans">
+                  {user ? "સફળતા તરફ એક ડગલું આગળ વધો!" : "તમારી સફળતાની શરૂઆત અહીંથી કરો!"}
+                </h4>
+                <p className="text-sm md:text-base text-indigo-100 leading-relaxed font-medium">
+                  {user 
+                    ? "અમારા પોર્ટલ પર ઓનલાઈન પરીક્ષા આપો અને તમારી તૈયારીનું સાચું મૂલ્યાંકન કરો." 
+                    : "રજીસ્ટ્રેશન કરો અને ૩ ફ્રી મોક ટેસ્ટ સાથે તમારી ક્ષમતા ચકાસો. મોડું ન કરો, હમણાં જ શરૂ કરો!"}
+                </p>
+              </div>
+              {user ? (
+                <button
+                  onClick={() => onGoToMockTests?.()}
+                  className="relative z-10 whitespace-nowrap bg-amber-500 hover:bg-amber-400 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-base font-sans"
+                >
+                  મોક ટેસ્ટ આપો
+                </button>
+              ) : (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
+                  className="relative z-10 whitespace-nowrap bg-amber-500 hover:bg-amber-400 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-base font-sans"
+                >
+                  ફ્રી ટેસ્ટ આપો
+                </button>
+              )}
+            </div>
+          </>
         )}
       </section>
 

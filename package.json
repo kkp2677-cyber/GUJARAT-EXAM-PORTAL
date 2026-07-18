@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && npx puppeteer browsers install chrome",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist db.json",
     "lint": "tsc --noEmit"
@@ -25,7 +25,6 @@
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "pg": "^8.22.0",
-    "puppeteer": "^25.3.0",
     "razorpay": "^2.9.6",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",

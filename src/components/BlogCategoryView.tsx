@@ -3,6 +3,7 @@ import { ArrowLeft, Calendar, BookOpen, Briefcase, Key, Award, FileCheck, Search
 import { BlogPost, ExamCalendarEvent } from '../types';
 import { navigateToPost } from '../utils/navigation';
 import { safeFormatDate } from '../utils/date';
+import { getProxiedImageUrl } from '../utils/image';
 
 interface BlogCategoryViewProps {
   category: 'job' | 'answer_key' | 'result' | 'selection_list' | 'news';
@@ -183,7 +184,7 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
                 {/* Thumbnail */}
                 <div className="h-44 w-full relative overflow-hidden bg-slate-100">
                   <img
-                    src={post.thumbnail || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800'}
+                    src={getProxiedImageUrl(post.thumbnail, 800) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800'}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"

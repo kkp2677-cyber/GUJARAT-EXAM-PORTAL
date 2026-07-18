@@ -27,6 +27,10 @@ export const exams = pgTable('exams', {
   type: text('type').notNull(),
   questions: jsonb('questions').notNull(), // Store questions array
   answerKeyUploaded: boolean('answer_key_uploaded').default(false),
+  subject: text('subject'),
+  difficulty: text('difficulty'),
+  totalVacancies: text('total_vacancies'),
+  examDate: text('exam_date'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -50,6 +54,8 @@ export const posts = pgTable('posts', {
   slug: text('slug').unique(),
   views: integer('views').default(0),
   date: text('date').notNull(), // ISO Date string
+  focusKeyword: text('focus_keyword'),
+  tags: text('tags'),
 });
 
 export const notifications = pgTable('notifications', {
@@ -105,5 +111,12 @@ export const leaderboardSummary = pgTable('leaderboard_summary', {
   type: text('type').notNull().unique(), // 'combined', 'mock', 'bharti'
   data: jsonb('data').notNull(), // JSON array of rankings
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const wishlist = pgTable('wishlist', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  examId: integer('exam_id').references(() => exams.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 

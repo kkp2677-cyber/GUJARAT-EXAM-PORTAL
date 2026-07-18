@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Exam, ExamHistory } from '../types';
-import { User as UserIcon, BookOpen, Clock, Calendar, MapPin, CheckCircle, FileText, Lock, RefreshCw, HelpCircle, Award, Download, LayoutDashboard, Trophy, ShieldCheck, Bookmark } from 'lucide-react';
+import { User as UserIcon, BookOpen, Clock, Calendar, MapPin, CheckCircle, FileText, Lock, RefreshCw, HelpCircle, Award, Download, LayoutDashboard, Trophy, ShieldCheck, Bookmark, Heart } from 'lucide-react';
 import { subscribeToPushNotifications } from '../utils/push';
-import { Bell, BellOff, Search } from 'lucide-react';
+import { Bell, BellOff, Search, Filter, ChevronDown, ChevronUp, SlidersHorizontal, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { BarChart2 } from 'lucide-react';
@@ -167,6 +167,10 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
   // Mock Tests Tab State
   const [mockTestSearch, setMockTestSearch] = useState('');
   const [mockTestPage, setMockTestPage] = useState(1);
+  const [examSubTab, setExamSubTab] = useState<'mock' | 'bharti'>('mock');
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [isFilterExpanded, setIsFilterExpanded] = useState<boolean>(false);
   const MOCK_TESTS_PER_PAGE = 5;
 
 
@@ -187,6 +191,11 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
   // Bookmarks State
   const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
+
+  // Wish List State
+  const [dashboardSubTab, setDashboardSubTab] = useState<'history' | 'wishlist'>('history');
+  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   const [pushStatus, setPushStatus] = useState<string>('default');
   const [pushLoading, setPushLoading] = useState(false);
@@ -264,9 +273,70 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
     }
   };
 
+  const fetchWishlist = async () => {
+    setWishlistLoading(true);
+    try {
+      const token = JSON.parse(localStorage.getItem('exam_user') || '{}')?.token;
+      const res = await fetch(`/api/user/${user.id}/wishlist`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.status === 401) {
+        window.dispatchEvent(new CustomEvent('user-blocked', { detail: 'તમારી લોગીન વિગતો અમાન્ય છે અથવા સેકશન સમાપ્ત થઈ ગઈ છે. કૃપા કરીને ફરી લોગીન કરો.' }));
+        return;
+      }
+      if (res.status === 423) {
+        window.dispatchEvent(new CustomEvent('user-blocked'));
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setWishlist(data);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching wishlist:', err);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  const handleToggleWishlist = async (examId: number) => {
+    const isSaved = wishlist.some(item => Number(item.examId) === examId);
+    const token = JSON.parse(localStorage.getItem('exam_user') || '{}')?.token;
+    if (!token) return;
+
+    try {
+      if (isSaved) {
+        const res = await fetch(`/api/user/${user.id}/wishlist/${examId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setWishlist(prev => prev.filter(item => Number(item.examId) !== examId));
+        }
+      } else {
+        const res = await fetch(`/api/user/${user.id}/wishlist`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ examId })
+        });
+        if (res.ok) {
+          fetchWishlist();
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling wishlist:', err);
+    }
+  };
+
   useEffect(() => {
     fetchExamsAndHistory();
     fetchBookmarks();
+    fetchWishlist();
   }, [user.id]);
 
   useEffect(() => {
@@ -542,6 +612,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
 
 
+
+
               <button
                 type="button"
                 onClick={() => {
@@ -782,152 +854,284 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 </div>
               )}
 
-              {/* EXAM ATTEMPT HISTORY */}
-              <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 border-b border-gray-100 pb-3 px-1">
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 font-sans">
-                    <Clock className="h-5 w-5 text-blue-600" />
+              {/* EXAM ATTEMPT HISTORY & WISHLIST TAB CONTAINER */}
+              <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 mt-6">
+                
+                {/* Modern Sub-Tab Switcher */}
+                <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-100 pb-3">
+                  <button
+                    onClick={() => setDashboardSubTab('history')}
+                    className={`flex items-center gap-2 py-2 px-4 rounded-lg font-bold text-sm transition-all cursor-pointer ${
+                      dashboardSubTab === 'history'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                        : 'text-gray-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Clock className="h-4 w-4" />
                     મારી પરીક્ષાઓનો ઇતિહાસ (Attempt History)
-                  </h3>
-                  {history.length > 0 && (
-                    <button
-                      onClick={downloadAllHistoryPDF}
-                      disabled={pdfDownloading !== null}
-                      className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all cursor-pointer shadow-sm active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
-                        pdfDownloading === 'all'
-                          ? 'bg-amber-50 text-amber-755 border-amber-200 animate-pulse'
-                          : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
-                      }`}
-                      title="બધા મોક ટેસ્ટનું પરિણામ ડાઉનલોડ કરો"
-                    >
-                      {pdfDownloading === 'all' ? (
-                        <RefreshCw className="h-4 w-4 animate-spin text-amber-600" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                      {pdfDownloading === 'all' ? 'પીડીએફ રિપોર્ટ તૈયાર થઈ રહ્યો છે...' : 'રિપોર્ટ કાર્ડ ડાઉનલોડ (PDF Summary)'}
-                    </button>
-                  )}
+                  </button>
+                  <button
+                    onClick={() => setDashboardSubTab('wishlist')}
+                    className={`flex items-center gap-2 py-2 px-4 rounded-lg font-bold text-sm transition-all cursor-pointer ${
+                      dashboardSubTab === 'wishlist'
+                        ? 'bg-red-500 text-white shadow-md shadow-red-500/10'
+                        : 'text-gray-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Heart className="h-4 w-4" />
+                    સેવ કરેલી પરીક્ષાઓ (Wish List)
+                  </button>
                 </div>
-                {examsLoading ? (
-                  <p className="text-gray-500 text-base px-1">ઇતિહાસ લોડ થઈ રહ્યો છે...</p>
-                ) : history.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    <p className="text-gray-500 text-base">તમે હજુ સુધી કોઈ પરીક્ષા આપી નથી.</p>
-                  </div>
-                ) : (
+
+                {dashboardSubTab === 'history' ? (
                   <>
-                    <div className="hidden md:block overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-50 border-y border-gray-200">
-                            <th className="py-3 px-4 font-bold text-slate-700 text-sm">પરીક્ષાનું નામ</th>
-                            <th className="py-3 px-4 font-bold text-slate-700 text-sm">તારીખ</th>
-                            <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">લીધેલ સમય</th>
-                            <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">માર્ક્સ / પરિણામ</th>
-                            <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">રિપોર્ટ</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 px-1">
+                      <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 font-sans">
+                        <Clock className="h-5 w-5 text-blue-600" />
+                        મારી પરીક્ષાઓનો ઇતિહાસ (Attempt History)
+                      </h3>
+                      {history.length > 0 && (
+                        <button
+                          onClick={downloadAllHistoryPDF}
+                          disabled={pdfDownloading !== null}
+                          className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all cursor-pointer shadow-sm active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
+                            pdfDownloading === 'all'
+                              ? 'bg-amber-50 text-amber-755 border-amber-200 animate-pulse'
+                              : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                          }`}
+                          title="બધા મોક ટેસ્ટનું પરિણામ ડાઉનલોડ કરો"
+                        >
+                          {pdfDownloading === 'all' ? (
+                            <RefreshCw className="h-4 w-4 animate-spin text-amber-600" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          {pdfDownloading === 'all' ? 'પીડીએફ રિપોર્ટ તૈયાર થઈ રહ્યો છે...' : 'રિપોર્ટ કાર્ડ ડાઉનલોડ (PDF Summary)'}
+                        </button>
+                      )}
+                    </div>
+                    {examsLoading ? (
+                      <p className="text-gray-500 text-base px-1">ઇતિહાસ લોડ થઈ રહ્યો છે...</p>
+                    ) : history.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        <p className="text-gray-500 text-base">તમે હજુ સુધી કોઈ પરીક્ષા આપી નથી.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 border-y border-gray-200">
+                                <th className="py-3 px-4 font-bold text-slate-700 text-sm">પરીક્ષાનું નામ</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 text-sm">તારીખ</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">લીધેલ સમય</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">માર્ક્સ / પરિણામ</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">રિપોર્ટ</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {history.map((h) => (
+                                <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="py-3.5 px-4 font-bold text-gray-800 text-sm">{h.examName}</td>
+                                  <td className="py-3.5 px-4 text-gray-600 text-sm">{safeFormatDate(h.submittedAt)}</td>
+                                  <td className="py-3.5 px-4 font-mono font-bold text-gray-600 text-sm text-center">{h.timeTaken}</td>
+                                  <td className="py-3.5 px-4 text-center">
+                                    {h.marksObtained !== null ? (
+                                      <span className="font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100 text-sm">
+                                        {h.marksObtained} / {h.totalMarks}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
+                                        ⏳ પરિણામ બાકી
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-center">
+                                    {h.marksObtained !== null ? (
+                                      <button
+                                        onClick={() => downloadSingleTestPDF(h)}
+                                        disabled={pdfDownloading !== null}
+                                        className={`inline-flex items-center gap-1.5 text-xs font-black py-2 px-3 rounded-xl border transition-all cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
+                                          pdfDownloading === String(h.id)
+                                            ? 'bg-amber-50 text-amber-755 border-amber-200 animate-pulse'
+                                            : 'bg-blue-50 hover:bg-blue-100 text-blue-755 border-blue-200'
+                                        }`}
+                                      >
+                                        {pdfDownloading === String(h.id) ? (
+                                          <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
+                                        ) : (
+                                          <Download className="h-3.5 w-3.5" />
+                                        )}
+                                        {pdfDownloading === String(h.id) ? 'તૈયાર થાય છે...' : 'PDF'}
+                                      </button>
+                                    ) : (
+                                      <span className="text-xs text-gray-400 font-medium">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {/* Mobile View Card List */}
+                        <div className="block md:hidden space-y-3">
                           {history.map((h) => (
-                            <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-3.5 px-4 font-bold text-gray-800 text-sm">{h.examName}</td>
-                              <td className="py-3.5 px-4 text-gray-600 text-sm">{safeFormatDate(h.submittedAt)}</td>
-                              <td className="py-3.5 px-4 font-mono font-bold text-gray-600 text-sm text-center">{h.timeTaken}</td>
-                              <td className="py-3.5 px-4 text-center">
-                                {h.marksObtained !== null ? (
-                                  <span className="font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100 text-sm">
-                                    {h.marksObtained} / {h.totalMarks}
-                                  </span>
-                                ) : (
-                                  <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
-                                    ⏳ પરિણામ બાકી
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-3.5 px-4 text-center">
+                            <div key={h.id} className="bg-white border border-gray-150 rounded-xl p-4 space-y-3 shadow-sm">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-extrabold text-[16px] text-gray-850 leading-snug">{h.examName}</h4>
+                                <div className="shrink-0">
+                                  {h.marksObtained !== null ? (
+                                    <span className="font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 text-sm">
+                                      {h.marksObtained} / {h.totalMarks}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                                      ⏳ પરિણામ બાકી
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 border-t border-b border-gray-100 py-2">
+                                <div>
+                                  <span className="text-gray-400 font-bold block text-[10px] uppercase">તારીખ:</span>
+                                  <span className="font-semibold text-gray-700 text-xs md:text-sm">{safeFormatDate(h.submittedAt)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 font-bold block text-[10px] uppercase">લીધેલ સમય:</span>
+                                  <span className="font-mono font-bold text-gray-700 text-xs md:text-sm">{h.timeTaken}</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-end pt-1">
                                 {h.marksObtained !== null ? (
                                   <button
                                     onClick={() => downloadSingleTestPDF(h)}
                                     disabled={pdfDownloading !== null}
-                                    className={`inline-flex items-center gap-1.5 text-xs font-black py-2 px-3 rounded-xl border transition-all cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
+                                    className={`w-full inline-flex items-center justify-center gap-1.5 text-sm font-black py-2.5 px-4 rounded-xl border transition-all cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
                                       pdfDownloading === String(h.id)
                                         ? 'bg-amber-50 text-amber-750 border-amber-200 animate-pulse'
-                                        : 'bg-blue-50 hover:bg-blue-100 text-blue-750 border-blue-200'
+                                        : 'bg-blue-50 hover:bg-blue-100 text-blue-755 border-blue-200'
                                     }`}
                                   >
                                     {pdfDownloading === String(h.id) ? (
-                                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
+                                      <RefreshCw className="h-4 w-4 animate-spin text-amber-600" />
                                     ) : (
-                                      <Download className="h-3.5 w-3.5" />
+                                      <Download className="h-4 w-4" />
                                     )}
-                                    {pdfDownloading === String(h.id) ? 'તૈયાર થાય છે...' : 'PDF'}
+                                    {pdfDownloading === String(h.id) ? 'પીડીએફ જનરેટ થઈ રહી છે...' : 'ડાઉનલોડ રીઝલ્ટ (PDF)'}
                                   </button>
                                 ) : (
-                                  <span className="text-xs text-gray-400 font-medium">-</span>
+                                  <p className="text-xs text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 text-center w-full leading-relaxed font-bold">
+                                    ⚠️ ઓફિશિયલ અંસાર કી બહાર પાડ્યા બાદ માર્ક્સ દેખાશે
+                                  </p>
                                 )}
-                              </td>
-                            </tr>
+                              </div>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {/* Mobile View Card List */}
-                    <div className="block md:hidden space-y-3">
-                      {history.map((h) => (
-                        <div key={h.id} className="bg-white border border-gray-150 rounded-xl p-4 space-y-3 shadow-sm">
-                          <div className="flex justify-between items-start">
-                            <h4 className="font-extrabold text-[16px] text-gray-850 leading-snug">{h.examName}</h4>
-                            <div className="shrink-0">
-                              {h.marksObtained !== null ? (
-                                <span className="font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 text-sm">
-                                  {h.marksObtained} / {h.totalMarks}
-                                </span>
-                              ) : (
-                                <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
-                                  ⏳ પરિણામ બાકી
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 border-t border-b border-gray-100 py-2">
-                            <div>
-                              <span className="text-gray-400 font-bold block text-[10px] uppercase">તારીખ:</span>
-                              <span className="font-semibold text-gray-700 text-xs md:text-sm">{safeFormatDate(h.submittedAt)}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-400 font-bold block text-[10px] uppercase">લીધેલ સમય:</span>
-                              <span className="font-mono font-bold text-gray-700 text-xs md:text-sm">{h.timeTaken}</span>
-                            </div>
-                          </div>
-                          <div className="flex justify-end pt-1">
-                            {h.marksObtained !== null ? (
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6 px-1 font-sans">
+                      <Heart className="h-5 w-5 text-red-500 fill-red-500" />
+                      સેવ કરેલી પરીક્ષાઓ (Wish List)
+                    </h3>
+                    
+                    {wishlistLoading ? (
+                      <p className="text-gray-500 text-base px-1">સેવ કરેલી પરીક્ષાઓ લોડ થઈ રહી છે...</p>
+                    ) : wishlist.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        <Heart className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 text-base">તમે હજુ સુધી કોઈ પરીક્ષા સેવ કરી નથી.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1 animate-fade-in">
+                        {wishlist.map((item) => {
+                          const exam = item.exam;
+                          if (!exam) return null;
+                          const isAttempted = history.some(h => String(h.examId) === String(exam.id));
+                          return (
+                            <div key={exam.id} className={`border rounded-xl p-3 sm:p-3.5 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
+                              exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
+                            }`}>
+                              <div>
+                                <div className="mb-2.5 pb-1.5 border-b border-slate-100/60 flex items-center justify-between gap-2">
+                                  {exam.type === 'bharti' ? (
+                                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                                        💼 સત્તાવાર ભરતી
+                                      </span>
+                                      {exam.totalVacancies && (
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] sm:text-[10px] font-bold">
+                                          <span className="bg-teal-50 text-teal-800 px-2 py-0.5 rounded-full border border-teal-100 flex items-center gap-1 font-sans">
+                                            💼 જગ્યાઓ: <strong className="font-extrabold">{exam.totalVacancies}</strong>
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-1.5 items-center flex-1">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
+                                        📝 મોક ટેસ્ટ
+                                      </span>
+                                      {exam.subject && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-100">
+                                          🏷️ {exam.subject}
+                                        </span>
+                                      )}
+                                      {exam.difficulty && (
+                                        <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${
+                                          exam.difficulty === 'difficult'
+                                            ? 'bg-red-50 text-red-700 border-red-100'
+                                            : 'bg-green-50 text-green-700 border-green-100'
+                                        }`}>
+                                          {exam.difficulty === 'difficult' ? '🔴 Difficult' : '🟢 Easy'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleWishlist(Number(exam.id));
+                                    }}
+                                    className="p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none shrink-0"
+                                    title="Wish List માંથી દૂર કરો"
+                                  >
+                                    <Heart className="h-4.5 w-4.5 fill-red-500 text-red-500 transition-transform active:scale-125" />
+                                  </button>
+                                </div>
+                                
+                                <h4 className="font-extrabold text-gray-800 text-lg leading-snug">{exam.name}</h4>
+                                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                                  {exam.type === 'bharti' && exam.examDate && (
+                                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4 text-slate-400" /> પરીક્ષા તારીખ: {exam.examDate}</span>
+                                  )}
+                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-slate-400" /> {exam.totalQuestions} પ્રશ્નો</span>
+                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-slate-400" /> {exam.duration} મિનિટ</span>
+                                </div>
+                              </div>
                               <button
-                                onClick={() => downloadSingleTestPDF(h)}
-                                disabled={pdfDownloading !== null}
-                                className={`w-full inline-flex items-center justify-center gap-1.5 text-sm font-black py-2.5 px-4 rounded-xl border transition-all cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
-                                  pdfDownloading === String(h.id)
-                                    ? 'bg-amber-50 text-amber-750 border-amber-200 animate-pulse'
-                                    : 'bg-blue-50 hover:bg-blue-100 text-blue-750 border-blue-200'
+                                onClick={() => !isAttempted && onTakeExam(exam.id)}
+                                disabled={isAttempted}
+                                className={`mt-6 text-white font-bold py-2.5 rounded-xl transition-all ${
+                                  isAttempted 
+                                    ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                                    : exam.type === 'bharti' 
+                                       ? 'bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/15 cursor-pointer active:scale-[0.98]' 
+                                       : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/15 cursor-pointer active:scale-[0.98]'
                                 }`}
                               >
-                                {pdfDownloading === String(h.id) ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin text-amber-600" />
-                                ) : (
-                                  <Download className="h-4 w-4" />
-                                )}
-                                {pdfDownloading === String(h.id) ? 'પીડીએફ જનરેટ થઈ રહી છે...' : 'ડાઉનલોડ રીઝલ્ટ (PDF)'}
+                                {isAttempted ? 'પરીક્ષા આપેલી છે' : 'પરીક્ષા આપો'}
                               </button>
-                            ) : (
-                              <p className="text-xs text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 text-center w-full leading-relaxed font-bold">
-                                ⚠️ ઓફિશિયલ અંસાર કી બહાર પાડ્યા બાદ માર્ક્સ દેખાશે
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -958,6 +1162,189 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                     className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-sans"
                   />
                 </div>
+
+                {/* TAB SELECTION: મોક ટેસ્ટ (Mock Test) & ભરતી પરીક્ષા (Recruitment Exam) */}
+                <div className="flex border border-gray-200 mb-6 bg-slate-50/50 p-1.5 rounded-2xl gap-2">
+                  <button
+                    onClick={() => {
+                      setExamSubTab('mock');
+                      setMockTestPage(1);
+                      setSelectedSubject('');
+                      setSelectedDifficulty('');
+                    }}
+                    className={`flex-1 py-3 text-center text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      examSubTab === 'mock'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/15'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>📝 મોક ટેસ્ટ</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExamSubTab('bharti');
+                      setMockTestPage(1);
+                      setSelectedSubject('');
+                      setSelectedDifficulty('');
+                    }}
+                    className={`flex-1 py-3 text-center text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      examSubTab === 'bharti'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/15'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>💼 ભરતી પરીક્ષા</span>
+                  </button>
+                </div>
+
+                {examSubTab === 'bharti' && (
+                  <div className="mb-6 p-4 md:p-5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex gap-3 text-amber-900 shadow-sm animate-fade-in">
+                    <div className="bg-amber-100/75 p-2 h-9 w-9 rounded-xl text-amber-700 flex-shrink-0 flex items-center justify-center shadow-sm">
+                      <AlertCircle className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-extrabold text-sm md:text-base text-amber-950 mb-1.5 tracking-wide">
+                        અગત્યની સૂચના:
+                      </h4>
+                      <ul className="list-disc pl-5 space-y-1.5 text-xs md:text-sm text-amber-900/95 font-medium leading-relaxed">
+                        <li>અહીં તમે આપેલી પરીક્ષાના જવાબો સબમિટ કરો.</li>
+                        <li>ઑફિશિયલ આન્સર કી આવ્યા બાદ તમે તમારા સાચા માર્ક્સ જાણી શકશો.</li>
+                        <li>આ સાથે તમે તમારું અંદાજિત મેરિટ લિસ્ટ પણ જોઈ શકશો.</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Expandable filter for Subject & Difficulty (Only for Mock Tests) */}
+                {examSubTab === 'mock' && (
+                  <div className="mb-6">
+                    <button
+                      onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                      className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border border-blue-100 hover:border-blue-300 rounded-2xl cursor-pointer transition-all duration-300 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <SlidersHorizontal className="h-4 w-4 text-blue-600 animate-pulse" />
+                        <span className="text-xs md:text-sm font-extrabold text-blue-900 tracking-wide">
+                          મોક ટેસ્ટ ફિલ્ટર અને કઠિનતા સ્તર (Advanced Filters)
+                        </span>
+                        {(selectedSubject || selectedDifficulty) && (
+                          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                            {(selectedSubject ? 1 : 0) + (selectedDifficulty ? 1 : 0)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isFilterExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-blue-600" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Filter Panel content */}
+                    {isFilterExpanded && (
+                      <div className="mt-3 bg-white border border-slate-100 p-5 rounded-2xl shadow-md space-y-5">
+                        {/* 1. Subject filter */}
+                        <div>
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                            વિષય મુજબ ફિલ્ટર કરો (Filter by Subject):
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedSubject('');
+                                setMockTestPage(1);
+                              }}
+                              className={`px-3.5 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border ${
+                                selectedSubject === ''
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/10'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              બધા વિષય
+                            </button>
+                            {[
+                              'સામાન્ય જ્ઞાન',
+                              'ભાષા અને વ્યાકરણ',
+                              'અંગ્રેજી વ્યાકરણ',
+                              'ગણિત અને તાર્કિક કસોટી',
+                              'વિજ્ઞાન અને ટેકનોલોજી',
+                              'કરંટ અફેર્સ',
+                              'કોમ્પ્યુટર જ્ઞાન',
+                              'જાહેર વહીવટ અને મનોવિજ્ઞાન'
+                            ].map((sub) => (
+                              <button
+                                key={sub}
+                                onClick={() => {
+                                  setSelectedSubject(sub);
+                                  setMockTestPage(1);
+                                }}
+                                className={`px-3.5 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border ${
+                                  selectedSubject === sub
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/10'
+                                    : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                                }`}
+                              >
+                                {sub}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 2. Difficulty filter */}
+                        <div className="pt-3 border-t border-slate-100">
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
+                            <span className="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
+                            કઠિનતા સ્તર ફિલ્ટર કરો (Difficulty Type):
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedDifficulty('');
+                                setMockTestPage(1);
+                              }}
+                              className={`px-4 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border ${
+                                selectedDifficulty === ''
+                                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/10'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              બધા સ્તર (All Levels)
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedDifficulty('easy');
+                                setMockTestPage(1);
+                              }}
+                              className={`px-4 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
+                                selectedDifficulty === 'easy'
+                                  ? 'bg-green-600 text-white border-green-600 shadow-sm shadow-green-500/10'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              🟢 Easy (સરળ)
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedDifficulty('difficult');
+                                setMockTestPage(1);
+                              }}
+                              className={`px-4 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
+                                selectedDifficulty === 'difficult'
+                                  ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-500/10'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              🔴 Difficult (અઘરું)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {examsLoading ? (
                   <p className="text-gray-500 text-base px-1">ટેસ્ટ લોડ થઈ રહી છે...</p>
@@ -965,9 +1352,17 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   <p className="text-gray-500 text-base px-1">હાલમાં કોઈ પરીક્ષાઓ ઉપલબ્ધ નથી.</p>
                 ) : (
                   (() => {
-                    const filteredExams = allExams.filter(exam => 
-                      exam.name.toLowerCase().includes(mockTestSearch.toLowerCase())
-                    );
+                    const filteredExams = allExams.filter(exam => {
+                      const matchesSearch = exam.name.toLowerCase().includes(mockTestSearch.toLowerCase());
+                      const matchesTab = examSubTab === 'bharti' ? exam.type === 'bharti' : exam.type !== 'bharti';
+                      const matchesSubject = examSubTab === 'mock'
+                        ? (selectedSubject === '' || exam.subject === selectedSubject)
+                        : true;
+                      const matchesDifficulty = examSubTab === 'mock'
+                        ? (selectedDifficulty === '' || exam.difficulty === selectedDifficulty)
+                        : true;
+                      return matchesSearch && matchesTab && matchesSubject && matchesDifficulty;
+                    });
                     const totalPages = Math.ceil(filteredExams.length / MOCK_TESTS_PER_PAGE);
                     const paginatedExams = filteredExams.slice(
                       (mockTestPage - 1) * MOCK_TESTS_PER_PAGE,
@@ -984,35 +1379,80 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                           {paginatedExams.map((exam) => {
                             const isAttempted = history.some(h => String(h.examId) === String(exam.id));
                             return (
-                            <div key={exam.id} className={`border rounded-xl p-4 md:p-5 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
+                            <div key={exam.id} className={`border rounded-xl p-3 sm:p-3.5 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
                               exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
                             }`}>
                               <div>
-                                <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="mb-2.5 pb-1.5 border-b border-slate-100/60 flex items-center justify-between gap-2">
                                   {exam.type === 'bharti' ? (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                                      💼 સત્તાવાર ભરતી
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                                        💼 સત્તાવાર ભરતી
+                                      </span>
+                                      {exam.totalVacancies && (
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] sm:text-[10px] font-bold">
+                                          <span className="bg-teal-50 text-teal-800 px-2 py-0.5 rounded-full border border-teal-100 flex items-center gap-1 font-sans">
+                                            💼 જગ્યાઓ: <strong className="font-extrabold">{exam.totalVacancies}</strong>
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
-                                      📝 સામાન્ય મોક ટેસ્ટ
-                                    </span>
+                                    <div className="flex flex-wrap gap-1.5 items-center flex-1">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
+                                        📝 મોક ટેસ્ટ
+                                      </span>
+                                      {exam.subject && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-100">
+                                          🏷️ {exam.subject}
+                                        </span>
+                                      )}
+                                      {exam.difficulty && (
+                                        <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${
+                                          exam.difficulty === 'difficult'
+                                            ? 'bg-red-50 text-red-700 border-red-100'
+                                            : 'bg-green-50 text-green-700 border-green-100'
+                                        }`}>
+                                          {exam.difficulty === 'difficult' ? '🔴 Difficult' : '🟢 Easy'}
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleWishlist(Number(exam.id));
+                                    }}
+                                    className="p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none shrink-0"
+                                    title={wishlist.some(item => Number(item.examId) === Number(exam.id)) ? "Wish List માંથી દૂર કરો" : "Wish List માં ઉમેરો"}
+                                  >
+                                    <Heart className={`h-4.5 w-4.5 transition-transform active:scale-125 ${
+                                      wishlist.some(item => Number(item.examId) === Number(exam.id))
+                                        ? "fill-red-500 text-red-500"
+                                        : "text-gray-400 hover:text-red-500"
+                                    }`} />
+                                  </button>
                                 </div>
                                 
                                 <h4 className="font-extrabold text-gray-800 text-lg leading-snug">{exam.name}</h4>
-                                <div className="flex gap-4 mt-3 text-sm text-gray-500">
-                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4" /> {exam.totalQuestions} પ્રશ્નો</span>
-                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {exam.duration} મિનિટ</span>
+                                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                                  {exam.type === 'bharti' && exam.examDate && (
+                                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4 text-slate-400" /> પરીક્ષા તારીખ: {exam.examDate}</span>
+                                  )}
+                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-slate-400" /> {exam.totalQuestions} પ્રશ્નો</span>
+                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-slate-400" /> {exam.duration} મિનિટ</span>
                                 </div>
                                 
                                 {exam.type === 'bharti' && (
                                   <div className="mt-3">
-                                    {exam.answerKeyUploaded ? (
-                                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 font-bold px-2.5 py-1 rounded-full border border-emerald-100">✔ ઓફિશિયલ આન્સર કી ઉપલબ્ધ</span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 font-bold px-2.5 py-1 rounded-full border border-amber-100">⏳ પરિણામ બાકી (આન્સર કી અપલોડ બાકી)</span>
-                                    )}
+                                    <div>
+                                      {exam.answerKeyUploaded ? (
+                                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 font-bold px-2.5 py-1 rounded-full border border-emerald-100">✔ ઓફિશિયલ આન્સર કી ઉપલબ્ધ</span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 font-bold px-2.5 py-1 rounded-full border border-amber-100">⏳ પરિણામ બાકી (આન્સર કી અપલોડ બાકી)</span>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -1219,6 +1659,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
               )}
             </div>
           )}
+
+
 
         </div>
       </div>

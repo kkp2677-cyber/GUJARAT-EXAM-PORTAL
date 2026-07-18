@@ -40,6 +40,7 @@ export interface User {
   allowedExams?: number;
   subscriptionPlan?: string;
   subscriptionExpiry?: string;
+  token?: string;
 }
 
 export interface ExamHistory {

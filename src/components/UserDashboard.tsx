@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Exam, ExamHistory } from '../types';
 import { User as UserIcon, BookOpen, Clock, Calendar, MapPin, CheckCircle, FileText, Lock, RefreshCw, HelpCircle, Award, Download, LayoutDashboard, Trophy, ShieldCheck, Bookmark, Heart } from 'lucide-react';
 import { subscribeToPushNotifications } from '../utils/push';
@@ -172,6 +172,15 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
   const [isFilterExpanded, setIsFilterExpanded] = useState<boolean>(false);
   const MOCK_TESTS_PER_PAGE = 5;
+
+  const mockTestHeaderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll to the top of the mock test panel card when the page number changes
+    if (activeTab === 'mock_tests' && mockTestHeaderRef.current) {
+      mockTestHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [mockTestPage]);
 
 
   // Profile State
@@ -1140,7 +1149,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
           {/* MOCK TESTS TAB PANEL (ભરતી પરીક્ષા મોક ટેસ્ટ) */}
           {activeTab === 'mock_tests' && (
-            <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
+            <div ref={mockTestHeaderRef} className="scroll-mt-24 bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-3 font-sans px-1">
                 <BookOpen className="h-5.5 w-5.5 text-blue-600" />
                 ભરતી પરીક્ષા મોક ટેસ્ટ

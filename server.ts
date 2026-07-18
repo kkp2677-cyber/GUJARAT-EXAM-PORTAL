@@ -2960,33 +2960,76 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
     const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
     if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
-    const allUsers = await db.select().from(users);
-    const allExams = await db.select().from(exams);
-    const allResults = await db.select().from(examResults);
-    const allPosts = await db.select().from(posts);
-    const allNotifications = await db.select().from(notifications);
-    const allEvents = await db.select().from(calendarEvents);
-    const allBookmarks = await db.select().from(bookmarks);
-    const allSettings = await db.select().from(settings);
-    const allSubscriptions = await db.select().from(pushSubscriptions);
+    // Read query parameter "tables". It can be a comma-separated list of table names.
+    const tablesParam = req.query.tables;
+    let selectedTables: string[] = [];
+    if (typeof tablesParam === 'string' && tablesParam.trim()) {
+      selectedTables = tablesParam.split(',').map(t => t.trim().toLowerCase());
+    }
 
-    const backupData = {
+    const backupData: any = {
       exportedAt: new Date().toISOString(),
-      users: allUsers.map(u => {
-        const { password, ...rest } = u; // Keep passwords out of backup file for safety
-        return rest;
-      }),
-      exams: allExams,
-      exam_results: allResults,
-      posts: allPosts,
-      notifications: allNotifications,
-      calendar_events: allEvents,
-      bookmarks: allBookmarks,
-      settings: allSettings,
-      push_subscriptions: allSubscriptions,
+      tablesExported: selectedTables.length > 0 ? selectedTables : ['all']
     };
 
-    res.setHeader('Content-disposition', `attachment; filename=database_backup_${new Date().toISOString().split('T')[0]}.json`);
+    const shouldExport = (tableName: string) => {
+      if (selectedTables.length === 0) return true; // export all by default
+      return selectedTables.includes(tableName);
+    };
+
+    if (shouldExport('users')) {
+      const allUsers = await db.select().from(users);
+      backupData.users = allUsers.map(u => {
+        const { password, ...rest } = u; // Keep passwords out of backup file for safety
+        return rest;
+      });
+    }
+
+    if (shouldExport('exams')) {
+      backupData.exams = await db.select().from(exams);
+    }
+
+    if (shouldExport('exam_results')) {
+      backupData.exam_results = await db.select().from(examResults);
+    }
+
+    if (shouldExport('posts')) {
+      backupData.posts = await db.select().from(posts);
+    }
+
+    if (shouldExport('notifications')) {
+      backupData.notifications = await db.select().from(notifications);
+    }
+
+    if (shouldExport('calendar_events')) {
+      backupData.calendar_events = await db.select().from(calendarEvents);
+    }
+
+    if (shouldExport('bookmarks')) {
+      backupData.bookmarks = await db.select().from(bookmarks);
+    }
+
+    if (shouldExport('settings')) {
+      backupData.settings = await db.select().from(settings);
+    }
+
+    if (shouldExport('push_subscriptions')) {
+      backupData.push_subscriptions = await db.select().from(pushSubscriptions);
+    }
+
+    if (shouldExport('leaderboard_summary')) {
+      backupData.leaderboard_summary = await db.select().from(leaderboardSummary);
+    }
+
+    if (shouldExport('wishlist')) {
+      backupData.wishlist = await db.select().from(wishlist);
+    }
+
+    const filename = selectedTables.length === 1
+      ? `${selectedTables[0]}_backup_${new Date().toISOString().split('T')[0]}.json`
+      : `database_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+    res.setHeader('Content-disposition', `attachment; filename=${filename}`);
     res.setHeader('Content-type', 'application/json');
     res.send(JSON.stringify(backupData, null, 2));
   } catch (err: any) {
@@ -3127,7 +3170,7 @@ app.get('/api/user/subscription-status', requireAuth, async (req: AuthRequest, r
 app.post('/api/payment/create-order', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { plan } = req.body; // 'monthly' or 'yearly'
-    const amount = plan === 'monthly' ? 900 : 10000; // in paise
+    const amount = plan === 'monthly' ? 4900 : 49900; // in paise (₹49 and ₹499)
     
     const keySetting = await db.select().from(settings).where(eq(settings.key, 'RAZORPAY_KEY_ID'));
     const secretSetting = await db.select().from(settings).where(eq(settings.key, 'RAZORPAY_KEY_SECRET'));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Trophy, Award, LogIn, LogOut, ShieldAlert, User as UserIcon, Menu, X, ArrowLeft, Sun, Moon, Phone, Mail } from 'lucide-react';
+import { BookOpen, Trophy, Award, LogIn, LogOut, ShieldAlert, User as UserIcon, Menu, X, ArrowLeft, Sun, Moon, Phone, Mail, Check } from 'lucide-react';
 import { User, Exam, BlogPost } from './types';
 import PublicHome from './components/PublicHome';
 import AgeCalculator from './components/AgeCalculator';
@@ -165,6 +165,7 @@ export default function App() {
   useEffect(() => {
     const handleUserBlocked = (e: Event) => {
       setUser(null);
+      setSubStatus(null);
       localStorage.removeItem('exam_user');
       const detail = (e as CustomEvent).detail;
       alert(detail || 'તમારૂ એકાઉન્ટ એડમિન દ્વારા સસ્પેન્ડ કરવામાં આવ્યું છે. વધુ માહિતી માટે એડમિનનો સંપર્ક કરો.');
@@ -327,6 +328,23 @@ export default function App() {
   const handleAuthSuccess = (loggedInUser: User) => {
     setUser(loggedInUser);
     localStorage.setItem('exam_user', JSON.stringify(loggedInUser));
+    
+    // Fetch subscription status for the newly logged-in user
+    if (loggedInUser.token) {
+      fetch('/api/user/subscription-status', {
+        headers: { 'Authorization': `Bearer ${loggedInUser.token}` }
+      }).then(async res => {
+        if (res.ok) {
+          const data = await res.json();
+          setSubStatus(data);
+        }
+      }).catch(err => {
+        console.warn('Error fetching subscription status on login:', err);
+      });
+    } else {
+      setSubStatus(null);
+    }
+
     if (!loggedInUser.name || !loggedInUser.email || !loggedInUser.dob) {
       setCurrentSection('dashboard');
     } else {
@@ -336,6 +354,7 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
+    setSubStatus(null);
     localStorage.removeItem('exam_user');
     navigateToHome();
   };
@@ -654,20 +673,22 @@ export default function App() {
         {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-100 bg-white px-4 pt-2 pb-6 space-y-2 shadow-inner max-h-[85vh] overflow-y-auto">
-            <button
-              onClick={() => {
-                navigateToHome();
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left px-4 py-3 rounded-xl text-[17px] font-bold text-gray-700 hover:bg-slate-50 hover:text-blue-600"
-            >
-              Home
-            </button>
 
             {/* Conditional Submenu on Mobile */}
             {!user ? (
               /* Content Categories Submenu on Mobile (when NOT logged in) */
-              <div className="pt-2 pb-1 border-t border-gray-100 dark:border-slate-800 space-y-1">
+              <div className="pb-1 space-y-1">
+                <button
+                  onClick={() => {
+                    navigateToHome();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
+                    currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  🏠 હોમ (Home)
+                </button>
                 <button
                   onClick={() => {
                     navigateToCategory('job');
@@ -726,7 +747,18 @@ export default function App() {
               </div>
             ) : (
               /* Dashboard Tabs Submenu on Mobile (when logged in) */
-              <div className="pt-2 pb-1 border-t border-gray-100 dark:border-slate-800 space-y-1">
+              <div className="pb-1 space-y-1">
+                <button
+                  onClick={() => {
+                    navigateToHome();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
+                    currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  🏠 હોમ (Home)
+                </button>
                 <button
                   onClick={() => {
                     navigateToSection('dashboard');
@@ -1112,26 +1144,26 @@ export default function App() {
       {/* Paywall Modal */}
       {showPaywall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col my-8">
-            <div className="p-6 md:p-8 flex-1">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col my-4 md:my-8 max-h-[92vh] md:max-h-[90vh]">
+            <div className="p-5 md:p-8 overflow-y-auto flex-1">
               <div className="flex justify-between items-start mb-6">
                 <div>
                   {user?.subscriptionPlan && user.subscriptionPlan !== 'free' ? (
                     <h3 className="text-2xl font-extrabold text-slate-900">Congratulations..!! Now You are our Premium Members</h3>
                   ) : (
                     <h3 className="text-2xl font-extrabold text-slate-900">
-                      {subStatus && !subStatus.canTakeTest ? 'તમારી મર્યાદા પૂરી થઈ ગઈ છે' : 'પ્રીમિયમ સબસ્ક્રિપ્શન મેળવો'}
+                      {user && subStatus && !subStatus.canTakeTest ? 'તમારી મર્યાદા પૂરી થઈ ગઈ છે' : 'પ્રીમિયમ સબસ્ક્રિપ્શન મેળવો'}
                     </h3>
                   )}
                   <p className="text-slate-500 mt-2 text-sm font-medium">
                     {user?.subscriptionPlan && user.subscriptionPlan !== 'free' 
                       ? 'તમે અનલિમિટેડ ટેસ્ટ આપી શકો છો.'
-                      : (subStatus && !subStatus.canTakeTest)
+                      : (user && subStatus && !subStatus.canTakeTest)
                         ? `તમે ${subStatus.allowedExams || 3} ફ્રી મોક ટેસ્ટ આપી ચૂક્યા છો. વધુ મોક ટેસ્ટ આપવા માટે સબસ્ક્રાઇબ કરો.`
                         : 'તમારી તૈયારીને નવી ઊંચાઈઓ પર લઈ જાઓ અને વધુ મોક ટેસ્ટ આપવા માટે સબસ્ક્રાઇબ કરો.'}
                   </p>
                 </div>
-                <button onClick={() => setShowPaywall(false)} className="text-slate-400 hover:bg-slate-100 hover:text-slate-700 p-2 rounded-full transition-colors">
+                <button onClick={() => setShowPaywall(false)} className="text-slate-400 hover:bg-slate-100 hover:text-slate-700 p-2 rounded-full transition-colors shrink-0 ml-4">
                   <X className="h-6 w-6" />
                 </button>
               </div>
@@ -1165,24 +1197,58 @@ export default function App() {
               ) : (
               <div className="space-y-4">
                 <div className="border border-indigo-100 bg-indigo-50/50 p-5 rounded-2xl relative overflow-hidden transition-all hover:border-indigo-300">
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-3">
                     <h4 className="font-bold text-lg text-slate-800">માસિક પ્લાન</h4>
-                    <span className="text-xl font-extrabold text-indigo-600">₹9 / મહિનો</span>
+                    <span className="text-xl font-extrabold text-indigo-600">₹49 / મહિનો</span>
                   </div>
-                  <p className="text-sm text-slate-600 mb-4">૧ મહિના સુધી અનલિમિટેડ મોક ટેસ્ટની સુવિધા</p>
-                  <button disabled={!!paymentLoading} onClick={() => handleSubscribe('monthly')} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all text-sm disabled:opacity-50">
+                  <ul className="space-y-2 mb-4 text-sm text-slate-600">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-600" />
+                      <span>૧ મહિના સુધી અનલિમિટેડ મોક ટેસ્ટની સુવિધા</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-600" />
+                      <span>ફ્રી મેરીટ લીસ્ટ</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-600" />
+                      <span>૮ થી વધુ વિષયો</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-600" />
+                      <span>૫૦ હજાર + MCQ એક્સેસ</span>
+                    </li>
+                  </ul>
+                  <button disabled={!!paymentLoading} onClick={() => handleSubscribe('monthly')} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all text-sm disabled:opacity-50 cursor-pointer">
                     {paymentLoading === 'monthly' ? 'પ્રોસેસિંગ...' : 'માસિક સબસ્ક્રિપ્શન લો'}
                   </button>
                 </div>
                 
                 <div className="border border-emerald-100 bg-emerald-50/50 p-5 rounded-2xl relative overflow-hidden transition-all hover:border-emerald-300">
-                  <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-bl-lg uppercase tracking-wider">સૌથી લોકપ્રિય</div>
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-bl-lg uppercase tracking-wider">પોપ્યુલર</div>
+                  <div className="flex justify-between items-center mb-3">
                     <h4 className="font-bold text-lg text-slate-800">વાર્ષિક પ્લાન</h4>
-                    <span className="text-xl font-extrabold text-emerald-600">₹100 / વર્ષ</span>
+                    <span className="text-xl font-extrabold text-emerald-600">₹499 / વર્ષ</span>
                   </div>
-                  <p className="text-sm text-slate-600 mb-4">૧ વર્ષ સુધી અનલિમિટેડ મોક ટેસ્ટની સુવિધા</p>
-                  <button disabled={!!paymentLoading} onClick={() => handleSubscribe('yearly')} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition-all text-sm disabled:opacity-50">
+                  <ul className="space-y-2 mb-4 text-sm text-slate-600">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span>૧૨ મહિના સુધી અનલિમિટેડ મોક ટેસ્ટની સુવિધા</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span>ફ્રી મેરીટ લીસ્ટ</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span>૮ થી વધુ વિષયો</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span>૧ લાખ + MCQ એક્સેસ</span>
+                    </li>
+                  </ul>
+                  <button disabled={!!paymentLoading} onClick={() => handleSubscribe('yearly')} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition-all text-sm disabled:opacity-50 cursor-pointer">
                     {paymentLoading === 'yearly' ? 'પ્રોસેસિંગ...' : 'વાર્ષિક સબસ્ક્રિપ્શન લો'}
                   </button>
                 </div>

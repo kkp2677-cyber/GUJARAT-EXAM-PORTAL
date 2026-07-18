@@ -112,6 +112,9 @@ export default function AdminPanel() {
   const [sqlResult, setSqlResult] = useState<any>(null);
   const [dbStatus, setDbStatus] = useState<{connected: boolean, error?: string} | null>(null);
   const [dbInfo, setDbInfo] = useState<any>(null);
+  const [selectedBackupTables, setSelectedBackupTables] = useState<string[]>([
+    'users', 'exams', 'exam_results', 'posts', 'notifications', 'calendar_events', 'bookmarks', 'settings', 'push_subscriptions', 'leaderboard_summary', 'wishlist'
+  ]);
 
   // States for CMS
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -621,10 +624,15 @@ export default function AdminPanel() {
     }, 'ગૂગલ એનાલિટિક્સ અને કસ્ટમ કોડ સફળતાપૂર્વક અપડેટ થયા.');
   };
 
-  const handleExportDatabase = async () => {
+  const handleExportDatabase = async (specificTables?: string[]) => {
     setIsExporting(true);
     try {
-      const res = await fetch('/api/admin/export-database', {
+      const tablesToExport = specificTables || selectedBackupTables;
+      if (tablesToExport.length === 0) {
+        throw new Error('કૃપા કરીને એક્સપોર્ટ કરવા માટે ઓછામાં ઓછું એક ટેબલ પસંદ કરો.');
+      }
+
+      const res = await fetch(`/api/admin/export-database?tables=${tablesToExport.join(',')}`, {
         headers: {
           'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}`
         }
@@ -634,7 +642,12 @@ export default function AdminPanel() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `database_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+      const filename = tablesToExport.length === 1
+        ? `${tablesToExport[0]}_backup_${new Date().toISOString().split('T')[0]}.json`
+        : `database_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -2829,27 +2842,117 @@ export default function AdminPanel() {
             )}
 
             {/* Database Export Section */}
-            <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5 mt-6 animate-fade-in">
-              <div className="border-b pb-2">
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-6 mt-6 animate-fade-in">
+              <div className="border-b pb-3">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <Database className="h-4 w-4 text-emerald-600" /> ડેટાબેઝ બેકઅપ અને એક્સપોર્ટ (Database Backup & Export)
                 </h4>
                 <p className="text-xs text-gray-500 mt-1">આ એપ્લિકેશનના તમામ ટેબલ્સ (યુઝર્સ, પરીક્ષાઓ, પરિણામો, પોસ્ટ્સ, કેલેન્ડર વગેરે) નો ડેટા JSON ફોર્મેટમાં ડાઉનલોડ કરો.</p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="block text-xs font-bold text-slate-700">સંપૂર્ણ એપ્લિકેશન ડેટા સેવ કરો</span>
-                  <p className="text-xs text-slate-400">બેકઅપ ફાઇલમાં તમામ યૂઝર્સ, બ્લોગ પોસ્ટ્સ અને એક્ઝામ ડેટા સમાવિષ્ટ છે.</p>
+              {/* Table-wise Selection and Download Area */}
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-gray-200">
+                  <div>
+                    <h5 className="font-bold text-sm text-gray-800">ટેબલ વાઈજ બેકઅપ (Table-wise Export)</h5>
+                    <p className="text-xs text-gray-400 mt-0.5">તમે જે ટેબલ્સ એક્સપોર્ટ કરવા માંગો છો તે સિલેક્ટ કરો અથવા તેને સિંગલ ક્લિકથી ડાઉનલોડ કરો.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBackupTables([
+                        'users', 'exams', 'exam_results', 'posts', 'notifications', 'calendar_events', 'bookmarks', 'settings', 'push_subscriptions', 'leaderboard_summary', 'wishlist'
+                      ])}
+                      className="px-2.5 py-1 text-xs border border-gray-200 rounded hover:bg-slate-50 font-bold text-indigo-600 cursor-pointer"
+                    >
+                      બધા સિલેક્ટ કરો
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBackupTables([])}
+                      className="px-2.5 py-1 text-xs border border-gray-200 rounded hover:bg-slate-50 font-bold text-rose-600 cursor-pointer"
+                    >
+                      ક્લિયર કરો
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleExportDatabase}
-                  disabled={isExporting}
-                  className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Download className="h-4 w-4" /> {isExporting ? 'એક્સપોર્ટ થઈ રહ્યું છે...' : 'ડેટાબેઝ ડાઉનલોડ કરો (.JSON)'}
-                </button>
+
+                {/* Grid list of tables */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { id: 'users', label: 'વપરાશકર્તાઓ (users)', desc: 'તમામ રજીસ્ટર્ડ યુઝર પ્રોફાઇલ વિગતો (પાસવર્ડ સિવાય)' },
+                    { id: 'exams', label: 'પરીક્ષાઓ (exams)', desc: 'તમામ મોક ટેસ્ટ અને ભરતી પરીક્ષાઓની યાદી' },
+                    { id: 'exam_results', label: 'પરીક્ષાના પરિણામો (exam_results)', desc: 'યુઝર્સ દ્વારા આપવામાં આવેલ ટેસ્ટ્સના સ્કોર અને પરિણામો' },
+                    { id: 'posts', label: 'બ્લોગ અને નોકરી પોસ્ટ્સ (posts)', desc: 'CMS અંતર્ગત પબ્લિશ થયેલ તમામ ન્યૂઝ અને આર્ટીકલ્સ' },
+                    { id: 'notifications', label: 'સિસ્ટમ નોટિફિકેશન (notifications)', desc: 'સિસ્ટમ દ્વારા મોકલાયેલ મહત્વના નોટિફિકેશન્સ' },
+                    { id: 'calendar_events', label: 'કેલેન્ડર ઇવેન્ટ્સ (calendar_events)', desc: 'પરીક્ષાઓના સમયપત્રક અને અન્ય તારીખો' },
+                    { id: 'bookmarks', label: 'બુકમાર્ક્સ (bookmarks)', desc: 'યુઝર્સ દ્વારા સેવ કરેલા પ્રશ્નો કે પોસ્ટ્સ' },
+                    { id: 'settings', label: 'સિસ્ટમ સેટિંગ્સ (settings)', desc: 'એપના કી-વેલ્યુ સેટિંગ્સ અને એપીઆઈ કોન્ફિગ્યુરેશન' },
+                    { id: 'push_subscriptions', label: 'પુશ સબ્સ્ક્રિપ્શન્સ (push_subscriptions)', desc: 'બ્રાઉઝર પુશ નોટિફિકેશન કનેક્શન સબસ્ક્રાઈબર્સ' },
+                    { id: 'leaderboard_summary', label: 'લીડરબોર્ડ સમરી (leaderboard_summary)', desc: 'લીડરબોર્ડનું કેશ્ડ ઓપ્ટિમાઇઝ્ડ રેન્કિંગ ડેટા' },
+                    { id: 'wishlist', label: 'વિશલિસ્ટ (wishlist)', desc: 'યુઝર્સ દ્વારા રસ ધરાવતી અને સેવ કરેલ પરીક્ષાઓ' }
+                  ].map((tbl) => {
+                    const isChecked = selectedBackupTables.includes(tbl.id);
+                    return (
+                      <div key={tbl.id} className="py-2 px-3.5 bg-white border border-gray-150 rounded-xl hover:shadow-sm transition-all flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id={`chk-tbl-${tbl.id}`}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBackupTables([...selectedBackupTables, tbl.id]);
+                            } else {
+                              setSelectedBackupTables(selectedBackupTables.filter(t => t !== tbl.id));
+                            }
+                          }}
+                          className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <label htmlFor={`chk-tbl-${tbl.id}`} className="font-extrabold text-[14px] md:text-[15px] text-slate-800 cursor-pointer flex items-center gap-1.5 hover:text-indigo-600">
+                            {tbl.label}
+                          </label>
+                          <p className="text-[12px] md:text-[12.5px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{tbl.desc}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleExportDatabase([tbl.id])}
+                          title="આ ટેબલ સિંગલ ડાઉનલોડ કરો"
+                          className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer self-center"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="block text-xs font-bold text-slate-700">પસંદ કરેલા ટેબલ્સનું બેકઅપ ({selectedBackupTables.length} ટેબલ પસંદ કર્યા છે)</span>
+                    <p className="text-xs text-slate-400">ઉપરના લિસ્ટમાંથી તમે જે ટેબલ સિલેક્ટ કર્યા હશે તેનું સિંગલ કમ્બાઇન્ડ બેકઅપ ફાઇલ ડાઉનલોડ થશે.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => handleExportDatabase()}
+                      disabled={isExporting || selectedBackupTables.length === 0}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Download className="h-4 w-4" /> {isExporting ? 'એક્સપોર્ટ થઈ રહ્યું છે...' : 'પસંદ કરેલ ટેબલ એક્સપોર્ટ કરો'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExportDatabase([
+                        'users', 'exams', 'exam_results', 'posts', 'notifications', 'calendar_events', 'bookmarks', 'settings', 'push_subscriptions', 'leaderboard_summary', 'wishlist'
+                      ])}
+                      disabled={isExporting}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Database className="h-4 w-4" /> બધા ટેબલ એક્સપોર્ટ કરો (.JSON)
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2861,6 +2964,12 @@ export default function AdminPanel() {
             <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
               <Send className="h-5 w-5 text-emerald-600" /> OTP Integration
             </h3>
+
+            {settingsMsg && (
+              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100 animate-pulse font-sans">
+                {settingsMsg}
+              </div>
+            )}
             
             {/* Flexible SMS OTP Integration */}
             <form onSubmit={handleSaveSMS} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
@@ -2994,6 +3103,12 @@ export default function AdminPanel() {
             <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-blue-600" /> Payment Integration
             </h3>
+
+            {settingsMsg && (
+              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100 animate-pulse font-sans">
+                {settingsMsg}
+              </div>
+            )}
             
             {/* Razorpay Section */}
             <form onSubmit={handleSaveRazorpay} className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5">
@@ -3045,6 +3160,13 @@ export default function AdminPanel() {
             <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
               <Settings className="h-5 w-5 text-indigo-600" /> SEO સેટિંગ્સ (SEO Settings)
             </h3>
+
+            {settingsMsg && (
+              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100 animate-pulse font-sans">
+                {settingsMsg}
+              </div>
+            )}
+
               {/* XML Sitemap Settings Card */}
               <form onSubmit={handleSaveSitemap} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
                 <div className="border-b pb-2 flex flex-col md:flex-row md:items-center justify-between gap-2">

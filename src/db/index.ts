@@ -8,17 +8,18 @@ dotenv.config();
 const { Pool } = pg;
 
 export const getDbConfig = () => {
-  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+  
   if (connectionString) {
     return {
       connectionString,
-      ssl: connectionString.includes('neon.tech') || connectionString.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined,
+      ssl: connectionString.includes('sslmode=disable') ? false : { rejectUnauthorized: false },
       connectionTimeoutMillis: 15000,
       idleTimeoutMillis: 15000,
       max: 15,
       keepAlive: true,
       keepAliveInitialDelayMillis: 10000,
-    } as any;
+    };
   }
 
   let host = process.env.SQL_HOST;

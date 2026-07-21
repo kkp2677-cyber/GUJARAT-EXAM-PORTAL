@@ -11,8 +11,8 @@ self.addEventListener('push', function(event) {
 
   const options = {
     body: data.body,
-    icon: '/logo.svg',
-    badge: '/logo.svg',
+    icon: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=192&h=192&fit=crop', // Highly-focused educational PNG for robust mobile compatibility
+    badge: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=96&h=96&fit=crop',
     data: {
       url: data.url
     }

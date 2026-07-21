@@ -288,6 +288,7 @@ export default function AdminPanel() {
   });
   const [notifSuccess, setNotifSuccess] = useState('');
   const [subCount, setSubCount] = useState(0);
+  const [notifSending, setNotifSending] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -701,7 +702,16 @@ export default function AdminPanel() {
         body: JSON.stringify(submissionData)
       });
 
-      if (!res.ok) throw new Error('પોસ્ટ સાચવવામાં નિષ્ફળતા.');
+      if (!res.ok) {
+        let errMsg = 'પોસ્ટ સાચવવામાં નિષ્ફળતા.';
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || JSON.stringify(errData) || errMsg;
+        } catch (e) {
+          errMsg = `સર્વર ભૂલ (સ્ટેટસ: ${res.status})`;
+        }
+        throw new Error(errMsg);
+      }
 
       setIsEditingPost(false);
       setCurrentPostId(null);
@@ -943,7 +953,10 @@ export default function AdminPanel() {
       alert('કૃપા કરીને બધી વિગતો ભરો.');
       return;
     }
+    if (notifSending) return;
+
     try {
+      setNotifSending(true);
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
@@ -961,6 +974,8 @@ export default function AdminPanel() {
       setTimeout(() => setNotifSuccess(''), 4000);
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setNotifSending(false);
     }
   };
 
@@ -2358,9 +2373,15 @@ export default function AdminPanel() {
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
+                  disabled={notifSending}
+                  className={`w-full font-bold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm ${
+                    notifSending 
+                      ? 'bg-blue-400 text-slate-100 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer'
+                  }`}
                 >
-                  <Send className="h-4 w-4" /> બ્રોડકાસ્ટ પુશ નોટિફિકેશન (Send Push)
+                  <Send className={`h-4 w-4 ${notifSending ? 'animate-spin' : ''}`} /> 
+                  {notifSending ? 'બ્રોડકાસ્ટ મોકલી રહ્યું છે... (Sending...)' : 'બ્રોડકાસ્ટ પુશ નોટિફિકેશન (Send Push)'}
                 </button>
               </form>
 

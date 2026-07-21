@@ -8,6 +8,19 @@ dotenv.config();
 const { Pool } = pg;
 
 export const getDbConfig = () => {
+  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (connectionString) {
+    return {
+      connectionString,
+      ssl: connectionString.includes('neon.tech') || connectionString.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined,
+      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 15000,
+      max: 15,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
+    } as any;
+  }
+
   let host = process.env.SQL_HOST;
   const user = process.env.SQL_USER || 'ai_studio_app_user';
   const password = process.env.SQL_PASSWORD || 'HK\\],+{3H7?Hb$B0'; // Escaped the backslash

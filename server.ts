@@ -15,7 +15,8 @@ import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
 import { getOrCreateUser } from './src/db/users.ts';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default
 const PORT = 3000;
@@ -798,7 +799,7 @@ app.get('/api/posts', async (req, res) => {
 
   try {
     const allPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)));
-    const processedPosts = allPosts.map(p => ({ ...p, createdAt: p.date, updatedAt: p.updatedAt }));
+    const processedPosts = allPosts.map(p => ({ ...p, createdAt: p.date, updatedAt: p.updatedAt ? p.updatedAt.toISOString() : null }));
     cache.set('posts', processedPosts);
     res.json(processedPosts);
   } catch (error: any) {
@@ -826,7 +827,7 @@ app.get('/api/posts/slug/:slug', async (req, res) => {
     await queryWithRetry(() => db.update(posts).set({ views: (post.views || 0) + 1 }).where(eq(posts.id, post.id)));
     post.views = (post.views || 0) + 1;
     
-    res.json({ ...post, createdAt: post.date, updatedAt: post.updatedAt });
+    res.json({ ...post, createdAt: post.date, updatedAt: post.updatedAt ? post.updatedAt.toISOString() : null });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -838,11 +839,23 @@ app.post('/api/posts', requireAuth, requireAdmin, async (req: AuthRequest, res) 
     if (!category || !title || !content) {
       return res.status(400).json({ error: 'કેટેગરી, શીર્ષક અને સામગ્રી આવશ્યક છે.' });
     }
-    const newPostArr = await db.insert(posts).values({
+    const newPostArr = await queryWithRetry(() => db.insert(posts).values({
       category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags, date: new Date().toISOString()
-    }).returning();
+    }).returning());
     cache.del('posts');
-    res.status(201).json({ ...newPostArr[0], createdAt: newPostArr[0].date, updatedAt: newPostArr[0].updatedAt });
+    
+    const post = newPostArr[0];
+    const safeToISO = (val: any) => {
+      if (!val) return null;
+      if (val instanceof Date) return val.toISOString();
+      try {
+        return new Date(val).toISOString();
+      } catch (_) {
+        return null;
+      }
+    };
+    
+    res.status(201).json({ ...post, createdAt: post.date, updatedAt: safeToISO(post.updatedAt) });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
@@ -853,8 +866,18 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
   try {
     const { id } = req.params;
     const { category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags } = req.body;
+
+    // Check if slug is unique (and not belonging to the current post being updated)
+    if (slug) {
+      const existing = await queryWithRetry(() => 
+        db.select().from(posts).where(and(eq(posts.slug, slug), ne(posts.id, Number(id))))
+      );
+      if (existing.length > 0) {
+        return res.status(400).json({ error: 'આ સ્લગ (slug) અન્ય પોસ્ટમાં વપરાયેલ છે.' });
+      }
+    }
     
-    const updatedPostArr = await db.update(posts)
+    const updatedPostArr = await queryWithRetry(() => db.update(posts)
       .set({
         category,
         title,
@@ -865,18 +888,31 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
         slug,
         focusKeyword,
         tags,
-        updatedAt: new Date()
+        updatedAt: sql`now()`
       })
       .where(eq(posts.id, Number(id)))
-      .returning();
+      .returning());
       
     if (updatedPostArr.length === 0) {
       return res.status(404).json({ error: 'પોસ્ટ મળી નથી.' });
     }
     
     cache.del('posts');
-    res.json({ ...updatedPostArr[0], createdAt: updatedPostArr[0].date, updatedAt: updatedPostArr[0].updatedAt });
+    
+    const post = updatedPostArr[0];
+    const safeToISO = (val: any) => {
+      if (!val) return null;
+      if (val instanceof Date) return val.toISOString();
+      try {
+        return new Date(val).toISOString();
+      } catch (_) {
+        return null;
+      }
+    };
+
+    res.json({ ...post, createdAt: post.date, updatedAt: safeToISO(post.updatedAt) });
   } catch (error: any) {
+    console.error(`[PUT /api/posts/${req.params.id}] Update failed:`, error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -2548,6 +2584,20 @@ app.post('/api/notifications', requireAuth, async (req: AuthRequest, res) => {
     if (user[0]?.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     const { title, body, type, link } = req.body;
+
+    // Server-side deduplication check: check if the exact same notification was sent in the last 10 seconds
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
+    const duplicateCheck = await queryWithRetry(() => db.select().from(notifications).where(
+      and(
+        eq(notifications.title, title),
+        eq(notifications.body, body),
+        sql`${notifications.date} >= ${tenSecondsAgo}`
+      )
+    ));
+    if (duplicateCheck.length > 0) {
+      console.log('[Notification Deduplicated] Duplicate request ignored.');
+      return res.status(200).json({ success: true, duplicated: true });
+    }
     
     // Insert into notifications history
     await db.insert(notifications).values({

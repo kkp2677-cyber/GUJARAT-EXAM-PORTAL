@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "dist/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!assets/|favicon.ico|logo.svg|manifest.json|robots.txt).*).*",
+      "destination": "/api/index.ts"
+    }
+  ]
+}

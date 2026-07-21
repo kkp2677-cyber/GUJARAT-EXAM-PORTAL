@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { User, Exam, ExamHistory } from '../types';
 import { User as UserIcon, BookOpen, Clock, Calendar, MapPin, CheckCircle, FileText, Lock, RefreshCw, HelpCircle, Award, Download, LayoutDashboard, Trophy, ShieldCheck, Bookmark, Heart } from 'lucide-react';
 import { subscribeToPushNotifications } from '../utils/push';
@@ -6,9 +6,11 @@ import { Bell, BellOff, Search, Filter, ChevronDown, ChevronUp, SlidersHorizonta
 import { jsPDF } from 'jspdf';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { BarChart2 } from 'lucide-react';
-import Leaderboard from './Leaderboard';
-import AdminPanel from './AdminPanel';
 import { safeFormatDate } from '../utils/date';
+import { fetchWithCache } from '../utils/cache';
+
+const Leaderboard = lazy(() => import('./Leaderboard'));
+const AdminPanel = lazy(() => import('./AdminPanel'));
 
 let cachedFontBase64: string | null = null;
 
@@ -195,6 +197,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
   // Exams & History State
   const [allExams, setAllExams] = useState<Exam[]>([]);
   const [history, setHistory] = useState<ExamHistory[]>([]);
+  const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
+  const HISTORY_PER_PAGE = 5;
   const [examsLoading, setExamsLoading] = useState(true);
 
   // Bookmarks State
@@ -298,9 +302,14 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
         return;
       }
       if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setWishlist(data);
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (Array.isArray(data)) {
+            setWishlist(data);
+          }
+        } catch (e) {
+          console.error('Failed to parse wishlist JSON:', text.substring(0, 100));
         }
       }
     } catch (err) {
@@ -381,15 +390,12 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
     setExamsLoading(true);
     try {
       // Fetch available exams
-      const examsRes = await fetch('/api/exams');
-      if (!examsRes.ok) {
-        throw new Error(`HTTP error! Status: ${examsRes.status}`);
-      }
-      const examsData = await examsRes.json();
+      const examsData = await fetchWithCache<any>('/api/exams');
       setAllExams(examsData);
 
       // Fetch user exam history
       const token = JSON.parse(localStorage.getItem('exam_user') || '{}')?.token;
+      // Note: we can't easily cache this because it uses authorization token in header
       const historyRes = await fetch(`/api/user/exams/${user.id}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -404,7 +410,14 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
       if (!historyRes.ok) {
         throw new Error(`HTTP error! Status: ${historyRes.status}`);
       }
-      const historyData = await historyRes.json();
+      const historyText = await historyRes.text();
+      let historyData;
+      try {
+        historyData = JSON.parse(historyText);
+      } catch (e) {
+        console.error('Failed to parse history JSON:', historyText.substring(0, 100));
+        throw new Error('Failed to parse history JSON');
+      }
       setHistory(historyData);
     } catch (err) {
       console.error('Error fetching exams or history:', err);
@@ -515,7 +528,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
     }
   };
 
-  const handleTabClick = (tabId: string) => {
+  const handleTabClick = (tabId: string, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     setActiveTab(tabId as any);
   };
 
@@ -568,7 +582,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
             <nav className="flex flex-col gap-2 pb-2 lg:pb-0">
               <button
                 type="button"
-                onClick={() => handleTabClick('dashboard')}
+                onClick={(e) => handleTabClick('dashboard', e)}
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                   activeTab === 'dashboard'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -582,7 +596,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
               <button
                 type="button"
-                onClick={() => handleTabClick('merit_list')}
+                onClick={(e) => handleTabClick('merit_list', e)}
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                   activeTab === 'merit_list'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -595,7 +609,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
               <button
                 type="button"
-                onClick={() => handleTabClick('mock_tests')}
+                onClick={(e) => handleTabClick('mock_tests', e)}
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                   activeTab === 'mock_tests'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -608,7 +622,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
               <button
                 type="button"
-                onClick={() => handleTabClick('bookmarks')}
+                onClick={(e) => handleTabClick('bookmarks', e)}
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                   activeTab === 'bookmarks'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -636,7 +650,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
               <button
                 type="button"
-                onClick={() => handleTabClick('change_password')}
+                onClick={(e) => handleTabClick('change_password', e)}
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                   activeTab === 'change_password'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -650,7 +664,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
               {user?.role === 'admin' && (
                 <button
                   type="button"
-                  onClick={() => handleTabClick('admin')}
+                  onClick={(e) => handleTabClick('admin', e)}
                   className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                     activeTab === 'admin'
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -667,7 +681,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => handleTabClick('profile')}
+                onClick={(e) => handleTabClick('profile', e)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer w-full text-left ${
                   activeTab === 'profile'
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
@@ -836,6 +850,21 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-fade-in">
 
+              {/* Motivational Banner */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 md:p-8 rounded-2xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-2xl font-black mb-2">તમારી સફળતાની સફર શરૂ કરો!</h3>
+                  <p className="text-blue-100 font-medium mb-4">સખત મહેનત અને યોગ્ય દિશા જ સફળતાની ચાવી છે.</p>
+                  <button 
+                    onClick={(e) => handleTabClick('mock_tests', e)}
+                    className="bg-white text-blue-700 font-bold py-2 px-6 rounded-xl hover:bg-blue-50 transition-colors"
+                  >
+                    વધુ મોક ટેસ્ટ આપો
+                  </button>
+                </div>
+                <Trophy className="h-16 w-16 text-blue-200/50" />
+              </div>
+
               {/* Push Notification Banner */}
               {pushStatus !== 'granted' && (
                 <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 p-4 md:p-6 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
@@ -984,8 +1013,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                         </div>
                         {/* Mobile View Card List */}
                         <div className="block md:hidden space-y-3">
-                          {history.map((h) => (
-                            <div key={h.id} className="bg-white border border-gray-150 rounded-xl p-4 space-y-3 shadow-sm">
+                          {history.slice((historyCurrentPage - 1) * HISTORY_PER_PAGE, historyCurrentPage * HISTORY_PER_PAGE).map((h) => (
+                            <div key={h.id} className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow">
                               <div className="flex justify-between items-start">
                                 <h4 className="font-extrabold text-[16px] text-gray-850 leading-snug">{h.examName}</h4>
                                 <div className="shrink-0">
@@ -1037,6 +1066,33 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                               </div>
                             </div>
                           ))}
+                          {Math.ceil(history.length / HISTORY_PER_PAGE) > 1 && (
+                            <div className="flex justify-center items-center gap-2 mt-4">
+                              <button
+                                onClick={() => {
+                                  setHistoryCurrentPage(Math.max(historyCurrentPage - 1, 1));
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                disabled={historyCurrentPage === 1}
+                                className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold disabled:opacity-50"
+                              >
+                                પહેલાનું
+                              </button>
+                              <span className="text-xs font-bold text-gray-600">
+                                {historyCurrentPage} / {Math.ceil(history.length / HISTORY_PER_PAGE)}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setHistoryCurrentPage(Math.min(historyCurrentPage + 1, Math.ceil(history.length / HISTORY_PER_PAGE)));
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                disabled={historyCurrentPage === Math.ceil(history.length / HISTORY_PER_PAGE)}
+                                className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold disabled:opacity-50"
+                              >
+                                પછીનું
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </>
                     )}
@@ -1062,7 +1118,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                           if (!exam) return null;
                           const isAttempted = history.some(h => String(h.examId) === String(exam.id));
                           return (
-                            <div key={exam.id} className={`border rounded-xl p-3 sm:p-3.5 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
+                            <div key={exam.id} className={`border border-gray-200 rounded-2xl p-4 sm:p-4 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
                               exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
                             }`}>
                               <div>
@@ -1219,6 +1275,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                         <li>અહીં તમે આપેલી પરીક્ષાના જવાબો સબમિટ કરો.</li>
                         <li>ઑફિશિયલ આન્સર કી આવ્યા બાદ તમે તમારા સાચા માર્ક્સ જાણી શકશો.</li>
                         <li>આ સાથે તમે તમારું અંદાજિત મેરિટ લિસ્ટ પણ જોઈ શકશો.</li>
+                        <li>જૂની ભરતીના ટેસ્ટ તમે આવનાર ભરતી તૈયારી માટે પણ ઉપયોગ કરી શકશો.</li>
                       </ul>
                     </div>
                   </div>
@@ -1388,7 +1445,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                           {paginatedExams.map((exam) => {
                             const isAttempted = history.some(h => String(h.examId) === String(exam.id));
                             return (
-                            <div key={exam.id} className={`border rounded-xl p-3 sm:p-3.5 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
+                            <div key={exam.id} className={`border border-gray-200 rounded-2xl p-4 sm:p-4 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
                               exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
                             }`}>
                               <div>
@@ -1525,14 +1582,18 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
           {activeTab === 'merit_list' && (
             <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
-              <Leaderboard currentUserName={user.name} />
+              <Suspense fallback={<div className="p-4 text-center text-gray-500">લોડ થઈ રહ્યું છે...</div>}>
+                <Leaderboard currentUserName={user.name} />
+              </Suspense>
             </div>
           )}
 
 {/* ADMIN PANEL TAB */}
           {activeTab === 'admin' && user?.role === 'admin' && (
             <div className="animate-fade-in bg-white rounded-2xl border border-gray-150 shadow-sm p-2 md:p-4">
-              <AdminPanel />
+              <Suspense fallback={<div className="p-4 text-center text-gray-500">એડમિન પેનલ લોડ થઈ રહ્યું છે...</div>}>
+                <AdminPanel />
+              </Suspense>
             </div>
           )}
 

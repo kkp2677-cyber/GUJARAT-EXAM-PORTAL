@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import webpush from 'web-push';
+import NodeCache from 'node-cache';
 import { db, queryWithRetry, getDbConfig } from './src/db/index.ts';
 import { posts, exams, examResults, users, notifications, calendarEvents, bookmarks, settings, pushSubscriptions, leaderboardSummary, wishlist } from './src/db/schema.ts';
 import { eq, desc, inArray, and, sql, ne } from 'drizzle-orm';
@@ -16,6 +17,7 @@ import { getOrCreateUser } from './src/db/users.ts';
 const app = express();
 app.use(express.json());
 
+const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default
 const PORT = 3000;
 
 // Reusable middleware to authorize admin users
@@ -492,19 +494,9 @@ app.post('/api/auth/login', async (req, res) => {
     let user = await db.query.users.findFirst({ where: eq(users.phone, phone) });
     console.log(`[DEBUG] User found: ${!!user}`);
     if (!user) {
-      console.log(`[DEBUG] User not found for phone: ${phone}. Auto-registering on-the-fly...`);
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const uid = 'local_' + phone;
-      const userRole = phone === '9725722729' ? 'admin' : 'user';
-      const newUser = await db.insert(users).values({
-        uid,
-        phone,
-        password: hashedPassword,
-        name: 'User ' + phone,
-        role: userRole
-      }).returning();
-      user = newUser[0];
+      return res.status(404).json({ error: 'આ મોબાઈલ નંબર રજીસ્ટર નથી. કૃપા કરીને પહેલા નવું રજીસ્ટ્રેશન કરો.' });
     }
+    
     if (user.phone === '9725722729' && user.role !== 'admin') {
       await db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id));
       user.role = 'admin';
@@ -523,15 +515,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     let isMatch = await bcrypt.compare(password, user.password || '');
     if (!isMatch) {
-      try {
-        const hashed = await bcrypt.hash(password, 10);
-        await db.update(users).set({ password: hashed }).where(eq(users.id, user.id));
-        user.password = hashed;
-        isMatch = true;
-        console.log(`[DEBUG] Password updated on-the-fly for phone ${phone}`);
-      } catch (e) {
-        isMatch = true;
-      }
+      return res.status(401).json({ error: 'પાસવર્ડ ખોટો છે.' });
     }
 
     const token = jwt.sign({ uid: user.uid, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
@@ -809,9 +793,14 @@ Sitemap: ${baseUrl}/sitemap.xml
 
 // Blog/CMS Posts
 app.get('/api/posts', async (req, res) => {
+  const cachedData = cache.get('posts');
+  if (cachedData) return res.json(cachedData);
+
   try {
     const allPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)));
-    res.json(allPosts.map(p => ({ ...p, createdAt: p.date })));
+    const processedPosts = allPosts.map(p => ({ ...p, createdAt: p.date, updatedAt: p.updatedAt }));
+    cache.set('posts', processedPosts);
+    res.json(processedPosts);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -837,7 +826,7 @@ app.get('/api/posts/slug/:slug', async (req, res) => {
     await queryWithRetry(() => db.update(posts).set({ views: (post.views || 0) + 1 }).where(eq(posts.id, post.id)));
     post.views = (post.views || 0) + 1;
     
-    res.json({ ...post, createdAt: post.date });
+    res.json({ ...post, createdAt: post.date, updatedAt: post.updatedAt });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -852,7 +841,8 @@ app.post('/api/posts', requireAuth, requireAdmin, async (req: AuthRequest, res) 
     const newPostArr = await db.insert(posts).values({
       category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags, date: new Date().toISOString()
     }).returning();
-    res.status(201).json({ ...newPostArr[0], createdAt: newPostArr[0].date });
+    cache.del('posts');
+    res.status(201).json({ ...newPostArr[0], createdAt: newPostArr[0].date, updatedAt: newPostArr[0].updatedAt });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
@@ -875,7 +865,7 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
         slug,
         focusKeyword,
         tags,
-        date: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(posts.id, Number(id)))
       .returning();
@@ -884,7 +874,8 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
       return res.status(404).json({ error: 'પોસ્ટ મળી નથી.' });
     }
     
-    res.json({ ...updatedPostArr[0], createdAt: updatedPostArr[0].date });
+    cache.del('posts');
+    res.json({ ...updatedPostArr[0], createdAt: updatedPostArr[0].date, updatedAt: updatedPostArr[0].updatedAt });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
@@ -904,6 +895,7 @@ app.delete('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest,
       return res.status(404).json({ error: 'પોસ્ટ મળી નથી.' });
     }
     
+    cache.del('posts');
     res.json({ message: 'પોસ્ટ સફળતાપૂર્વક ડિલીટ થઈ!' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -912,6 +904,9 @@ app.delete('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest,
 
 // Exams Endpoints
 app.get('/api/exams', async (req, res) => {
+  const cachedData = cache.get('exams');
+  if (cachedData) return res.json(cachedData);
+
   try {
     const allExams = await queryWithRetry(() =>
       db.select().from(exams).orderBy(desc(exams.id))
@@ -932,6 +927,7 @@ app.get('/api/exams', async (req, res) => {
         questions: parsedQuestions
       };
     });
+    cache.set('exams', processedExams);
     res.json(processedExams);
   } catch (error: any) {
     console.error('Error fetching exams:', error);
@@ -1017,14 +1013,18 @@ app.get('/api/admin/users', requireAuth, async (req: AuthRequest, res) => {
     const allUsers = await db.select().from(users).orderBy(desc(users.id));
     const userIds = allUsers.map(user => user.id);
     
-    // Fetch test counts
-    let testCounts: any = {};
-    if (userIds.length > 0) {
-      const results = await db.select().from(examResults).where(inArray(examResults.userId, userIds));
-      results.forEach(r => {
-        testCounts[r.userId] = (testCounts[r.userId] || 0) + 1;
-      });
-    }
+    // Fetch test counts efficiently
+    let testCounts: Record<number, number> = {};
+    const results = await db.select({
+      userId: examResults.userId,
+      count: sql<number>`count(*)`
+    })
+    .from(examResults)
+    .groupBy(examResults.userId);
+    
+    results.forEach(r => {
+      testCounts[r.userId] = Number(r.count);
+    });
 
     const enrichedUsers = allUsers.map(user => {
       let plan = user.subscriptionPlan;
@@ -1146,6 +1146,7 @@ app.post('/api/admin/exams', requireAuth, requireAdmin, async (req: AuthRequest,
       examDate: examDate || null
     }).returning();
 
+    cache.del('exams');
     res.status(201).json({ message: 'પરીક્ષા સફળતાપૂર્વક ઉમેરવામાં આવી!', exam: newExamArr[0] });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -2503,15 +2504,25 @@ app.post('/api/notifications/subscribe', requireAuth, async (req: AuthRequest, r
     const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
     const userId = user[0]?.id || null;
     
-    // Upsert the subscription endpoint
-    const existing = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.endpoint, subscription.endpoint));
-    if (existing.length === 0) {
-      await db.insert(pushSubscriptions).values({
-        userId,
-        endpoint: subscription.endpoint,
-        auth: subscription.keys.auth,
-        p256dh: subscription.keys.p256dh
-      });
+    // Upsert the subscription endpoint using try-catch to handle potential race condition on unique constraint
+    try {
+        await db.insert(pushSubscriptions).values({
+            userId,
+            endpoint: subscription.endpoint,
+            auth: subscription.keys.auth,
+            p256dh: subscription.keys.p256dh
+        });
+    } catch (err: any) {
+        // Assume unique constraint violation, update userId if it was null
+        if (err.code === '23505') { // Unique constraint violation in PostgreSQL
+            if (userId) {
+                await db.update(pushSubscriptions)
+                  .set({ userId })
+                  .where(eq(pushSubscriptions.endpoint, subscription.endpoint));
+            }
+        } else {
+            throw err;
+        }
     }
     res.status(201).json({ success: true });
   } catch (error: any) {

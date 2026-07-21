@@ -54,6 +54,7 @@ export const posts = pgTable('posts', {
   slug: text('slug').unique(),
   views: integer('views').default(0),
   date: text('date').notNull(), // ISO Date string
+  updatedAt: timestamp('updated_at').defaultNow(),
   focusKeyword: text('focus_keyword'),
   tags: text('tags'),
 });

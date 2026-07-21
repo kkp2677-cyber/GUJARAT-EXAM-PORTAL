@@ -76,6 +76,7 @@ export interface BlogPost {
   views?: number;
   focusKeyword?: string;
   tags?: string;
+  updatedAt?: string;
 }
 
 export interface LeaderboardEntry {

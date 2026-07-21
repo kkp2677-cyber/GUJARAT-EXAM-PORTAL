@@ -3,6 +3,7 @@ import { Briefcase, Key, Award, FileCheck, Calendar, ArrowRight, Eye, ChevronRig
 import { BlogPost, Exam, User, ExamCalendarEvent } from '../types';
 import { navigateToPost, navigateToSection } from '../utils/navigation';
 import { safeFormatDate } from '../utils/date';
+import { fetchWithCache } from '../utils/cache';
 
 interface PublicHomeProps {
   onStartExamRequest: () => void;
@@ -42,13 +43,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
 
 
   useEffect(() => {
-    fetch('/api/posts')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! Status: ${res.status}`);
-        }
-        return res.json();
-      })
+    fetchWithCache<BlogPost[]>('/api/posts')
       .then(data => {
         // filter out drafts, sort so pinned is at the top
         const publicPosts = data.filter((p: any) => p.status !== 'draft');
@@ -68,13 +63,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
       });
 
     // Fetch exams
-    fetch('/api/exams')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! Status: ${res.status}`);
-        }
-        return res.json();
-      })
+    fetchWithCache<Exam[]>('/api/exams')
       .then(data => {
         setExams(data);
         setExamsLoading(false);
@@ -85,13 +74,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
       });
 
     // Fetch calendar events
-    fetch('/api/calendar')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! Status: ${res.status}`);
-        }
-        return res.json();
-      })
+    fetchWithCache<ExamCalendarEvent[]>('/api/calendar')
       .then(data => {
         setCalendarEvents(data);
         setCalendarLoading(false);

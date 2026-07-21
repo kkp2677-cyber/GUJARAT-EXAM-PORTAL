@@ -1218,7 +1218,7 @@ export default function AdminPanel() {
       </div>
 
       {/* RENDER ACTIVE TAB VIEW */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 md:p-8">
+      <div className="bg-white rounded-3xl shadow-xl p-0 md:p-8 w-full">
         
 
 

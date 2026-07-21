@@ -36,6 +36,9 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
     if (onResultStateChange) {
       onResultStateChange(!!examResult);
     }
+    if (examResult) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [examResult, onResultStateChange]);
 
   // Load user bookmarks on start

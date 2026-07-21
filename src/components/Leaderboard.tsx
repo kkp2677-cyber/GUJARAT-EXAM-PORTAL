@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Trophy, Users, ShieldAlert, Sparkles, TrendingUp, Info, Crown } from 'lucide-react';
 import { LeaderboardEntry } from '../types';
+import { fetchWithCache } from '../utils/cache';
 
 interface LeaderboardProps {
   currentUserName?: string;
@@ -26,11 +27,7 @@ export default function Leaderboard({ currentUserName }: LeaderboardProps) {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch('/api/leaderboard');
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await fetchWithCache<any>('/api/leaderboard');
       setCombinedMerit(data.combinedMerit || []);
       setMockMerit(data.mockMerit || []);
       setBhartiMerit(data.bhartiMerit || []);
@@ -70,7 +67,7 @@ export default function Leaderboard({ currentUserName }: LeaderboardProps) {
           <button
             onClick={() => {
               onPageChange(Math.max(currentPage - 1, 1));
-              window.scrollTo({ top: 300, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             disabled={currentPage === 1}
             className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
@@ -83,7 +80,7 @@ export default function Leaderboard({ currentUserName }: LeaderboardProps) {
           <button
             onClick={() => {
               onPageChange(Math.min(currentPage + 1, totalPages));
-              window.scrollTo({ top: 300, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             disabled={currentPage === totalPages}
             className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
@@ -104,7 +101,7 @@ export default function Leaderboard({ currentUserName }: LeaderboardProps) {
               <button
                 onClick={() => {
                   onPageChange(Math.max(currentPage - 1, 1));
-                  window.scrollTo({ top: 300, behavior: 'smooth' });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 disabled={currentPage === 1}
                 className="relative inline-flex items-center rounded-l-md px-3 py-2 text-gray-500 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-40 cursor-pointer text-xs font-bold bg-white"
@@ -126,7 +123,7 @@ export default function Leaderboard({ currentUserName }: LeaderboardProps) {
                       <button
                         onClick={() => {
                           onPageChange(p);
-                          window.scrollTo({ top: 300, behavior: 'smooth' });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         aria-current={p === currentPage ? 'page' : undefined}
                         className={`relative inline-flex items-center px-4 py-2 text-xs font-bold focus:z-20 cursor-pointer ${
@@ -144,7 +141,7 @@ export default function Leaderboard({ currentUserName }: LeaderboardProps) {
               <button
                 onClick={() => {
                   onPageChange(Math.min(currentPage + 1, totalPages));
-                  window.scrollTo({ top: 300, behavior: 'smooth' });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 disabled={currentPage === totalPages}
                 className="relative inline-flex items-center rounded-r-md px-3 py-2 text-gray-500 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-40 cursor-pointer text-xs font-bold bg-white"

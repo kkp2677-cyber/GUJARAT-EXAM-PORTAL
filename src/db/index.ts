@@ -8,30 +8,10 @@ dotenv.config();
 const { Pool } = pg;
 
 export const getDbConfig = () => {
-  // Support direct PostgreSQL connection string (DATABASE_URL or POSTGRES_URL)
-  // This is highly recommended for Vercel/Supabase deployments
-  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (connectionString) {
-    const isExternalSecured = connectionString.includes('supabase.co') || 
-                              connectionString.includes('neon.tech') || 
-                              connectionString.includes('aivencloud.com') ||
-                              process.env.SQL_SSL === 'true';
-    return {
-      connectionString,
-      ssl: isExternalSecured ? { rejectUnauthorized: false } : undefined,
-      connectionTimeoutMillis: 15000,
-      idleTimeoutMillis: 15000,
-      max: 15,
-      keepAlive: true,
-      keepAliveInitialDelayMillis: 10000,
-    };
-  }
-
   let host = process.env.SQL_HOST;
   const user = process.env.SQL_USER || 'ai_studio_app_user';
   const password = process.env.SQL_PASSWORD || 'HK\\],+{3H7?Hb$B0'; // Escaped the backslash
   const database = process.env.SQL_DB_NAME || 'cloud_sql_development_database';
-  const port = process.env.SQL_PORT ? parseInt(process.env.SQL_PORT, 10) : 5432;
 
   const standardCloudSqlDir = '/cloudsql';
   const appCloudSqlDir = '/app/cloudsql';
@@ -79,19 +59,11 @@ export const getDbConfig = () => {
     console.log(`[DB Auto-Discover] No socket discovered, using default fallback: ${host}`);
   }
 
-  const isExternalSecured = (host && (
-    host.includes('supabase') || 
-    host.includes('neon') || 
-    host.includes('aiven')
-  )) || process.env.SQL_SSL === 'true';
-
   return {
     host,
-    port,
     user,
     password,
     database,
-    ssl: isExternalSecured ? { rejectUnauthorized: false } : undefined,
     connectionTimeoutMillis: 15000,
     idleTimeoutMillis: 15000, // Balanced idle timeout to reduce connection churn while still pruning dead sockets
     max: 15, // Optimize maximum pool size to support simultaneous requests

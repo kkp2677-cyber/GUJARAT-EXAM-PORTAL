@@ -14,7 +14,7 @@ import { eq, desc, inArray, and, sql, ne } from 'drizzle-orm';
 import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
 import { getOrCreateUser } from './src/db/users.ts';
 
-const app = express();
+export const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -3411,4 +3411,6 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}

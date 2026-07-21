@@ -3,7 +3,7 @@ import pg from 'pg';
 import * as schema from './schema.ts';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
-dotenv.config();
+dotenv.config({ override: true });
 
 const { Pool } = pg;
 

@@ -3594,6 +3594,4 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
   });
 }
 
-if (!process.env.VERCEL) {
-  startServer();
-}
+startServer();

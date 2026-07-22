@@ -659,7 +659,9 @@ app.get('/api/diagnostics/db', async (req, res) => {
 // Dynamic XML Sitemap Generator (with external Image Thumbnail indexing support)
 app.get('/sitemap.xml', async (req, res) => {
   try {
+    console.log('Generating sitemap...');
     const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
+    console.log('Sitemap Base URL:', sitemapBaseUrl);
     const sitemapPostsLimitStr = await getSetting('SITEMAP_POSTS_LIMIT') || '50000';
     const sitemapChangeFreq = await getSetting('SITEMAP_CHANGE_FREQ') || 'daily';
     const sitemapPriorityStr = await getSetting('SITEMAP_PRIORITY') || '0.8';
@@ -3118,6 +3120,7 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
 
     const saveSetting = async (key: string, value: any) => {
       try {
+        console.log(`Saving setting: ${key} = ${value}`);
         const valStr = (value === null || value === undefined) ? '' : String(value);
         const existing = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, key)));
         if (existing.length) {

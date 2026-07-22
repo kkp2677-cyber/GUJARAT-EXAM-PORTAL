@@ -84,7 +84,8 @@ const validatePhoneNumber = (rawPhone: any): { isValid: boolean; error?: string;
 
 async function getSetting(key: string, fallbackEnvVar?: string): Promise<string> {
   try {
-    const row = await db.select().from(settings).where(eq(settings.key, key));
+    // Try to find the key case-insensitively
+    const row = await queryWithRetry(() => db.select().from(settings).where(sql`upper(${settings.key}) = upper(${key})`));
     if (row.length > 0 && row[0].value) {
       return row[0].value;
     }
@@ -2984,6 +2985,12 @@ app.get('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
     const adsPostAboveRelated = await getSetting('ADS_POST_ABOVE_RELATED') || '';
     const adsSidebarBottom = await getSetting('ADS_SIDEBAR_BOTTOM') || '';
 
+    console.log('[AdminSettings] Fetched settings:', {
+      razorpayKeyId,
+      firebaseEnabled,
+      sitemapBaseUrl
+    });
+
     res.json({
       razorpayKeyId,
       razorpayKeySecret,
@@ -3042,6 +3049,7 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
     };
 
     if (shouldExport('users')) {
+      console.log('Exporting users...');
       const allUsers = await queryWithRetry(() => db.select().from(users));
       backupData.users = allUsers.map(u => {
         const { password, ...rest } = u; // Keep passwords out of backup file for safety
@@ -3050,34 +3058,42 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
     }
 
     if (shouldExport('exams')) {
+      console.log('Exporting exams...');
       backupData.exams = await queryWithRetry(() => db.select().from(exams));
     }
 
     if (shouldExport('exam_results')) {
+      console.log('Exporting exam_results...');
       backupData.exam_results = await queryWithRetry(() => db.select().from(examResults));
     }
 
     if (shouldExport('posts')) {
+      console.log('Exporting posts...');
       backupData.posts = await queryWithRetry(() => db.select().from(posts));
     }
 
     if (shouldExport('notifications')) {
+      console.log('Exporting notifications...');
       backupData.notifications = await queryWithRetry(() => db.select().from(notifications));
     }
 
     if (shouldExport('calendar_events')) {
+      console.log('Exporting calendar_events...');
       backupData.calendar_events = await queryWithRetry(() => db.select().from(calendarEvents));
     }
 
     if (shouldExport('bookmarks')) {
+      console.log('Exporting bookmarks...');
       backupData.bookmarks = await queryWithRetry(() => db.select().from(bookmarks));
     }
 
     if (shouldExport('settings')) {
+      console.log('Exporting settings...');
       backupData.settings = await queryWithRetry(() => db.select().from(settings));
     }
 
     if (shouldExport('push_subscriptions')) {
+      console.log('Exporting push_subscriptions...');
       backupData.push_subscriptions = await queryWithRetry(() => db.select().from(pushSubscriptions));
     }
 
@@ -3104,7 +3120,8 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
 app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
   try {
     const user = await queryWithRetry(() => db.select().from(users).where(eq(users.uid, String(req.user?.uid))));
-    if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
+    console.log('Admin check user (UID:', req.user?.uid, '):', user);
+    if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized: Admin role required', userUid: req.user?.uid, userFound: user.length > 0 });
 
     const { 
       razorpayKeyId, razorpayKeySecret,
@@ -3122,18 +3139,22 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
     // Check if body is empty or not parsed correctly
     if (!req.body || Object.keys(req.body).length === 0) {
       console.error('Admin settings update request body is empty!');
-      return res.status(400).json({ error: 'Request body is empty' });
+      return res.status(400).json({ error: 'Request body is empty', receivedBody: req.body });
     }
 
     const saveSetting = async (key: string, value: any) => {
       try {
-        console.log(`Saving setting: ${key} = ${value}`);
+        const upperKey = key.toUpperCase();
+        console.log(`Saving setting: ${upperKey} = ${value}`);
         const valStr = (value === null || value === undefined) ? '' : String(value);
-        const existing = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, key)));
+        // Check for existing key case-insensitively
+        const existing = await queryWithRetry(() => db.select().from(settings).where(sql`upper(${settings.key}) = upper(${upperKey})`));
         if (existing.length) {
-          await queryWithRetry(() => db.update(settings).set({ value: valStr }).where(eq(settings.key, key)));
+          console.log(`Updating setting: ${upperKey}`);
+          await queryWithRetry(() => db.update(settings).set({ key: upperKey, value: valStr }).where(sql`upper(${settings.key}) = upper(${upperKey})`));
         } else {
-          await queryWithRetry(() => db.insert(settings).values({ key, value: valStr }));
+          console.log(`Inserting setting: ${upperKey}`);
+          await queryWithRetry(() => db.insert(settings).values({ key: upperKey, value: valStr }));
         }
       } catch (err) {
         console.error(`Failed to save setting: ${key}`, err);
@@ -3322,7 +3343,123 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
       server: { middlewareMode: true },
       appType: 'spa',
     });
-    app.use(vite.middlewares);
+    
+    app.use(async (req, res, next) => {
+      if (req.path === '/' || req.path.match(/^\/(job|answer_key|result|selection_list|news|blog|post)\/.+/)) {
+        try {
+          let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+          html = await vite.transformIndexHtml(req.url, html);
+          
+          // ... (The SEO logic goes here) ...
+          const googleAnalyticsId = await getSetting('GOOGLE_ANALYTICS_ID') || '';
+          const customHeadCode = await getSetting('CUSTOM_HEAD_CODE') || '';
+          
+          // ... (Copying the logic from below) ...
+          const pathSegments = req.path.split('/').filter(Boolean);
+          let slug = '';
+          const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news', 'blog'];
+          
+          if (pathSegments.length >= 2 && validCategories.includes(pathSegments[0])) {
+            slug = decodeURIComponent(pathSegments[1]).replace(/\/$/, '');
+          } else if (pathSegments[0] === 'post' && pathSegments[1]) {
+            slug = decodeURIComponent(pathSegments[1]).replace(/\/$/, '');
+          }
+          
+          let seoMeta = '';
+          if (slug) {
+            try {
+              let post: any = null;
+              if (!isNaN(Number(slug))) {
+                const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(slug))));
+                post = postsArr[0];
+              } else {
+                const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, slug)));
+                post = postsArr[0];
+              }
+              
+              if (post) {
+                const titleText = post.metaTitle || post.title;
+                const plainContent = (post.content || '').replace(/<[^>]*>/g, '');
+                const descText = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
+                
+                const hostHeader = req.get('host') || 'gujarat-exam-portal.com';
+                const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+                const fullUrl = `${protocol}://${hostHeader}${req.originalUrl}`;
+                
+                let imageUrl = post.thumbnail || '/logo.svg';
+                if (imageUrl.startsWith('/')) {
+                  imageUrl = `${protocol}://${hostHeader}${imageUrl}`;
+                }
+                
+                const escTitleText = titleText.replace(/"/g, '&quot;');
+                const escDescText = descText.replace(/"/g, '&quot;');
+                
+                seoMeta = `
+      <!-- Dynamic Social SEO Meta Tags -->
+      <meta name="description" content="${escDescText}" />
+      <meta property="og:title" content="${escTitleText}" />
+      <meta property="og:description" content="${escDescText}" />
+      <meta property="og:image" content="${imageUrl}" />
+      <meta property="og:url" content="${fullUrl}" />
+      <meta property="og:type" content="article" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="${escTitleText}" />
+      <meta name="twitter:description" content="${escDescText}" />
+      <meta name="twitter:image" content="${imageUrl}" />
+      <title>${escTitleText} - OJAS Exam</title>
+  `;
+              }
+            } catch (dbErr) {
+              console.error('[SEO Inject Error] Failed to fetch post for SEO:', dbErr);
+            }
+          }
+          
+          const defaultSeoMeta = `
+      <!-- Default Social SEO Meta Tags -->
+      <meta name="description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+      <meta property="og:title" content="OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results" />
+      <meta property="og:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+      <meta property="og:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+      <meta property="og:type" content="website" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+      <title>OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results</title>
+  `;
+          
+          if (seoMeta) {
+            html = html.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/, seoMeta);
+          } else {
+            html = html.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/, defaultSeoMeta);
+          }
+
+          let injection = '';
+          if (googleAnalyticsId) {
+            injection += `
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${googleAnalyticsId}');
+    </script>`;
+          }
+          if (customHeadCode) {
+            injection += `\n${customHeadCode}\n`;
+          }
+          
+          if (injection) {
+            html = html.replace('</head>', `${injection}</head>`);
+          }
+          
+          res.send(html);
+        } catch (e) {
+          vite.ssrFixStacktrace(e as Error);
+          next(e);
+        }
+      } else {
+        vite.middlewares(req, res, next);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath, { index: false }));
@@ -3339,17 +3476,19 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
         
         // 1. Dynamic SEO / OpenGraph / TwitterCard Injection for Single Posts
         const pathSegments = req.path.split('/').filter(Boolean);
+        console.log('[SEO Debug] Request path:', req.path, 'Segments:', pathSegments);
         let slug = '';
-        const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
+        const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news', 'blog'];
         
-        if (pathSegments.length === 2 && validCategories.includes(pathSegments[0])) {
-          slug = decodeURIComponent(pathSegments[1]);
+        if (pathSegments.length >= 2 && validCategories.includes(pathSegments[0])) {
+          slug = decodeURIComponent(pathSegments[1]).replace(/\/$/, '');
         } else if (pathSegments[0] === 'post' && pathSegments[1]) {
-          slug = decodeURIComponent(pathSegments[1]);
+          slug = decodeURIComponent(pathSegments[1]).replace(/\/$/, '');
         }
         
         let seoMeta = '';
         if (slug) {
+          console.log('[SEO Debug] Slug detected:', slug);
           try {
             let post: any = null;
             if (!isNaN(Number(slug))) {
@@ -3361,6 +3500,7 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
             }
             
             if (post) {
+              console.log('[SEO Debug] Post found:', post.title);
               const titleText = post.metaTitle || post.title;
               const plainContent = (post.content || '').replace(/<[^>]*>/g, '');
               const descText = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
@@ -3392,6 +3532,8 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
     <meta name="twitter:image" content="${imageUrl}" />
     <title>${escTitleText} - OJAS Exam</title>
 `;
+            } else {
+              console.log('[SEO Debug] Post not found for slug:', slug);
             }
           } catch (dbErr) {
             console.error('[SEO Inject Error] Failed to fetch post for SEO:', dbErr);
@@ -3412,7 +3554,13 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
 `;
         
         // Replace the placeholder block
-        html = html.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/, (seoMeta || defaultSeoMeta));
+        if (seoMeta) {
+          console.log('[SEO Debug] Using dynamic SEO meta tags');
+          html = html.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/, seoMeta);
+        } else {
+          console.log('[SEO Debug] Using default SEO meta tags');
+          html = html.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/, defaultSeoMeta);
+        }
 
         let injection = '';
         if (googleAnalyticsId) {

@@ -193,6 +193,9 @@ export default function App() {
   // URL router state-synchronizer
   const handleUrlRouting = async () => {
     const path = window.location.pathname;
+    if (path === '/sitemap.xml' || path === '/sitemap_index.xml' || path === '/sitemap' || path === '/robots.txt') {
+      return;
+    }
     const segments = path.split('/').filter(Boolean);
     const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
     

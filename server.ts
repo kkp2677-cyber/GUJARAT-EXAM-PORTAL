@@ -3114,13 +3114,20 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
       adsPostBelowHeader, adsPostBelowThumb, adsPostAboveRelated, adsSidebarBottom
     } = req.body;
 
+    console.log('Admin settings update request body:', req.body);
+
     const saveSetting = async (key: string, value: any) => {
-      const valStr = (value === null || value === undefined) ? '' : String(value);
-      const existing = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, key)));
-      if (existing.length) {
-        await queryWithRetry(() => db.update(settings).set({ value: valStr }).where(eq(settings.key, key)));
-      } else {
-        await queryWithRetry(() => db.insert(settings).values({ key, value: valStr }));
+      try {
+        const valStr = (value === null || value === undefined) ? '' : String(value);
+        const existing = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, key)));
+        if (existing.length) {
+          await queryWithRetry(() => db.update(settings).set({ value: valStr }).where(eq(settings.key, key)));
+        } else {
+          await queryWithRetry(() => db.insert(settings).values({ key, value: valStr }));
+        }
+      } catch (err) {
+        console.error(`Failed to save setting: ${key}`, err);
+        throw err;
       }
     };
 
@@ -3161,7 +3168,7 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
     res.json({ success: true });
   } catch (err: any) {
     console.error('Error saving settings:', err);
-    res.status(500).json({ error: err.message || 'સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.' });
+    res.status(500).json({ error: String(err) });
   }
 });
 

@@ -87,10 +87,10 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
 
   // Dynamic SEO meta tags management on home page mount
   useEffect(() => {
-    document.title = 'OJAS Exam';
+    document.title = 'OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.');
+      metaDesc.setAttribute('content', 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર.');
     }
   }, []);
 

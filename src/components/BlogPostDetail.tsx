@@ -118,13 +118,40 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
   // Set the document title dynamically like a real news website
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = `${post.title} | OJAS Exam`;
+    const originalDesc = document.querySelector('meta[name="description"]')?.getAttribute('content');
+    const originalOgTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content');
+    const originalOgDesc = document.querySelector('meta[property="og:description"]')?.getAttribute('content');
+    
+    document.title = `${post.title} | OJAS EXAM`;
+    
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    
+    if (metaDesc) {
+      metaDesc.setAttribute('content', post.metaDesc || 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.');
+    }
+    if (ogTitle) {
+      ogTitle.setAttribute('content', `${post.title} | OJAS EXAM`);
+    }
+    if (ogDesc) {
+      ogDesc.setAttribute('content', post.metaDesc || 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.');
+    }
     
     // Scroll to top when post opens
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     return () => {
       document.title = originalTitle;
+      if (metaDesc && originalDesc) {
+        metaDesc.setAttribute('content', originalDesc);
+      }
+      if (ogTitle && originalOgTitle) {
+        ogTitle.setAttribute('content', originalOgTitle);
+      }
+      if (ogDesc && originalOgDesc) {
+        ogDesc.setAttribute('content', originalOgDesc);
+      }
     };
   }, [post]);
 

@@ -287,6 +287,59 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
     setLoginOtpStep('form');
   }, [mode]);
 
+  const handleSendLoginOtp = async () => {
+    if (phone.length !== 10) {
+      setError('કૃપા કરીને સાચો ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/auth/sms/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, purpose: 'login' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'ઓટીપી મોકલવામાં નિષ્ફળતા.');
+      if (data.isSandbox && data.demoCode) {
+        setDemoCode(data.demoCode);
+        setSuccessMsg(`સેન્ડબોક્સ મોડ: ડેમો ઓટીપી સફળતાપૂર્વક જનરેટ થયો. ડેમો કોડ: ${data.demoCode}`);
+      } else {
+        setSuccessMsg('ઓટીપી તમારા મોબાઈલ નંબર પર સફળતાપૂર્વક મોકલવામાં આવ્યો છે.');
+      }
+      setLoginOtpStep('otp');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyLoginOtp = async () => {
+    if (otpVal.length !== 6) {
+      setError('કૃપા કરીને ૬ આંકડાનો ઓટીપી દાખલ કરો.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/sms/verify-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp: otpVal })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'ઓટીપી વેરિફિકેશન નિષ્ફળ.');
+      onAuthSuccess(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length !== 10) {

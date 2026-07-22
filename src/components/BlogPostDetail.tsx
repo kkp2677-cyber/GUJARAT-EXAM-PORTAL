@@ -115,43 +115,45 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
       });
   }, []);
 
-  // Set the document title dynamically like a real news website
+  // Set the document title and social meta tags dynamically
   useEffect(() => {
     const originalTitle = document.title;
-    const originalDesc = document.querySelector('meta[name="description"]')?.getAttribute('content');
-    const originalOgTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content');
-    const originalOgDesc = document.querySelector('meta[property="og:description"]')?.getAttribute('content');
-    
-    document.title = `${post.title} | OJAS EXAM`;
-    
-    const metaDesc = document.querySelector('meta[name="description"]');
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    const ogDesc = document.querySelector('meta[property="og:description"]');
-    
-    if (metaDesc) {
-      metaDesc.setAttribute('content', post.metaDesc || 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.');
-    }
-    if (ogTitle) {
-      ogTitle.setAttribute('content', `${post.title} | OJAS EXAM`);
-    }
-    if (ogDesc) {
-      ogDesc.setAttribute('content', post.metaDesc || 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.');
-    }
-    
+    const pageTitle = `${post.title} | OJAS EXAM`;
+    const plainContent = (post.content || '').replace(/<[^>]*>/g, '');
+    const metaDescription = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
+    const postImage = post.thumbnail || '/logo.svg';
+    const absoluteImage = postImage.startsWith('http') ? postImage : `${window.location.origin}${postImage.startsWith('/') ? '' : '/'}${postImage}`;
+    const pageUrl = window.location.href;
+
+    document.title = pageTitle;
+
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        const [key, val] = selector.replace('meta[', '').replace(']', '').split('=');
+        el.setAttribute(key, val.replace(/"/g, ''));
+        document.head.appendChild(el);
+      }
+      el.setAttribute(attr, value);
+    };
+
+    setMeta('meta[name="description"]', 'content', metaDescription);
+    setMeta('meta[property="og:title"]', 'content', pageTitle);
+    setMeta('meta[property="og:description"]', 'content', metaDescription);
+    setMeta('meta[property="og:image"]', 'content', absoluteImage);
+    setMeta('meta[property="og:url"]', 'content', pageUrl);
+    setMeta('meta[property="og:type"]', 'content', 'article');
+    setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image');
+    setMeta('meta[name="twitter:title"]', 'content', pageTitle);
+    setMeta('meta[name="twitter:description"]', 'content', metaDescription);
+    setMeta('meta[name="twitter:image"]', 'content', absoluteImage);
+
     // Scroll to top when post opens
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     return () => {
       document.title = originalTitle;
-      if (metaDesc && originalDesc) {
-        metaDesc.setAttribute('content', originalDesc);
-      }
-      if (ogTitle && originalOgTitle) {
-        ogTitle.setAttribute('content', originalOgTitle);
-      }
-      if (ogDesc && originalOgDesc) {
-        ogDesc.setAttribute('content', originalOgDesc);
-      }
     };
   }, [post]);
 

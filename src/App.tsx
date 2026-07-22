@@ -104,7 +104,7 @@ export default function App() {
   };
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme');
-    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    return saved === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {
@@ -275,7 +275,12 @@ export default function App() {
       setCurrentSection('admin');
     } else if (path === '/auth') {
       setActiveBlogPost(null);
-      setCurrentSection('auth');
+      if (localStorage.getItem('exam_user')) {
+        setCurrentSection('dashboard');
+        window.history.replaceState({}, '', '/dashboard');
+      } else {
+        setCurrentSection('auth');
+      }
     } else if (path === '/about' || path === '/about/') {
       setActiveBlogPost(null);
       setActiveStaticPageKey('about');
@@ -993,12 +998,24 @@ export default function App() {
             )}
 
             {currentSection === 'auth' && (
-              <AuthPages 
-                mode={authMode}
-                onToggleMode={(mode) => setAuthMode(mode)}
-                onAuthSuccess={handleAuthSuccess}
-                onBack={() => navigateToHome()} 
-              />
+              user ? (
+                <UserDashboard 
+                  user={user}
+                  onUpdateUser={(updated) => {
+                    setUser(updated);
+                    localStorage.setItem('exam_user', JSON.stringify(updated));
+                  }}
+                  onTakeExam={handleTakeExamRequest} 
+                  onShowSubscription={() => setShowPaywall(true)}
+                />
+              ) : (
+                <AuthPages 
+                  mode={authMode}
+                  onToggleMode={(mode) => setAuthMode(mode)}
+                  onAuthSuccess={handleAuthSuccess}
+                  onBack={() => navigateToHome()} 
+                />
+              )
             )}
 
             {currentSection === 'dashboard' && (

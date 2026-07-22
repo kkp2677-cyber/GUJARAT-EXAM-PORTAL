@@ -339,6 +339,10 @@ app.post('/api/auth/sms/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'દાખલ કરેલ ઓટીપી ખોટો છે અથવા તેની સમય મર્યાદા સમાપ્ત થઈ ગઈ છે.' });
     }
 
+    // Mark as verified and extend expiration so registration succeeds seamlessly
+    stored.verified = true;
+    stored.expiresAt = Date.now() + 15 * 60 * 1000;
+
     res.json({ success: true, message: 'ઓટીપી સફળતાપૂર્વક વેરિફાય કરવામાં આવ્યો છે.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -396,14 +400,14 @@ app.post('/api/auth/register', async (req, res) => {
     phone = phoneVal.cleaned!;
     password = convertGujaratiToEnglish(password);
 
-    const gatewayType = await getSetting('SMS_GATEWAY_TYPE', 'SMS_GATEWAY_TYPE') || 'disabled';
+    const gatewayType = await getSetting('SMS_GATEWAY_TYPE', 'SMS_GATEWAY_TYPE') || 'sandbox';
     if (gatewayType !== 'disabled') {
       if (!otp) {
         return res.status(400).json({ error: 'મોબાઈલ વેરિફિકેશન માટે ઓટીપી દાખલ કરવો જરૂરી છે.' });
       }
       const otpVal = convertGujaratiToEnglish(otp).trim();
       const stored = otpStore.get(phone);
-      if (!stored || stored.otp !== otpVal || Date.now() > stored.expiresAt) {
+      if (!stored || (stored.otp !== otpVal && !stored.verified) || Date.now() > stored.expiresAt) {
         return res.status(400).json({ error: 'દાખલ કરેલ ઓટીપી ખોટો છે અથવા તેની સમય મર્યાદા સમાપ્ત થઈ ગઈ છે.' });
       }
       otpStore.delete(phone);
@@ -658,21 +662,22 @@ app.get('/api/diagnostics/db', async (req, res) => {
 });
 
 // Dynamic XML Sitemap Generator (with external Image Thumbnail indexing support)
-app.get('/sitemap.xml', async (req, res) => {
+const generateSitemapXml = async (req: express.Request, res: express.Response) => {
   try {
-    console.log('Generating sitemap...');
     const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-    console.log('Sitemap Base URL:', sitemapBaseUrl);
     const sitemapPostsLimitStr = await getSetting('SITEMAP_POSTS_LIMIT') || '50000';
-    console.log('Sitemap Posts Limit:', sitemapPostsLimitStr);
-    const sitemapChangeFreq = await getSetting('SITEMAP_CHANGE_FREQ') || 'daily';
-    const sitemapPriorityStr = await getSetting('SITEMAP_PRIORITY') || '0.8';
+    const sitemapChangeFreq = (await getSetting('SITEMAP_CHANGE_FREQ') || 'daily').trim();
+    const sitemapPriorityStr = (await getSetting('SITEMAP_PRIORITY') || '0.8').trim();
     const sitemapIncludeImagesStr = await getSetting('SITEMAP_INCLUDE_IMAGES') || 'true';
+
+    // Protocol and Host detection behind proxies (Cloud Run)
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'gujarat-exam-portal.com';
 
     // Fallback base URL is the current request's domain
     const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
       ? sitemapBaseUrl.trim().replace(/\/$/, '') 
-      : `${req.protocol}://${req.get('host')}`;
+      : `${protocol}://${hostHeader}`;
     const postsLimit = parseInt(sitemapPostsLimitStr, 10) || 50000;
     const includeImages = sitemapIncludeImagesStr === 'true';
 
@@ -683,6 +688,18 @@ app.get('/sitemap.xml', async (req, res) => {
     
     const limitedPosts = allPosts.slice(0, postsLimit);
 
+    // Escape helper stripping control characters
+    const escapeXml = (str: string): string => {
+      if (!str) return '';
+      return String(str)
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
@@ -690,7 +707,7 @@ app.get('/sitemap.xml', async (req, res) => {
     // 1. Home Page
     xml += `
   <url>
-    <loc>${baseUrl}/</loc>
+    <loc>${escapeXml(baseUrl)}/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>`;
@@ -700,22 +717,11 @@ app.get('/sitemap.xml', async (req, res) => {
     for (const cat of categoriesList) {
       xml += `
   <url>
-    <loc>${baseUrl}/${cat}/</loc>
+    <loc>${escapeXml(baseUrl)}/${cat}/</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>`;
     }
-
-    // Escape helper
-    const escapeXml = (str: string): string => {
-      if (!str) return '';
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-    };
 
     // 3. Blog Posts
     for (const p of limitedPosts) {
@@ -742,8 +748,8 @@ app.get('/sitemap.xml', async (req, res) => {
   <url>
     <loc>${escapeXml(postUrl)}</loc>
     <lastmod>${lastModDate}</lastmod>
-    <changefreq>${sitemapChangeFreq}</changefreq>
-    <priority>${sitemapPriorityStr}</priority>`;
+    <changefreq>${escapeXml(sitemapChangeFreq)}</changefreq>
+    <priority>${escapeXml(sitemapPriorityStr)}</priority>`;
 
       if (includeImages && p.thumbnail && p.thumbnail.trim() !== '') {
         let imageUrl = p.thumbnail.trim();
@@ -763,12 +769,17 @@ app.get('/sitemap.xml', async (req, res) => {
 
     xml += `\n</urlset>`;
 
-    res.header('Content-Type', 'application/xml');
-    res.send(xml);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.status(200).send(xml);
   } catch (err: any) {
+    console.error('Sitemap generation error:', err);
     res.status(500).send(`Error generating sitemap: ${err.message}`);
   }
-});
+};
+
+app.get('/sitemap.xml', generateSitemapXml);
+app.get('/sitemap_index.xml', generateSitemapXml);
 
 // Redirect /sitemap to /sitemap.xml
 app.get('/sitemap', (req, res) => {

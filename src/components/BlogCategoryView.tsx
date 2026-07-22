@@ -63,7 +63,7 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
   // Handle HTML document title for SEO
   useEffect(() => {
     const catLabel = getCategoryLabel(category);
-    document.title = `${catLabel} - સરકારી અપડેટ્સ | ગુજરાત પરીક્ષા પોર્ટલ`;
+    document.title = `${catLabel} - સરકારી અપડેટ્સ | OJAS Exam`;
   }, [category]);
 
   function getCategoryLabel(cat: string) {

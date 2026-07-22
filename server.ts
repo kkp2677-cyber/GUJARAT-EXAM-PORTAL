@@ -1402,7 +1402,7 @@ function generateSingleExamHTML(user: any, h: any): string {
     <html lang="gu">
     <head>
       <meta charset="UTF-8">
-      <title>Gujarat Exam Portal Result</title>
+      <title>OJAS Exam Result</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
@@ -1420,7 +1420,7 @@ function generateSingleExamHTML(user: any, h: any): string {
       <!-- HEADER CARD -->
       <div class="bg-[#4F46E5] text-white p-6 rounded-2xl mb-6 shadow-md flex justify-between items-center">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight">GUJARAT EXAM PORTAL</h1>
+          <h1 class="text-2xl font-bold tracking-tight">OJAS EXAM</h1>
           <p class="text-lg text-indigo-100 font-medium mt-1">વિગતવાર પરીક્ષા ગુણપત્રક (Detailed Result Summary)</p>
         </div>
         <div class="text-right">
@@ -1544,7 +1544,7 @@ function generateSingleExamHTML(user: any, h: any): string {
       <!-- PORTAL SEAL -->
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs">
         <h4 class="font-bold text-slate-700 uppercase mb-1">OFFICIAL ELECTRONIC SIGNATURE & SEAL / સત્તાવાર ઇલેક્ટ્રોનિક સહી અને સિક્કો</h4>
-        <p class="text-slate-500">Digitally signed and authorized by GUJARAT EXAM PORTAL WEBSITE. No physical signature is required.</p>
+        <p class="text-slate-500">Digitally signed and authorized by OJAS EXAM WEBSITE. No physical signature is required.</p>
       </div>
 
       <!-- MULTI-PAGE QUESTIONS SECTION -->
@@ -1617,7 +1617,7 @@ function generateAllHistoryHTML(user: any, history: any[]): string {
     <html lang="gu">
     <head>
       <meta charset="UTF-8">
-      <title>Gujarat Exam Portal Summary Report</title>
+      <title>OJAS Exam Summary Report</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
@@ -1632,7 +1632,7 @@ function generateAllHistoryHTML(user: any, history: any[]): string {
       <!-- HEADER CARD -->
       <div class="bg-blue-700 text-white p-6 rounded-2xl mb-6 shadow-md flex justify-between items-center">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight">GUJARAT EXAM PORTAL</h1>
+          <h1 class="text-2xl font-bold tracking-tight">OJAS EXAM</h1>
           <p class="text-lg text-blue-100 font-medium mt-1">પરીક્ષા પરિણામ અહેવાલ (Exam Summary & Analytics)</p>
         </div>
         <div class="text-right">
@@ -1693,7 +1693,7 @@ function generateAllHistoryHTML(user: any, history: any[]): string {
       <!-- PORTAL DIAGNOSTICS -->
       <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-2xl p-4 mb-6">
         <h3 class="text-sm font-bold uppercase mb-1">PORTAL DIAGNOSTICS & VERIFICATION / પોર્ટલ ચકાસણી પત્ર</h3>
-        <p class="text-xs opacity-90 mb-1">This is a computer-generated summary of exams taken on the Gujarat Exam Portal.</p>
+        <p class="text-xs opacity-90 mb-1">This is a computer-generated summary of exams taken on OJAS Exam.</p>
         <p class="text-xs font-semibold">Verify your scores and analytics anytime in your dashboard profile page. (તમામ સ્કોર પ્રોફાઈલ પેજ પર ચકાસી શકો છો.)</p>
       </div>
 
@@ -2944,7 +2944,7 @@ app.get('/api/settings/public', async (req, res) => {
 
 app.get('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
+    const user = await queryWithRetry(() => db.select().from(users).where(eq(users.uid, String(req.user?.uid))));
     if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     const razorpayKeyId = await getSetting('RAZORPAY_KEY_ID', 'RAZORPAY_KEY_ID');
@@ -2958,7 +2958,7 @@ app.get('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
     const firebaseAppId = await getSetting('FIREBASE_APP_ID', 'FIREBASE_APP_ID');
     const firebaseEnabled = await getSetting('FIREBASE_ENABLED', 'FIREBASE_ENABLED') || 'false';
 
-    const smsGatewayType = await getSetting('SMS_GATEWAY_TYPE') || 'disabled';
+    const smsGatewayType = await getSetting('SMS_GATEWAY_TYPE') || 'sandbox';
     const smsGatewayUrl = await getSetting('SMS_GATEWAY_URL') || '';
     const smsGatewayHeaders = await getSetting('SMS_GATEWAY_HEADERS') || '';
     const smsGatewayBody = await getSetting('SMS_GATEWAY_BODY_OR_PARAMS') || '';
@@ -3018,7 +3018,7 @@ app.get('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
 
 app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
+    const user = await queryWithRetry(() => db.select().from(users).where(eq(users.uid, String(req.user?.uid))));
     if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     // Read query parameter "tables". It can be a comma-separated list of table names.
@@ -3039,7 +3039,7 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
     };
 
     if (shouldExport('users')) {
-      const allUsers = await db.select().from(users);
+      const allUsers = await queryWithRetry(() => db.select().from(users));
       backupData.users = allUsers.map(u => {
         const { password, ...rest } = u; // Keep passwords out of backup file for safety
         return rest;
@@ -3047,43 +3047,43 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
     }
 
     if (shouldExport('exams')) {
-      backupData.exams = await db.select().from(exams);
+      backupData.exams = await queryWithRetry(() => db.select().from(exams));
     }
 
     if (shouldExport('exam_results')) {
-      backupData.exam_results = await db.select().from(examResults);
+      backupData.exam_results = await queryWithRetry(() => db.select().from(examResults));
     }
 
     if (shouldExport('posts')) {
-      backupData.posts = await db.select().from(posts);
+      backupData.posts = await queryWithRetry(() => db.select().from(posts));
     }
 
     if (shouldExport('notifications')) {
-      backupData.notifications = await db.select().from(notifications);
+      backupData.notifications = await queryWithRetry(() => db.select().from(notifications));
     }
 
     if (shouldExport('calendar_events')) {
-      backupData.calendar_events = await db.select().from(calendarEvents);
+      backupData.calendar_events = await queryWithRetry(() => db.select().from(calendarEvents));
     }
 
     if (shouldExport('bookmarks')) {
-      backupData.bookmarks = await db.select().from(bookmarks);
+      backupData.bookmarks = await queryWithRetry(() => db.select().from(bookmarks));
     }
 
     if (shouldExport('settings')) {
-      backupData.settings = await db.select().from(settings);
+      backupData.settings = await queryWithRetry(() => db.select().from(settings));
     }
 
     if (shouldExport('push_subscriptions')) {
-      backupData.push_subscriptions = await db.select().from(pushSubscriptions);
+      backupData.push_subscriptions = await queryWithRetry(() => db.select().from(pushSubscriptions));
     }
 
     if (shouldExport('leaderboard_summary')) {
-      backupData.leaderboard_summary = await db.select().from(leaderboardSummary);
+      backupData.leaderboard_summary = await queryWithRetry(() => db.select().from(leaderboardSummary));
     }
 
     if (shouldExport('wishlist')) {
-      backupData.wishlist = await db.select().from(wishlist);
+      backupData.wishlist = await queryWithRetry(() => db.select().from(wishlist));
     }
 
     const filename = selectedTables.length === 1
@@ -3100,7 +3100,7 @@ app.get('/api/admin/export-database', requireAuth, async (req: AuthRequest, res)
 
 app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
+    const user = await queryWithRetry(() => db.select().from(users).where(eq(users.uid, String(req.user?.uid))));
     if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     const { 
@@ -3114,12 +3114,13 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
       adsPostBelowHeader, adsPostBelowThumb, adsPostAboveRelated, adsSidebarBottom
     } = req.body;
 
-    const saveSetting = async (key: string, value: string) => {
-      const existing = await db.select().from(settings).where(eq(settings.key, key));
+    const saveSetting = async (key: string, value: any) => {
+      const valStr = (value === null || value === undefined) ? '' : String(value);
+      const existing = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, key)));
       if (existing.length) {
-        await db.update(settings).set({ value }).where(eq(settings.key, key));
+        await queryWithRetry(() => db.update(settings).set({ value: valStr }).where(eq(settings.key, key)));
       } else {
-        await db.insert(settings).values({ key, value });
+        await queryWithRetry(() => db.insert(settings).values({ key, value: valStr }));
       }
     };
 
@@ -3159,31 +3160,34 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
 
     res.json({ success: true });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error('Error saving settings:', err);
+    res.status(500).json({ error: err.message || 'સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.' });
   }
 });
 
 app.post('/api/settings/razorpay', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
-    if (user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
+    const user = await queryWithRetry(() => db.select().from(users).where(eq(users.uid, String(req.user?.uid))));
+    if (!user.length || user[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     const { keyId, keySecret } = req.body;
+    const kIdStr = keyId === null || keyId === undefined ? '' : String(keyId);
+    const kSecStr = keySecret === null || keySecret === undefined ? '' : String(keySecret);
     
     // Upsert keyId
-    const existingKey = await db.select().from(settings).where(eq(settings.key, 'RAZORPAY_KEY_ID'));
+    const existingKey = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, 'RAZORPAY_KEY_ID')));
     if (existingKey.length) {
-      await db.update(settings).set({ value: keyId }).where(eq(settings.key, 'RAZORPAY_KEY_ID'));
+      await queryWithRetry(() => db.update(settings).set({ value: kIdStr }).where(eq(settings.key, 'RAZORPAY_KEY_ID')));
     } else {
-      await db.insert(settings).values({ key: 'RAZORPAY_KEY_ID', value: keyId });
+      await queryWithRetry(() => db.insert(settings).values({ key: 'RAZORPAY_KEY_ID', value: kIdStr }));
     }
     
     // Upsert keySecret
-    const existingSecret = await db.select().from(settings).where(eq(settings.key, 'RAZORPAY_KEY_SECRET'));
+    const existingSecret = await queryWithRetry(() => db.select().from(settings).where(eq(settings.key, 'RAZORPAY_KEY_SECRET')));
     if (existingSecret.length) {
-      await db.update(settings).set({ value: keySecret }).where(eq(settings.key, 'RAZORPAY_KEY_SECRET'));
+      await queryWithRetry(() => db.update(settings).set({ value: kSecStr }).where(eq(settings.key, 'RAZORPAY_KEY_SECRET')));
     } else {
-      await db.insert(settings).values({ key: 'RAZORPAY_KEY_SECRET', value: keySecret });
+      await queryWithRetry(() => db.insert(settings).values({ key: 'RAZORPAY_KEY_SECRET', value: kSecStr }));
     }
 
     res.json({ success: true });
@@ -3358,7 +3362,7 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
               const escDescText = descText.replace(/"/g, '&quot;');
               
               // Replace existing title
-              html = html.replace(/<title>.*?<\/title>/, `<title>${escTitleText} - Gujarat Exam Portal</title>`);
+              html = html.replace(/<title>.*?<\/title>/, `<title>${escTitleText} - OJAS Exam</title>`);
               
               seoMeta = `
     <!-- Dynamic Social SEO Meta Tags -->

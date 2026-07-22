@@ -87,7 +87,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
 
   // Dynamic SEO meta tags management on home page mount
   useEffect(() => {
-    document.title = 'ગુજરાત પરીક્ષા પોર્ટલ - Gujarat Exam Portal';
+    document.title = 'OJAS Exam';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute('content', 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.');

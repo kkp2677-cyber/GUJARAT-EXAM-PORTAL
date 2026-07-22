@@ -381,7 +381,7 @@ export default function App() {
         key: keyData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "ગુજરાત પરીક્ષા પોર્ટલ",
+        name: "OJAS Exam",
         description: plan === 'monthly' ? "Monthly Mock Test Subscription" : "Yearly Mock Test Subscription",
         order_id: orderData.id,
         handler: async function (response: any) {
@@ -531,13 +531,13 @@ export default function App() {
           >
             <img 
               src="/logo.svg" 
-              alt="ગુજરાત પરીક્ષા પોર્ટલ" 
+              alt="OJAS Exam" 
               className="w-11 h-11 object-contain group-hover:scale-105 transition-transform" 
               referrerPolicy="no-referrer"
             />
             <div className="flex flex-col">
               <span className="text-xl md:text-2xl font-black text-slate-900 tracking-tight font-sans block group-hover:text-emerald-600 transition-colors">
-                ગુજરાત પરીક્ષા પોર્ટલ
+                OJAS Exam
               </span>
             </div>
           </div>
@@ -1101,14 +1101,17 @@ export default function App() {
             <h3 className="text-white text-lg font-bold font-sans flex items-center gap-3">
               <img 
                 src="/logo.svg" 
-                alt="ગુજરાત પરીક્ષા પોર્ટલ" 
+                alt="OJAS Exam" 
                 className="w-8 h-8 object-contain" 
                 referrerPolicy="no-referrer"
               />
-              ગુજરાત પરીક્ષા પોર્ટલ
+              OJAS Exam
             </h3>
             <p className="text-slate-400 text-sm leading-relaxed">
               ગુજરાતની તમામ સત્તાવાર સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન સચોટ તૈયારી, મોક ટેસ્ટ અને પ્રશ્નોત્તરી માટેનું સત્તાવાર લોકપ્રિય પોર્ટલ.
+            </p>
+            <p className="text-slate-400 text-xs leading-relaxed pt-2 border-t border-slate-800/80 font-sans opacity-90">
+              <strong className="text-slate-300">Disclaimer:</strong> This website is not associated, affiliated, or connected with any government organization or department. All information provided here is for general informational purposes only.
             </p>
           </div>
           <div className="space-y-4">
@@ -1136,19 +1139,11 @@ export default function App() {
             <h4 className="text-white text-sm font-bold tracking-wide uppercase">મહત્વપૂર્ણ સંપર્ક</h4>
             <div className="text-sm text-slate-400 space-y-2">
               <div className="flex items-center gap-2">
-                <Phone size={14} />
-                <span>+91 9725722729</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone size={14} />
-                <span>+91 9925922729</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <Mail size={14} />
-                <span>info@Sapex.in</span>
+                <span>info@ojasexam.in</span>
               </div>
               <hr className="border-slate-700 my-2" />
-              <p>© ૨૦૨૬ ગુજરાત પરીક્ષા પોર્ટલ. All Rights Reserved.</p>
+              <p>© ૨૦૨૬ OJAS Exam. All Rights Reserved.</p>
             </div>
           </div>
         </div>

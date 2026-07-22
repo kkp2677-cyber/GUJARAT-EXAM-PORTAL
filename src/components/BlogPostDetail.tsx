@@ -118,7 +118,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
   // Set the document title dynamically like a real news website
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = `${post.title} | ગુજરાત પરીક્ષા પોર્ટલ`;
+    document.title = `${post.title} | OJAS Exam`;
     
     // Scroll to top when post opens
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -282,12 +282,12 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
       "dateModified": dateStr,
       "author": {
         "@type": "Organization",
-        "name": "ગુજરાત પરીક્ષા પોર્ટલ",
+        "name": "OJAS Exam",
         "url": window.location.origin
       },
       "publisher": {
         "@type": "Organization",
-        "name": "ગુજરાત પરીક્ષા પોર્ટલ",
+        "name": "OJAS Exam",
         "logo": {
           "@type": "ImageObject",
           "url": `${window.location.origin}/logo.svg`
@@ -395,7 +395,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-600 font-medium pb-2.5 border-b border-gray-200/60">
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-500 font-bold">✍️ Author:</span>
-                  <strong className="text-slate-800">Gujarat Exam Portal</strong>
+                  <strong className="text-slate-800">OJAS Exam</strong>
                 </div>
                 <div className="hidden md:block w-px h-3.5 bg-gray-200"></div>
                 <div className="flex items-center gap-1.5">

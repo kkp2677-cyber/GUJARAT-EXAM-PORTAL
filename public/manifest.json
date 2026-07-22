@@ -1,6 +1,6 @@
 {
-  "name": "ગુજરાત પરીક્ષા પોર્ટલ",
-  "short_name": "પરીક્ષા પોર્ટલ",
+  "name": "OJAS Exam",
+  "short_name": "OJAS Exam",
   "description": "ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન તૈયારી અને માહિતી માટેનું મંચ.",
   "start_url": "/",
   "display": "standalone",

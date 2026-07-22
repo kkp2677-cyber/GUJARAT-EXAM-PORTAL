@@ -556,12 +556,14 @@ export default function AdminPanel() {
           adsSidebarBottom
         })
       });
-      if (!res.ok) throw new Error('સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.');
       setSettingsMsg('સેટિંગ્સ સફળતાપૂર્વક અપડેટ થયા.');
-      setTimeout(() => setSettingsMsg(''), 3000);
+      showToast('સેટિંગ્સ સફળતાપૂર્વક અપડેટ થયા!', 'success');
+      setTimeout(() => setSettingsMsg(''), 4000);
       fetchSettings();
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error');
     }
   };
 
@@ -575,12 +577,14 @@ export default function AdminPanel() {
         },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'સેટિંગ્સ સેવ કરવામાં નિષ્ફળતા.');
       setSettingsMsg(successMsg);
+      showToast(successMsg, 'success');
       setTimeout(() => setSettingsMsg(''), 4000);
       fetchSettings();
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error');
     }
   };
 

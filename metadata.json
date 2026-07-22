@@ -1,5 +1,5 @@
 {
-  "name": "Competitive Exam Platform",
+  "name": "OJAS Exam",
   "description": "A comprehensive Gujarati Competitive Exam Platform with mock tests, recruitment exams, dynamic exam engine, leaderboard, and admin panel.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

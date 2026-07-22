@@ -582,7 +582,7 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                   {/* WhatsApp Share Button */}
                   <a
                     href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                      `🎯 *મેં GUJARAT EXAM PORTAL પર મોક ટેસ્ટ પૂર્ણ કરી છે!*\n\n📝 *પરીક્ષા:* ${exam.name}\n📊 *મારો સ્કોર:* ${examResult.marksObtained ?? examResult.actualScore} / ${examResult.totalMarks}\n⏱️ *લીધેલ સમય:* ${examResult.timeTaken}\n✅ *સાચા જવાબો:* ${clientCorrectCount}\n❌ *ખોટા જવાબો:* ${clientIncorrectCount}\n\nનવી સરકારી ભરતીઓની માહિતી અને ઓનલાઇન મોક ટેસ્ટ માટે આજે જ જોડાઓ! 👇\n🔗 ${window.location.origin}`
+                      `🎯 *મેં OJAS Exam પર મોક ટેસ્ટ પૂર્ણ કરી છે!*\n\n📝 *પરીક્ષા:* ${exam.name}\n📊 *મારો સ્કોર:* ${examResult.marksObtained ?? examResult.actualScore} / ${examResult.totalMarks}\n⏱️ *લીધેલ સમય:* ${examResult.timeTaken}\n✅ *સાચા જવાબો:* ${clientCorrectCount}\n❌ *ખોટા જવાબો:* ${clientIncorrectCount}\n\nનવી સરકારી ભરતીઓની માહિતી અને ઓનલાઇન મોક ટેસ્ટ માટે આજે જ જોડાઓ! 👇\n🔗 ${window.location.origin}`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -597,7 +597,7 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                   {/* Telegram Share Button */}
                   <a
                     href={`https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(
-                      `🎯 મેં GUJARAT EXAM PORTAL પર મોક ટેસ્ટ પૂર્ણ કરી છે!\n\n📝 પરીક્ષા: ${exam.name}\n📊 મારો સ્કોર: ${examResult.marksObtained ?? examResult.actualScore} / ${examResult.totalMarks}\n⏱️ લીધેલ સમય: ${examResult.timeTaken}\n\nનવી સરકારી ભરતીઓ અને મોક ટેસ્ટ માટે આજે જ જોડાઓ!`
+                      `🎯 મેં OJAS Exam પર મોક ટેસ્ટ પૂર્ણ કરી છે!\n\n📝 પરીક્ષા: ${exam.name}\n📊 મારો સ્કોર: ${examResult.marksObtained ?? examResult.actualScore} / ${examResult.totalMarks}\n⏱️ લીધેલ સમય: ${examResult.timeTaken}\n\nનવી સરકારી ભરતીઓ અને મોક ટેસ્ટ માટે આજે જ જોડાઓ!`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -612,7 +612,7 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                   {/* Copy score detail button */}
                   <button
                     onClick={() => {
-                      const text = `🎯 મેં GUJARAT EXAM PORTAL પર મોક ટેસ્ટ પૂર્ણ કરી છે!\n\n📝 પરીક્ષા: ${exam.name}\n📊 મારો સ્કોર: ${examResult.marksObtained ?? examResult.actualScore} / ${examResult.totalMarks}\n⏱️ લીધેલ સમય: ${examResult.timeTaken}`;
+                      const text = `🎯 મેં OJAS Exam પર મોક ટેસ્ટ પૂર્ણ કરી છે!\n\n📝 પરીક્ષા: ${exam.name}\n📊 મારો સ્કોર: ${examResult.marksObtained ?? examResult.actualScore} / ${examResult.totalMarks}\n⏱️ લીધેલ સમય: ${examResult.timeTaken}`;
                       navigator.clipboard.writeText(text + `\n\nજોડાઓ: ${window.location.origin}`);
                       alert('📋 રિઝલ્ટ વિગતો ક્લિપબોર્ડ પર કોપી કરવામાં આવી છે!');
                     }}

@@ -663,6 +663,7 @@ app.get('/sitemap.xml', async (req, res) => {
     const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
     console.log('Sitemap Base URL:', sitemapBaseUrl);
     const sitemapPostsLimitStr = await getSetting('SITEMAP_POSTS_LIMIT') || '50000';
+    console.log('Sitemap Posts Limit:', sitemapPostsLimitStr);
     const sitemapChangeFreq = await getSetting('SITEMAP_CHANGE_FREQ') || 'daily';
     const sitemapPriorityStr = await getSetting('SITEMAP_PRIORITY') || '0.8';
     const sitemapIncludeImagesStr = await getSetting('SITEMAP_INCLUDE_IMAGES') || 'true';
@@ -3117,6 +3118,12 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
     } = req.body;
 
     console.log('Admin settings update request body:', req.body);
+    
+    // Check if body is empty or not parsed correctly
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.error('Admin settings update request body is empty!');
+      return res.status(400).json({ error: 'Request body is empty' });
+    }
 
     const saveSetting = async (key: string, value: any) => {
       try {
@@ -3371,9 +3378,6 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
               const escTitleText = titleText.replace(/"/g, '&quot;');
               const escDescText = descText.replace(/"/g, '&quot;');
               
-              // Replace existing title
-              html = html.replace(/<title>.*?<\/title>/, `<title>${escTitleText} - OJAS Exam</title>`);
-              
               seoMeta = `
     <!-- Dynamic Social SEO Meta Tags -->
     <meta name="description" content="${escDescText}" />
@@ -3386,6 +3390,7 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
     <meta name="twitter:title" content="${escTitleText}" />
     <meta name="twitter:description" content="${escDescText}" />
     <meta name="twitter:image" content="${imageUrl}" />
+    <title>${escTitleText} - OJAS Exam</title>
 `;
             }
           } catch (dbErr) {
@@ -3393,7 +3398,23 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
           }
         }
         
-        let injection = seoMeta;
+        // Define default tags if not a post page
+        const defaultSeoMeta = `
+    <!-- Default Social SEO Meta Tags -->
+    <meta name="description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+    <meta property="og:title" content="OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results" />
+    <meta property="og:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+    <meta property="og:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+    <title>OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results</title>
+`;
+        
+        // Replace the placeholder block
+        html = html.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/, (seoMeta || defaultSeoMeta));
+
+        let injection = '';
         if (googleAnalyticsId) {
           injection += `
   <script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>

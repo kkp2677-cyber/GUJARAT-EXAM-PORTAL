@@ -67,10 +67,9 @@ export const getDbConfig = () => {
     }
   }
 
-  // Final fallback to development host if nothing found
+  // Final fallback
   if (!host) {
-    host = process.env.SQL_HOST || '/app/cloudsql/river-runner-sgtt6:asia-southeast1:ai-studio-805c3b88';
-    console.log(`[DB Auto-Discover] No socket discovered, using default fallback: ${host}`);
+    throw new Error('Database connection configuration missing. Please set DATABASE_URL or SQL_HOST in environment variables.');
   }
 
   return {
@@ -79,10 +78,10 @@ export const getDbConfig = () => {
     password,
     database,
     connectionTimeoutMillis: 15000,
-    idleTimeoutMillis: 15000, // Balanced idle timeout to reduce connection churn while still pruning dead sockets
-    max: 15, // Optimize maximum pool size to support simultaneous requests
-    keepAlive: true, // Enable TCP Keep-Alive
-    keepAliveInitialDelayMillis: 10000, // Delay before sending the first keep-alive packet
+    idleTimeoutMillis: 15000, 
+    max: 15, 
+    keepAlive: true, 
+    keepAliveInitialDelayMillis: 10000,
   };
 };
 

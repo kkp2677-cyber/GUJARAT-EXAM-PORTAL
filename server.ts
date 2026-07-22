@@ -249,7 +249,7 @@ async function sendSMS(phone: string, otp: string): Promise<{ success: boolean; 
 
 app.get('/api/settings/sms-status', async (req, res) => {
   try {
-    const gatewayType = await getSetting('SMS_GATEWAY_TYPE', 'SMS_GATEWAY_TYPE') || 'disabled';
+    const gatewayType = await getSetting('SMS_GATEWAY_TYPE', 'SMS_GATEWAY_TYPE') || 'sandbox';
     res.json({
       enabled: gatewayType !== 'disabled',
       gatewayType
@@ -286,7 +286,7 @@ app.post('/api/auth/sms/send-otp', async (req, res) => {
       }
     }
 
-    const gatewayType = await getSetting('SMS_GATEWAY_TYPE', 'SMS_GATEWAY_TYPE') || 'disabled';
+    const gatewayType = await getSetting('SMS_GATEWAY_TYPE', 'SMS_GATEWAY_TYPE') || 'sandbox';
     if (gatewayType === 'disabled') {
       return res.status(400).json({ error: 'મોબાઈલ નંબર વેરિફિકેશન હાલમાં બંધ છે.' });
     }

@@ -5,10 +5,19 @@ import * as dotenv from 'dotenv';
 import fs from 'fs';
 dotenv.config({ override: true });
 
+// Ensure SSL connection options do not fail on self-signed certs in SSL chains (e.g., Supabase pooler)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const { Pool } = pg;
 
 export const getDbConfig = () => {
-  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+  let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+
+  // Filter out any known invalid/deleted host if present in environment
+  if (connectionString && connectionString.includes('ztvkdttdgsaviqiytafo')) {
+    console.warn('[DB Config] Ignoring invalid/deleted host ztvkdttdgsaviqiytafo in connectionString');
+    connectionString = undefined;
+  }
   
   if (connectionString) {
     return {

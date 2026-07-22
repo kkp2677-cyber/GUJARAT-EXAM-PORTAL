@@ -537,7 +537,7 @@ app.post('/api/auth/forgot-password/verify', async (req, res) => {
     phone = convertGujaratiToEnglish(phone).replace(/\D/g, '').slice(-10);
     const otpVal = convertGujaratiToEnglish(otp).trim();
 
-    const existing = await db.select().from(users).where(eq(users.phone, phone));
+    const existing = await db.select().from(users).where(eq(users.phone, sql`${phone}::text`));
     if (existing.length === 0) {
       return res.status(404).json({ error: 'આ મોબાઈલ નંબર રજીસ્ટર નથી.' });
     }

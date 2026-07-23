@@ -19,6 +19,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default
+const htmlCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1 hour TTL for Dynamic Prerender HTML cache
 const PORT = 3000;
 
 // Reusable middleware to authorize admin users
@@ -910,6 +911,7 @@ app.post('/api/posts', requireAuth, requireAdmin, async (req: AuthRequest, res) 
       category, title, content, thumbnail, metaTitle, metaDesc, slug: cleanSlug, focusKeyword, tags, date: new Date().toISOString()
     }).returning());
     cache.del('posts');
+    htmlCache.flushAll();
     
     const post = newPostArr[0];
     const safeToISO = (val: any) => {
@@ -966,6 +968,7 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
     }
     
     cache.del('posts');
+    htmlCache.flushAll();
     
     const post = updatedPostArr[0];
     const safeToISO = (val: any) => {
@@ -1000,6 +1003,7 @@ app.delete('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest,
     }
     
     cache.del('posts');
+    htmlCache.flushAll();
     res.json({ message: 'પોસ્ટ સફળતાપૂર્વક ડિલીટ થઈ!' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -3510,6 +3514,29 @@ function generateSeoTags(post: any | null, req: express.Request) {
     const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toISOString() : new Date().toISOString();
     const categoryName = post.category || 'General';
 
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": titleText,
+      "description": descText,
+      "image": imageUrl,
+      "url": fullUrl,
+      "datePublished": publishedTime,
+      "dateModified": post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedTime,
+      "author": {
+        "@type": "Organization",
+        "name": "OJAS EXAM"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "OJAS EXAM",
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${protocol}://${hostHeader}/logo.svg`
+        }
+      }
+    };
+
     return `
     <!-- Single Blog Post Meta Tags -->
     <title>${escTitle}</title>
@@ -3534,8 +3561,19 @@ function generateSeoTags(post: any | null, req: express.Request) {
     <meta name="twitter:title" content="${escTitle}" />
     <meta name="twitter:description" content="${escDesc}" />
     <meta name="twitter:image" content="${imageUrl}" />
+
+    <!-- JSON-LD Structured Data for Google SEO -->
+    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 `;
   }
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "OJAS EXAM",
+    "url": `${protocol}://${hostHeader}/`,
+    "description": "ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ માટે ફ્રી Online Mock Test, Job Alerts, Answer Key અને Result."
+  };
 
   return `
     <!-- Default Social Media Meta Tags -->
@@ -3550,6 +3588,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
     <meta name="twitter:title" content="OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results" />
     <meta name="twitter:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
     <meta name="twitter:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+    <script type="application/ld+json">${JSON.stringify(websiteJsonLd)}</script>
 `;
 }
 
@@ -3570,6 +3609,30 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     processedHtml = processedHtml.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/gi, seoTags);
   } else {
     processedHtml = processedHtml.replace('<head>', `<head>\n${seoTags}`);
+  }
+
+  // Pre-render post body inside <div id="root"></div> for Google / Bing Search crawlers
+  if (post && processedHtml.includes('<div id="root"></div>')) {
+    const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
+    const escTitle = rawTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toLocaleDateString('gu-IN') : '';
+    const categoryName = post.category || 'General';
+    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    let imageUrl = post.thumbnail || '';
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      if (!imageUrl.startsWith('/')) imageUrl = '/' + imageUrl;
+      imageUrl = `${protocol}://${hostHeader}${imageUrl}`;
+    }
+
+    const prerenderBody = `<div id="root"><article class="prerendered-article-content" style="max-width:800px;margin:2rem auto;padding:1rem;font-family:sans-serif;">
+      <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:0.75rem;color:#111827;">${escTitle}</h1>
+      <p style="font-size:0.875rem;color:#6b7280;margin-bottom:1.25rem;">તારીખ: ${publishedTime} | શ્રેણી: ${categoryName}</p>
+      ${imageUrl ? `<img src="${imageUrl}" alt="${escTitle}" style="max-width:100%;height:auto;border-radius:0.5rem;margin-bottom:1.5rem;" />` : ''}
+      <div style="font-size:1rem;line-height:1.7;color:#374151;">${post.content || ''}</div>
+    </article></div>`;
+
+    processedHtml = processedHtml.replace('<div id="root"></div>', prerenderBody);
   }
 
   const googleAnalyticsId = await getSetting('GOOGLE_ANALYTICS_ID') || '';
@@ -3615,11 +3678,22 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
       if (!isHtmlRequest) {
         return vite.middlewares(req, res, next);
       }
+
+      const cacheKey = 'prerender_html_' + req.originalUrl;
+      const cachedHtml = htmlCache.get<string>(cacheKey);
+      if (cachedHtml) {
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('X-Prerender-Cache', 'HIT');
+        return res.send(cachedHtml);
+      }
+
       try {
         let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
         html = await vite.transformIndexHtml(req.url, html);
         html = await injectSeoAndAnalytics(html, req);
+        htmlCache.set(cacheKey, html);
         res.setHeader('Content-Type', 'text/html');
+        res.setHeader('X-Prerender-Cache', 'MISS');
         res.send(html);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);
@@ -3633,6 +3707,15 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
       if (req.path.startsWith('/api/') || req.path.endsWith('.xml')) {
         return next();
       }
+
+      const cacheKey = 'prerender_html_' + req.originalUrl;
+      const cachedHtml = htmlCache.get<string>(cacheKey);
+      if (cachedHtml) {
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('X-Prerender-Cache', 'HIT');
+        return res.send(cachedHtml);
+      }
+
       try {
         const indexPath = path.join(distPath, 'index.html');
         if (!fs.existsSync(indexPath)) {
@@ -3640,7 +3723,9 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
         }
         let html = fs.readFileSync(indexPath, 'utf-8');
         html = await injectSeoAndAnalytics(html, req);
+        htmlCache.set(cacheKey, html);
         res.setHeader('Content-Type', 'text/html');
+        res.setHeader('X-Prerender-Cache', 'MISS');
         res.send(html);
       } catch (err: any) {
         console.error('[Index Serve Error] Failed to serve dynamic index:', err);

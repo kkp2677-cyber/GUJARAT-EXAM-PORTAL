@@ -3389,11 +3389,11 @@ async function getPostFromRequest(req: express.Request) {
 
   if (!slugOrId && pathSegments.length > 0) {
     if (pathSegments[0] === 'post' && pathSegments[1]) {
-      slugOrId = decodeURIComponent(pathSegments[1]).replace(/\/$/, '');
+      slugOrId = pathSegments[1].replace(/\/$/, '');
     } else if (pathSegments.length >= 2) {
-      slugOrId = decodeURIComponent(pathSegments[1]).replace(/\/$/, '');
+      slugOrId = pathSegments[pathSegments.length - 1].replace(/\/$/, '');
     } else if (pathSegments.length === 1) {
-      const single = decodeURIComponent(pathSegments[0]).replace(/\/$/, '');
+      const single = pathSegments[0].replace(/\/$/, '');
       const reserved = ['blog', 'admin', 'auth', 'dashboard', 'leaderboard', 'about', 'privacy', 'terms', 'disclaimer', 'refund', 'login', 'register', 'sitemap', 'sitemap.xml', 'robots.txt', 'api', 'assets'];
       if (!reserved.includes(single.toLowerCase())) {
         slugOrId = single;
@@ -3402,19 +3402,61 @@ async function getPostFromRequest(req: express.Request) {
   }
 
   if (!slugOrId) return null;
-  console.log(`[SEO Helper] Debug: slugOrId=${slugOrId}, path=${req.path}`);
+
+  const rawSlug = slugOrId.trim();
+  let decodedSlug = rawSlug;
+  try {
+    decodedSlug = decodeURIComponent(rawSlug).trim();
+  } catch (e) {
+    // Keep raw
+  }
+  let encodedSlug = rawSlug;
+  try {
+    encodedSlug = encodeURIComponent(decodedSlug).trim();
+  } catch (e) {
+    // Keep raw
+  }
+
+  console.log(`[SEO Helper] Debug: path=${req.path}, decodedSlug=${decodedSlug}, rawSlug=${rawSlug}`);
 
   try {
     let post: any = null;
-    if (!isNaN(Number(slugOrId))) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(slugOrId))));
+
+    // 1. Try ID if numeric
+    if (!isNaN(Number(decodedSlug))) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(decodedSlug))));
       post = postsArr[0];
     }
-    if (!post) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, slugOrId)));
+
+    // 2. Try decoded slug
+    if (!post && decodedSlug) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, decodedSlug)));
       post = postsArr[0];
     }
-    console.log(`[SEO Helper] Debug: Found post=${!!post}`);
+
+    // 3. Try raw slug
+    if (!post && rawSlug && rawSlug !== decodedSlug) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, rawSlug)));
+      post = postsArr[0];
+    }
+
+    // 4. Try encoded slug
+    if (!post && encodedSlug && encodedSlug !== decodedSlug && encodedSlug !== rawSlug) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, encodedSlug)));
+      post = postsArr[0];
+    }
+
+    // 5. Try case-insensitive search if still not found
+    if (!post && decodedSlug) {
+      const allPosts = await queryWithRetry(() => db.select().from(posts));
+      post = allPosts.find((p: any) => p.slug && (
+        p.slug.toLowerCase() === decodedSlug.toLowerCase() ||
+        p.slug.toLowerCase() === rawSlug.toLowerCase() ||
+        encodeURIComponent(p.slug).toLowerCase() === rawSlug.toLowerCase()
+      ));
+    }
+
+    console.log(`[SEO Helper] Debug: Found post=${!!post} (Title: ${post?.title || 'N/A'})`);
     return post;
   } catch (err) {
     console.error('[SEO Helper] Error fetching post:', err);
@@ -3492,7 +3534,12 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
   const post = await getPostFromRequest(req);
   const seoTags = generateSeoTags(post, req);
 
-  let processedHtml = html.replace(/<title>[\s\S]*?<\/title>/gi, '');
+  let processedHtml = html
+    .replace(/<title>[\s\S]*?<\/title>/gi, '')
+    .replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '')
+    .replace(/<meta\s+name=["']author["'][\s\S]*?>/gi, '')
+    .replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '')
+    .replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '');
 
   if (processedHtml.includes('id="seo-meta-tag-placeholder"')) {
     processedHtml = processedHtml.replace(/<meta id=["']?seo-meta-tag-placeholder["']?\s*\/?>/gi, seoTags);

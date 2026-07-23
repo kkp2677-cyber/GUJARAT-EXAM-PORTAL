@@ -3402,6 +3402,7 @@ async function getPostFromRequest(req: express.Request) {
   }
 
   if (!slugOrId) return null;
+  console.log(`[SEO Helper] Debug: slugOrId=${slugOrId}, path=${req.path}`);
 
   try {
     let post: any = null;
@@ -3413,6 +3414,7 @@ async function getPostFromRequest(req: express.Request) {
       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, slugOrId)));
       post = postsArr[0];
     }
+    console.log(`[SEO Helper] Debug: Found post=${!!post}`);
     return post;
   } catch (err) {
     console.error('[SEO Helper] Error fetching post:', err);
@@ -3525,6 +3527,7 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
         !req.path.startsWith('/api/') &&
         !req.path.startsWith('/@') &&
         !req.path.includes('.') &&
+        !req.path.endsWith('.xml') &&
         (req.headers.accept?.includes('text/html') || req.path === '/');
 
       if (!isHtmlRequest) {
@@ -3545,7 +3548,7 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath, { index: false }));
     app.get('*', async (req, res, next) => {
-      if (req.path.startsWith('/api/')) {
+      if (req.path.startsWith('/api/') || req.path.endsWith('.xml')) {
         return next();
       }
       try {

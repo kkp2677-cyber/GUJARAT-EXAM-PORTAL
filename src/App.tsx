@@ -35,6 +35,18 @@ export default function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   useEffect(() => {
+    if (activeBlogPost) {
+      document.title = `${activeBlogPost.metaTitle || activeBlogPost.title} | OJAS Exam`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', activeBlogPost.metaDesc || '');
+    } else {
+      document.title = 'OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results';
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર.');
+    }
+  }, [activeBlogPost, currentSection]);
+
+  useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
     const isAlreadyInstalled = localStorage.getItem('pwa_installed') === 'true';
     const isDismissed = sessionStorage.getItem('pwa_install_dismissed') === 'true';

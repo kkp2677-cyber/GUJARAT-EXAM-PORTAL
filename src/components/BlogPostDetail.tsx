@@ -115,15 +115,17 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
       });
   }, []);
 
-  // Set the document title and social meta tags dynamically
+  // Set the document title and social meta tags dynamically for single blog post page
   useEffect(() => {
     const originalTitle = document.title;
-    const pageTitle = `${post.title} | OJAS EXAM`;
-    const plainContent = (post.content || '').replace(/<[^>]*>/g, '');
+    const pageTitle = post.metaTitle || (post.title ? `${post.title} | OJAS EXAM` : 'OJAS EXAM');
+    const plainContent = (post.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
     const metaDescription = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
-    const postImage = post.thumbnail || '/logo.svg';
+    const postImage = post.thumbnail || 'https://i.ibb.co/Jw5T1sWB/1784729117633.png';
     const absoluteImage = postImage.startsWith('http') ? postImage : `${window.location.origin}${postImage.startsWith('/') ? '' : '/'}${postImage}`;
     const pageUrl = window.location.href;
+    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date!).toISOString() : new Date().toISOString();
+    const categoryName = post.category || 'General';
 
     document.title = pageTitle;
 
@@ -138,12 +140,34 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
       el.setAttribute(attr, value);
     };
 
+    const setLink = (rel: string, href: string) => {
+      let el = document.querySelector(`link[rel="${rel}"]`);
+      if (!el) {
+        el = document.createElement('link');
+        el.setAttribute('rel', rel);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('href', href);
+    };
+
+    // Standard Meta Tags
     setMeta('meta[name="description"]', 'content', metaDescription);
+    setMeta('meta[name="author"]', 'content', 'OJAS EXAM');
+    setMeta('meta[name="robots"]', 'content', 'index, follow');
+    setLink('canonical', pageUrl);
+
+    // Open Graph / WhatsApp / Facebook Meta Tags
+    setMeta('meta[property="og:type"]', 'content', 'article');
     setMeta('meta[property="og:title"]', 'content', pageTitle);
     setMeta('meta[property="og:description"]', 'content', metaDescription);
     setMeta('meta[property="og:image"]', 'content', absoluteImage);
     setMeta('meta[property="og:url"]', 'content', pageUrl);
-    setMeta('meta[property="og:type"]', 'content', 'article');
+
+    // Article Info
+    setMeta('meta[property="article:published_time"]', 'content', publishedTime);
+    setMeta('meta[property="article:section"]', 'content', categoryName);
+
+    // Twitter Card Meta Tags
     setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image');
     setMeta('meta[name="twitter:title"]', 'content', pageTitle);
     setMeta('meta[name="twitter:description"]', 'content', metaDescription);
@@ -398,7 +422,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
         >
           Home
         </button>
-        <span className="text-slate-300 font-bold">{" >> "}</span>
+        <span className="text-slate-300 font-bold">{" / "}</span>
         <button
           onClick={() => navigateToCategory(post.category)}
           className="hover:text-blue-600 transition-colors cursor-pointer text-slate-700 font-extrabold"

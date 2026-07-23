@@ -523,7 +523,7 @@ export default function App() {
                   App ઇન્સ્ટોલ કરો 📱
                 </p>
                 <p className="text-[11px] sm:text-xs md:text-sm text-slate-800 font-medium leading-normal mt-0.5">
-                  ઝડપી, સુરક્ષિત અને શ્રેષ્ઠ ટેસ્ટ અનુભવ માટે પરીક્ષા પોર્ટલ એપ્લિકેશન ડાઉનલોડ કરો.
+                  ઝડપી, સુરક્ષિત અને શ્રેષ્ઠ ટેસ્ટ અનુભવ માટે OJAS Exam એપ્લિકેશન ડાઉનલોડ કરો.
                 </p>
               </div>
             </div>

@@ -3442,17 +3442,29 @@ function generateSeoTags(post: any | null, req: express.Request) {
 
     const escTitle = titleText.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const escDesc = descText.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toISOString() : new Date().toISOString();
+    const categoryName = post.category || 'General';
 
     return `
-    <!-- Dynamic Social Media Meta Tags -->
+    <!-- Single Blog Post Meta Tags -->
     <title>${escTitle}</title>
     <meta name="description" content="${escDesc}" />
-    <meta property="og:site_name" content="OJAS EXAM" />
+    <meta name="author" content="OJAS EXAM" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="${fullUrl}" />
+
+    <!-- Open Graph / WhatsApp / Facebook -->
+    <meta property="og:type" content="article" />
     <meta property="og:title" content="${escTitle}" />
     <meta property="og:description" content="${escDesc}" />
     <meta property="og:image" content="${imageUrl}" />
     <meta property="og:url" content="${fullUrl}" />
-    <meta property="og:type" content="article" />
+
+    <!-- Article Info -->
+    <meta property="article:published_time" content="${publishedTime}" />
+    <meta property="article:section" content="${categoryName}" />
+
+    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escTitle}" />
     <meta name="twitter:description" content="${escDesc}" />

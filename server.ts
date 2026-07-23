@@ -3706,9 +3706,13 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath, { index: false }));
-    app.get('*', async (req, res, next) => {
-      if (req.path.startsWith('/api/') || req.path.endsWith('.xml')) {
+
+    // Handle HTML Prerendering BEFORE express.static so /index.html is never served raw
+    app.use(async (req, res, next) => {
+      const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
+      const isApiOrSpecial = req.path.startsWith('/api/') || req.path.endsWith('.xml') || req.path === '/robots.txt';
+
+      if (isApiOrSpecial || isStaticAsset) {
         return next();
       }
 
@@ -3721,7 +3725,10 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
       }
 
       try {
-        const indexPath = path.join(distPath, 'index.html');
+        let indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) {
+          indexPath = path.join(process.cwd(), 'index.html');
+        }
         if (!fs.existsSync(indexPath)) {
           return res.status(404).send('Not Found');
         }
@@ -3733,9 +3740,11 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
         res.send(html);
       } catch (err: any) {
         console.error('[Index Serve Error] Failed to serve dynamic index:', err);
-        res.sendFile(path.join(distPath, 'index.html'));
+        next();
       }
     });
+
+    app.use(express.static(distPath, { index: false }));
   }
 
   app.listen(PORT, '0.0.0.0', () => {

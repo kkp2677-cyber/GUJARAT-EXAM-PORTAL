@@ -95,7 +95,7 @@ async function getSetting(key: string, fallbackEnvVar?: string): Promise<string>
   return fallbackEnvVar ? (process.env[fallbackEnvVar] || '') : '';
 }
 
-const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+const otpStore = new Map<string, { otp: string; expiresAt: number; verified?: boolean }>();
 
 async function sendSMS(phone: string, otp: string): Promise<{ success: boolean; message: string }> {
   try {
@@ -3520,7 +3520,14 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     });
     
     app.use(async (req, res, next) => {
-      if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.includes('.')) {
+      const isHtmlRequest =
+        req.method === 'GET' &&
+        !req.path.startsWith('/api/') &&
+        !req.path.startsWith('/@') &&
+        !req.path.includes('.') &&
+        (req.headers.accept?.includes('text/html') || req.path === '/');
+
+      if (!isHtmlRequest) {
         return vite.middlewares(req, res, next);
       }
       try {

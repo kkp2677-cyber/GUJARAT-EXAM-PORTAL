@@ -14,6 +14,18 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const POSTS_PER_PAGE = 7;
+
+  // Reset pagination when category or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [category, searchQuery]);
+
+  // Scroll to top when pagination changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   // Listen for the select-blog-post custom event (e.g. from related posts view)
   useEffect(() => {
@@ -104,6 +116,12 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
     post.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredAndSearchedPosts.length / POSTS_PER_PAGE);
+  const paginatedPosts = filteredAndSearchedPosts.slice(
+    (currentPage - 1) * POSTS_PER_PAGE,
+    currentPage * POSTS_PER_PAGE
+  );
+
   return (
     <div className="space-y-8" id="blog-category-view">
       {/* Navigation Header */}
@@ -173,73 +191,98 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
         </div>
       ) : (
         /* Blog Posts List Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAndSearchedPosts.map((post) => (
-            <article
-              key={post.id}
-              onClick={() => navigateToPost(post)}
-              className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer flex flex-col group h-full justify-between"
-            >
-              <div>
-                {/* Thumbnail */}
-                <div className="h-44 w-full relative overflow-hidden bg-slate-100">
-                  <img
-                    src={getProxiedImageUrl(post.thumbnail, 800) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800'}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800';
-                    }}
-                  />
-                  <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-extrabold border bg-white/95 backdrop-blur-sm shadow-sm ${
-                    post.category === 'job' ? 'text-blue-700 border-blue-200' :
-                    post.category === 'answer_key' ? 'text-emerald-700 border-emerald-200' :
-                    post.category === 'result' ? 'text-amber-700 border-amber-200' :
-                    post.category === 'selection_list' ? 'text-purple-700 border-purple-200' :
-                    'text-sky-700 border-sky-200'
-                  }`}>
-                    {getCategoryLabel(post.category)}
-                  </div>
-                  {post.isPinned && (
-                    <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-extrabold border bg-orange-600 text-white border-orange-500 shadow-sm flex items-center gap-1 animate-pulse">
-                      <span>📌 પિન કરેલ</span>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedPosts.map((post) => (
+              <article
+                key={post.id}
+                onClick={() => navigateToPost(post)}
+                className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer flex flex-col group h-full justify-between"
+              >
+                <div>
+                  {/* Thumbnail */}
+                  <div className="h-44 w-full relative overflow-hidden bg-slate-100">
+                    <img
+                      src={getProxiedImageUrl(post.thumbnail, 800) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800'}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800';
+                      }}
+                    />
+                    <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-extrabold border bg-white/95 backdrop-blur-sm shadow-sm ${
+                      post.category === 'job' ? 'text-blue-700 border-blue-200' :
+                      post.category === 'answer_key' ? 'text-emerald-700 border-emerald-200' :
+                      post.category === 'result' ? 'text-amber-700 border-amber-200' :
+                      post.category === 'selection_list' ? 'text-purple-700 border-purple-200' :
+                      'text-sky-700 border-sky-200'
+                    }`}>
+                      {getCategoryLabel(post.category)}
                     </div>
-                  )}
-                </div>
-
-                {/* Card Content */}
-                <div className="p-5 space-y-3">
-                  <div className="flex items-center gap-3 text-xs text-gray-400 font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{safeFormatDate(post.createdAt || post.date)}</span>
-                    </span>
-                    {post.views ? (
-                      <span className="flex items-center gap-1 text-slate-400">
-                        <span>•</span>
-                        <span>👁 {post.views} વ્યુઝ</span>
-                      </span>
-                    ) : null}
+                    {post.isPinned && (
+                      <div className="absolute top-3 right-3 px-2 py-1 rounded-full text-[9px] font-extrabold border bg-orange-600 text-white border-orange-500 shadow-sm flex items-center gap-1 animate-pulse">
+                        <span>📌 પિન કરેલ</span>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="font-extrabold text-base text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
-                    {post.title}
-                  </h3>
-                  {post.metaDesc && (
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
-                      {post.metaDesc}
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              {/* Action Footer */}
-              <div className="px-5 pb-5 pt-2 border-t border-gray-50 flex items-center justify-between text-xs text-blue-600 font-bold group-hover:text-blue-700">
-                <span>વિગતવાર માહિતી વાંચો</span>
-                <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </article>
-          ))}
+                  {/* Card Content */}
+                  <div className="p-5 space-y-3">
+                    <div className="flex items-center gap-3 text-xs text-gray-400 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{safeFormatDate(post.createdAt || post.date)}</span>
+                      </span>
+                      {post.views ? (
+                        <span className="flex items-center gap-1 text-slate-400">
+                          <span>•</span>
+                          <span>👁 {post.views} વ્યુઝ</span>
+                        </span>
+                      ) : null}
+                    </div>
+                    <h3 className="font-extrabold text-base text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                      {post.title}
+                    </h3>
+                    {post.metaDesc && (
+                      <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+                        {post.metaDesc}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Footer */}
+                <div className="px-5 pb-5 pt-2 border-t border-gray-50 flex items-center justify-between text-xs text-blue-600 font-bold group-hover:text-blue-700">
+                  <span>વિગતવાર માહિતી વાંચો</span>
+                  <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </article>
+            ))}
+          </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 py-4">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+                className="px-4 py-2 rounded-xl bg-white border border-gray-200 disabled:opacity-50 hover:bg-slate-50 text-sm font-bold text-slate-700 shadow-sm"
+              >
+                પાછળ
+              </button>
+              <span className="text-sm font-medium text-slate-600">
+                પેજ {currentPage} / {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+                className="px-4 py-2 rounded-xl bg-white border border-gray-200 disabled:opacity-50 hover:bg-slate-50 text-sm font-bold text-slate-700 shadow-sm"
+              >
+                આગળ
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -3667,13 +3667,17 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     });
     
     app.use(async (req, res, next) => {
+      const isCodeOrAsset =
+        req.path.startsWith('/api/') ||
+        req.path.startsWith('/@') ||
+        req.path.startsWith('/src/') ||
+        req.path.startsWith('/node_modules/') ||
+        /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
+
       const isHtmlRequest =
         req.method === 'GET' &&
-        !req.path.startsWith('/api/') &&
-        !req.path.startsWith('/@') &&
-        !req.path.includes('.') &&
-        !req.path.endsWith('.xml') &&
-        (req.headers.accept?.includes('text/html') || req.path === '/');
+        !isCodeOrAsset &&
+        (req.headers.accept?.includes('text/html') || req.path === '/' || !req.path.includes('.'));
 
       if (!isHtmlRequest) {
         return vite.middlewares(req, res, next);

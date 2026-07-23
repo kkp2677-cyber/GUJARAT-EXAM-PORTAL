@@ -40,24 +40,13 @@ body {
 }
 
 /* Rich HTML Content styling for blog/news */
-html:not(.dark) .blog-news-content,
-html:not(.dark) .blog-news-content * {
-  background-color: transparent !important;
-  color: inherit;
-}
-html:not(.dark) .blog-news-content p,
-html:not(.dark) .blog-news-content span,
-html:not(.dark) .blog-news-content div,
-html:not(.dark) .blog-news-content li {
-  color: #1e293b !important;
-}
-html:not(.dark) .blog-news-content a {
-  color: #059669 !important;
+.blog-news-content a {
+  color: #059669;
   text-decoration: underline;
   font-weight: 700;
 }
-html:not(.dark) .blog-news-content a:hover {
-  color: #047857 !important;
+.blog-news-content a:hover {
+  color: #047857;
 }
 .blog-news-content h1 {
   font-size: 1.875rem;
@@ -100,12 +89,12 @@ html:not(.dark) .blog-news-content a:hover {
 .blog-news-content li {
   margin-bottom: 0.375rem;
 }
-html:not(.dark) .blog-news-content blockquote {
+.blog-news-content blockquote {
   border-left: 4px solid #059669;
   padding-left: 1rem;
   font-style: italic;
-  color: #065f46 !important;
-  background-color: #ecfdf5 !important;
+  color: #065f46;
+  background-color: #ecfdf5;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;

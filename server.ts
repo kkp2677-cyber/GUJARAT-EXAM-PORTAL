@@ -878,14 +878,36 @@ app.get('/api/posts/slug/:slug', async (req, res) => {
   }
 });
 
+function sanitizeSlug(inputSlug: string | undefined | null, fallbackTitle?: string): string {
+  let s = (inputSlug || '').trim();
+  if (!s && fallbackTitle) {
+    s = fallbackTitle.trim();
+  }
+  if (!s) return '';
+  if (s.includes('/')) {
+    const parts = s.split('/').filter(Boolean);
+    s = parts[parts.length - 1] || s;
+  }
+  s = s.replace(/^https?:\/\/[^\/]+/i, '');
+  
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\u0a80-\u0aff-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 app.post('/api/posts', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
   try {
     const { category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags } = req.body;
     if (!category || !title || !content) {
       return res.status(400).json({ error: 'કેટેગરી, શીર્ષક અને સામગ્રી આવશ્યક છે.' });
     }
+    const cleanSlug = sanitizeSlug(slug, title);
     const newPostArr = await queryWithRetry(() => db.insert(posts).values({
-      category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags, date: new Date().toISOString()
+      category, title, content, thumbnail, metaTitle, metaDesc, slug: cleanSlug, focusKeyword, tags, date: new Date().toISOString()
     }).returning());
     cache.del('posts');
     
@@ -911,11 +933,12 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
   try {
     const { id } = req.params;
     const { category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags } = req.body;
+    const cleanSlug = sanitizeSlug(slug, title);
 
     // Check if slug is unique (and not belonging to the current post being updated)
-    if (slug) {
+    if (cleanSlug) {
       const existing = await queryWithRetry(() => 
-        db.select().from(posts).where(and(eq(posts.slug, slug), ne(posts.id, Number(id))))
+        db.select().from(posts).where(and(eq(posts.slug, cleanSlug), ne(posts.id, Number(id))))
       );
       if (existing.length > 0) {
         return res.status(400).json({ error: 'આ સ્લગ (slug) અન્ય પોસ્ટમાં વપરાયેલ છે.' });
@@ -930,7 +953,7 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
         thumbnail,
         metaTitle,
         metaDesc,
-        slug,
+        slug: cleanSlug,
         focusKeyword,
         tags,
         updatedAt: sql`now()`

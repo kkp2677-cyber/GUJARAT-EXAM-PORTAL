@@ -253,13 +253,19 @@ export default function AdminPanel() {
   };
 
   const slugify = (text: string) => {
-    return text
-      .toString()
+    let str = text ? text.toString().trim() : '';
+    if (str.includes('/')) {
+      const parts = str.split('/').filter(Boolean);
+      str = parts[parts.length - 1] || str;
+    }
+    str = str.replace(/^https?:\/\/[^\/]+/i, '');
+    return str
       .toLowerCase()
       .trim()
       .replace(/\s+/g, '-')
       .replace(/[^\w\u0a80-\u0aff-]+/g, '')
-      .replace(/--+/g, '-');
+      .replace(/--+/g, '-')
+      .replace(/^-+|-+$/g, '');
   };
 
   // States for Exams Management

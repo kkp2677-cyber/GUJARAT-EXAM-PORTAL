@@ -301,7 +301,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
     return { focusKeyword, tags: allTags };
   };
 
-  // Generate safe NewsArticle JSON-LD schema for Google indexation
+  // Generate safe BlogPosting JSON-LD schema for Google indexation
   const getSchemaJson = () => {
     let dateStr = new Date().toISOString();
     try {
@@ -327,7 +327,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
 
     const schema = {
       "@context": "https://schema.org",
-      "@type": "NewsArticle",
+      "@type": "Article",
       "headline": post.title,
       "description": description,
       "image": [imageUrl],
@@ -408,7 +408,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 animate-fade-in py-0 sm:py-4 px-0 sm:px-6" id="blog-post-detail">
-      {/* Schema.org NewsArticle Structured Data */}
+      {/* Schema.org BlogPosting Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: getSchemaJson() }}

@@ -3516,7 +3516,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
 
     const jsonLd = {
       "@context": "https://schema.org",
-      "@type": "BlogPosting",
+      "@type": "Article",
       "headline": titleText,
       "description": descText,
       "image": imageUrl,
@@ -3525,7 +3525,8 @@ function generateSeoTags(post: any | null, req: express.Request) {
       "dateModified": post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedTime,
       "author": {
         "@type": "Organization",
-        "name": "OJAS EXAM"
+        "name": "OJAS EXAM",
+        "url": "https://www.ojasexam.in/"
       },
       "publisher": {
         "@type": "Organization",
@@ -3542,7 +3543,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
     <title>${escTitle}</title>
     <meta name="description" content="${escDesc}" />
     <meta name="author" content="OJAS EXAM" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href="${fullUrl}" />
 
     <!-- Open Graph / WhatsApp / Facebook -->
@@ -3579,13 +3580,15 @@ function generateSeoTags(post: any | null, req: express.Request) {
     <!-- Default Social Media Meta Tags -->
     <title>OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results</title>
     <meta name="description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+    <meta name="author" content="OJAS EXAM" />
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="OJAS EXAM" />
-    <meta property="og:title" content="OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results" />
+    <meta property="og:title" content="OjasExam.in | Online Exam Mock Test, OJAS Job Alerts & Results" />
     <meta property="og:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
     <meta property="og:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
-    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.ojasexam.in/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results" />
+    <meta name="twitter:title" content="OjasExam.in | Online Exam Mock Test, OJAS Job Alerts & Results" />
     <meta name="twitter:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
     <meta name="twitter:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
     <script type="application/ld+json">${JSON.stringify(websiteJsonLd)}</script>
@@ -3596,17 +3599,18 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
   const post = await getPostFromRequest(req);
   const seoTags = generateSeoTags(post, req);
 
-  let processedHtml = html
-    .replace(/<title>[\s\S]*?<\/title>/gi, '')
-    .replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '')
-    .replace(/<meta\s+name=["']author["'][\s\S]*?>/gi, '')
-    .replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '')
-    .replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '');
+  let processedHtml = html;
 
-  if (processedHtml.includes('id="seo-meta-tag-placeholder"')) {
-    processedHtml = processedHtml.replace(/<meta id=["']?seo-meta-tag-placeholder["']?\s*\/?>/gi, seoTags);
-  } else if (processedHtml.includes('<!-- SEO_META_TAGS_BLOCK_START -->')) {
+  if (processedHtml.includes('<!-- SEO_META_TAGS_BLOCK_START -->')) {
     processedHtml = processedHtml.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/gi, seoTags);
+  } else if (processedHtml.includes('id="seo-meta-tag-placeholder"')) {
+    processedHtml = processedHtml
+      .replace(/<title>[\s\S]*?<\/title>/gi, '')
+      .replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '')
+      .replace(/<meta\s+name=["']author["'][\s\S]*?>/gi, '')
+      .replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '')
+      .replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '')
+      .replace(/<meta id=["']?seo-meta-tag-placeholder["']?\s*\/?>/gi, seoTags);
   } else {
     processedHtml = processedHtml.replace('<head>', `<head>\n${seoTags}`);
   }

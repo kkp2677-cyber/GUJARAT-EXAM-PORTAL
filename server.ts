@@ -3725,14 +3725,43 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
       }
 
       try {
-        let indexPath = path.join(distPath, 'index.html');
-        if (!fs.existsSync(indexPath)) {
-          indexPath = path.join(process.cwd(), 'index.html');
+        const candidatePaths = [
+          path.join(distPath, 'index.html'),
+          path.join(process.cwd(), 'dist', 'index.html'),
+          path.join(process.cwd(), 'index.html'),
+          path.join(__dirname, 'index.html'),
+          path.join(__dirname, 'dist', 'index.html'),
+          path.join(__dirname, '../dist', 'index.html')
+        ];
+
+        let html = '';
+        for (const candidate of candidatePaths) {
+          if (fs.existsSync(candidate)) {
+            html = fs.readFileSync(candidate, 'utf-8');
+            break;
+          }
         }
-        if (!fs.existsSync(indexPath)) {
-          return res.status(404).send('Not Found');
+
+        if (!html) {
+          html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#10b981" />
+    <!-- SEO Meta Tags Placeholder -->
+    <meta id="seo-meta-tag-placeholder" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>`;
         }
-        let html = fs.readFileSync(indexPath, 'utf-8');
+
         html = await injectSeoAndAnalytics(html, req);
         htmlCache.set(cacheKey, html);
         res.setHeader('Content-Type', 'text/html');

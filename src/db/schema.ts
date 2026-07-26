@@ -121,3 +121,12 @@ export const wishlist = pgTable('wishlist', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const newsTickers = pgTable('news_tickers', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  link: text('link'),
+  isActive: boolean('is_active').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+

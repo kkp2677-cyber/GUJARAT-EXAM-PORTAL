@@ -122,4 +122,13 @@ export interface ExamCalendarEvent {
   createdAt: string;
 }
 
+export interface NewsTickerItem {
+  id: string | number;
+  title: string;
+  link?: string | null;
+  isActive: boolean;
+  sortOrder?: number;
+  createdAt?: string;
+}
+
 

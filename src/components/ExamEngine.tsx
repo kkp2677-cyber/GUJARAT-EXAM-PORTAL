@@ -288,30 +288,30 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
       {!examResult ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-8">
           {/* Main Question view panel */}
-          <div className="lg:col-span-3 bg-transparent md:bg-white rounded-none md:rounded-3xl border-0 md:border border-gray-100 shadow-none md:shadow-xl p-1 md:p-8 space-y-4 flex flex-col justify-between min-h-[450px]">
+          <div className="lg:col-span-3 bg-transparent md:bg-white dark:md:bg-[#121824] rounded-none md:rounded-3xl border-0 md:border border-gray-100 dark:md:border-slate-800 shadow-none md:shadow-xl p-1 md:p-8 space-y-4 flex flex-col justify-between min-h-[450px]">
             <div>
               {/* Question metadata row */}
-              <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-                <span className="bg-blue-50 text-blue-700 font-extrabold px-3.5 py-1.5 rounded-xl text-sm md:text-base">
+              <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-4">
+                <span className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-extrabold px-3.5 py-1.5 rounded-xl text-sm md:text-base border border-blue-100 dark:border-blue-900/50">
                   પ્રશ્ન {currentQuestionIndex + 1} / {totalQuestions}
                 </span>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] md:text-xs font-bold text-gray-500 justify-end">
-                  <span className="text-emerald-600">સાચો: +૧.૦</span>
-                  <span className="text-red-600">ખોટો: -૦.૨૫</span>
-                  <span className="text-indigo-600">E વિકલ્પ: ૦.૦૦</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] md:text-xs font-bold text-gray-500 dark:text-slate-400 justify-end">
+                  <span className="text-emerald-600 dark:text-emerald-400">સાચો: +૧.૦</span>
+                  <span className="text-red-600 dark:text-red-400">ખોટો: -૦.૨૫</span>
+                  <span className="text-indigo-600 dark:text-indigo-400">E વિકલ્પ: ૦.૦૦</span>
                 </div>
               </div>
 
               {/* Passage paragraph (Passage types only) */}
               {currentQuestion.type === 'paragraph' && currentQuestion.passage && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 md:p-5 rounded-r-2xl italic text-gray-700 text-sm md:text-base leading-relaxed mb-4 md:mb-6">
-                  <p className="font-semibold text-xs text-blue-800 uppercase tracking-wide mb-1.5">ફકરો (Passage):</p>
+                <div className="bg-blue-50 dark:bg-blue-950/40 border-l-4 border-blue-500 p-4 md:p-5 rounded-r-2xl italic text-gray-700 dark:text-slate-200 text-sm md:text-base leading-relaxed mb-4 md:mb-6">
+                  <p className="font-semibold text-xs text-blue-800 dark:text-blue-300 uppercase tracking-wide mb-1.5">ફકરો (Passage):</p>
                   "{currentQuestion.passage}"
                 </div>
               )}
 
               {/* Question Text */}
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug mt-4">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 leading-snug mt-4">
                 {currentQuestion.questionText}
               </h3>
 
@@ -333,18 +333,18 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                       onClick={() => handleOptionSelect(opt)}
                       className={`text-left w-full p-3 md:p-4 rounded-xl border font-sans text-base md:text-lg transition-all flex items-center gap-3 cursor-pointer ${
                         isSelected 
-                          ? 'border-blue-600 bg-blue-50/85 font-semibold ring-1 ring-blue-500/20' 
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                          ? 'border-blue-600 dark:border-blue-500 bg-blue-50/85 dark:bg-blue-950/60 font-semibold ring-1 ring-blue-500/20' 
+                          : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-700/60'
                       }`}
                     >
                       <span className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-black shrink-0 text-sm md:text-base border transition-all ${
                         isSelected 
                           ? 'bg-blue-600 text-white border-blue-600 shadow' 
-                          : 'bg-gray-100 border-gray-300 text-gray-700'
+                          : 'bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200'
                       }`}>
                         {opt}
                       </span>
-                      <span className="font-bold text-gray-800 leading-snug text-base md:text-lg">{optText}</span>
+                      <span className="font-bold text-gray-800 dark:text-slate-200 leading-snug text-base md:text-lg">{optText}</span>
                     </button>
                   );
                 })}
@@ -352,12 +352,12 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
             </div>
 
             {/* Bottom Nav Bar */}
-            <div className="border-t border-gray-100 pt-4 md:pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
+            <div className="border-t border-gray-100 dark:border-slate-800 pt-4 md:pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
               <div className="grid grid-cols-3 gap-1.5 w-full sm:flex sm:items-center sm:gap-3 sm:w-auto">
                 <button
                   disabled={currentQuestionIndex === 0}
                   onClick={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}
-                  className="px-2 sm:px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 disabled:opacity-40 font-bold cursor-pointer flex items-center justify-center gap-1 text-xs sm:text-sm transition-all"
+                  className="px-2 sm:px-4 py-2.5 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 font-bold cursor-pointer flex items-center justify-center gap-1 text-xs sm:text-sm transition-all"
                 >
                   <ChevronLeft className="h-4 w-4 shrink-0" /> પાછળ
                 </button>
@@ -365,19 +365,19 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                   onClick={handleMarkForReview}
                   className={`px-2 sm:px-4 py-2.5 rounded-xl font-bold cursor-pointer text-xs sm:text-sm border flex items-center justify-center gap-1 transition-all ${
                     markedForReview[currentQuestion.id]
-                      ? 'bg-amber-100 text-amber-800 border-amber-300'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                      : 'border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <Bookmark className="h-4 w-4 shrink-0 text-amber-600" />
+                  <Bookmark className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   <span>રિવ્યુ</span>
                 </button>
                 <button
                   onClick={handleToggleBookmark}
                   className={`px-2 sm:px-4 py-2.5 rounded-xl font-bold cursor-pointer text-xs sm:text-sm border flex items-center justify-center gap-1 transition-all ${
                     bookmarkedQuestionIds.has(currentQuestion.id)
-                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/60'
+                      : 'border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <Bookmark className={`h-4 w-4 shrink-0 ${bookmarkedQuestionIds.has(currentQuestion.id) ? 'fill-red-500 text-red-500' : 'text-red-500'}`} />
@@ -406,9 +406,9 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
           </div>
 
           {/* Right column: Question palette */}
-          <div className="lg:col-span-1 bg-transparent md:bg-white rounded-none md:rounded-3xl border-0 md:border border-gray-100 shadow-none md:shadow-xl p-1 md:p-5 flex flex-col justify-between">
+          <div className="lg:col-span-1 bg-transparent md:bg-white dark:md:bg-[#121824] rounded-none md:rounded-3xl border-0 md:border border-gray-100 dark:md:border-slate-800 shadow-none md:shadow-xl p-1 md:p-5 flex flex-col justify-between">
             <div>
-              <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2.5 mb-3 font-sans">
+              <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 border-b border-gray-100 dark:border-slate-800 pb-2.5 mb-3 font-sans">
                 પ્રશ્ન પેલેટ (Palette)
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-5 gap-2 max-h-[250px] overflow-y-auto pr-1">
@@ -417,7 +417,7 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                   const isAnswered = selectedAnswers[q.id] !== undefined;
                   const isMarked = markedForReview[q.id] === true;
 
-                  let bgClass = 'bg-gray-100 hover:bg-gray-200 text-gray-700';
+                  let bgClass = 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300';
                   if (isCurrent) {
                     bgClass = 'bg-blue-600 text-white ring-2 ring-blue-500/20';
                   } else if (isMarked) {
@@ -440,23 +440,23 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
             </div>
 
             {/* Legend guide */}
-            <div className="mt-6 border-t border-gray-100 pt-4 space-y-2 text-xs">
+            <div className="mt-6 border-t border-gray-100 dark:border-slate-800 pt-4 space-y-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 bg-emerald-600 rounded-md"></span>
-                <span className="text-gray-600">ઉત્તર આપેલ ({answeredCount})</span>
+                <span className="text-gray-600 dark:text-slate-400">ઉત્તર આપેલ ({answeredCount})</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 bg-amber-500 rounded-md"></span>
-                <span className="text-gray-600">રિવ્યુ માટે સેવ કરેલ ({Object.keys(markedForReview).filter(k=>markedForReview[k]).length})</span>
+                <span className="text-gray-600 dark:text-slate-400">રિવ્યુ માટે સેવ કરેલ ({Object.keys(markedForReview).filter(k=>markedForReview[k]).length})</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 bg-gray-100 rounded-md"></span>
-                <span className="text-gray-600">ઉત્તર બાકી ({totalQuestions - answeredCount})</span>
+                <span className="w-3.5 h-3.5 bg-gray-100 dark:bg-slate-800 rounded-md"></span>
+                <span className="text-gray-600 dark:text-slate-400">ઉત્તર બાકી ({totalQuestions - answeredCount})</span>
               </div>
             </div>
 
             {/* Action buttons at the bottom of the Question Palette */}
-            <div className="mt-6 pt-4 border-t border-gray-100 space-y-2.5">
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-800 space-y-2.5">
               <button
                 onClick={() => setShowSubmitConfirm(true)}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-500/15 text-sm"
@@ -468,114 +468,114 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
         </div>
       ) : (
         /* CONDITIONAL RESULT PAGE DISPLAY */
-        <div className="bg-transparent md:bg-white rounded-none md:rounded-3xl border-0 md:border border-gray-100 shadow-none md:shadow-2xl p-1 md:p-8 max-w-2xl mx-auto text-center space-y-5">
+        <div className="bg-transparent md:bg-white dark:md:bg-[#121824] rounded-none md:rounded-3xl border-0 md:border border-gray-100 dark:md:border-slate-800 shadow-none md:shadow-2xl p-1 md:p-8 max-w-2xl mx-auto text-center space-y-5">
           
           {/* BHARTI EXAM CONDITION - NO OFFICIAL ANSWER KEY UPLOADED */}
           {exam.type === 'bharti' && !examResult.answerKeyUploaded ? (
-            <div className="space-y-6 py-3 bg-transparent md:bg-white border-0 md:border border-gray-150 rounded-2xl p-2 md:p-6 shadow-none md:shadow-sm">
-              <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto border border-amber-200">
+            <div className="space-y-6 py-3 bg-transparent md:bg-white dark:md:bg-[#121824] border-0 md:border border-gray-150 dark:md:border-slate-800 rounded-2xl p-2 md:p-6 shadow-none md:shadow-sm">
+              <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto border border-amber-200 dark:border-amber-800">
                 <AlertTriangle className="h-8 w-8" />
               </div>
               <div className="space-y-3">
-                <h3 className="text-xl md:text-2xl font-bold text-slate-800 font-sans">પરીક્ષા સફળતાપૂર્વક સબમિટ થઈ ગઈ છે!</h3>
-                <p className="text-[15px] md:text-base text-amber-700 bg-amber-50 font-bold p-4 rounded-xl border border-amber-200 mt-3 leading-relaxed font-sans max-w-lg mx-auto">
-                  ⚠️ બોર્ડ દ્વારા ઓફિશિયલ અંસાર કી બહાર પાડવામાં આવ્યા બાદ માર્ક્સ જોઈ શકશો
+                <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 font-sans">પરીક્ષા સફળતાપૂર્વક સબમિટ થઈ ગઈ છે!</h3>
+                <p className="text-[15px] md:text-base text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 font-bold p-4 rounded-xl border border-amber-200 dark:border-amber-800 mt-3 leading-relaxed font-sans max-w-lg mx-auto">
+                  ⚠️ બોર્ડ દ્વારા ઓફિશિયલ આન્સર કી બહાર પાડવામાં આવ્યા બાદ માર્ક્સ જોઈ શકશો
                 </p>
               </div>
-              <p className="text-xs md:text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs md:text-sm text-gray-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 જ્યારે બોર્ડ આ ભરતી પરીક્ષાની સત્તાવાર આન્સર કી અપલોડ કરશે, ત્યારે તમને ડેશબોર્ડમાં અને મેરિટ લિસ્ટમાં તમારા ગુણ જોવા મળશે.
               </p>
             </div>
           ) : (
             /* RESULTS DISPLAY IF MOCK OR BHARTI WITH ANSWER KEY */
             <div className="space-y-5">
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-800">
                 <CheckCircle className="h-8 w-8" />
               </div>
               <div>
-                <h3 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">પરીક્ષાનું પરિણામ (Result)</h3>
-                <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans font-medium">પરિણામ વિગતો નીચે મુજબ છે</p>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 font-sans">પરીક્ષાનું પરિણામ (Result)</h3>
+                <p className="text-xs md:text-sm text-gray-500 dark:text-slate-400 mt-1 font-sans font-medium">પરિણામ વિગતો નીચે મુજબ છે</p>
               </div>
 
               {/* Score grid */}
-              <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-md mx-auto bg-slate-50 md:bg-white border border-slate-200/70 md:border-gray-150 shadow-none md:shadow-sm p-3 md:p-6 rounded-xl md:rounded-2xl">
+              <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-md mx-auto bg-slate-50 md:bg-white dark:bg-slate-800/80 md:dark:bg-slate-800/60 border border-slate-200/70 md:border-gray-150 dark:border-slate-700 shadow-none md:shadow-sm p-3 md:p-6 rounded-xl md:rounded-2xl">
                 <div className="text-center">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">મેળવેલ ગુણ</p>
-                  <p className="text-2xl md:text-3xl font-black text-blue-600 mt-1">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">મેળવેલ ગુણ</p>
+                  <p className="text-2xl md:text-3xl font-black text-blue-600 dark:text-blue-400 mt-1">
                     {examResult.marksObtained ?? examResult.actualScore} / {examResult.totalMarks}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">સમય લીધેલ</p>
-                  <p className="text-2xl md:text-3xl font-black text-slate-800 mt-1 font-mono">{examResult.timeTaken}</p>
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">સમય લીધેલ</p>
+                  <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100 mt-1 font-mono">{examResult.timeTaken}</p>
                 </div>
               </div>
 
               {/* Detailed Summary */}
               <div className="space-y-3.5 max-w-md mx-auto">
-                <h4 className="text-base md:text-xl font-black text-slate-900 text-left font-sans tracking-tight px-1">
+                <h4 className="text-base md:text-xl font-black text-slate-900 dark:text-slate-100 text-left font-sans tracking-tight px-1">
                   📊 પ્રશ્નવાર સવિસ્તાર વિગતો:
                 </h4>
                 <div className="grid grid-cols-2 gap-2.5 md:gap-3.5">
-                  <div className="bg-emerald-50 border border-emerald-100/80 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100/80 dark:border-emerald-800/60 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
                     <div>
-                      <p className="text-[14px] md:text-base font-black text-emerald-950">સાચા જવાબ</p>
-                      <p className="text-[11px] md:text-xs text-emerald-700 mt-0.5 font-bold">+{clientCorrectCount * 1} ગુણ</p>
+                      <p className="text-[14px] md:text-base font-black text-emerald-950 dark:text-emerald-200">સાચા જવાબ</p>
+                      <p className="text-[11px] md:text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 font-bold">+{clientCorrectCount * 1} ગુણ</p>
                     </div>
-                    <span className="text-lg md:text-2xl font-black text-emerald-700 font-mono bg-white px-2 py-0.5 rounded-lg border border-emerald-200 shrink-0">
+                    <span className="text-lg md:text-2xl font-black text-emerald-700 dark:text-emerald-100 font-mono bg-white dark:bg-emerald-900 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-700 shrink-0">
                       {clientCorrectCount}
                     </span>
                   </div>
                   
-                  <div className="bg-red-50 border border-red-100/80 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
+                  <div className="bg-red-50 dark:bg-red-950/40 border border-red-100/80 dark:border-red-800/60 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
                     <div>
-                      <p className="text-[14px] md:text-base font-black text-red-950">ખોટા જવાબ</p>
-                      <p className="text-[11px] md:text-xs text-red-700 mt-0.5 font-bold">-{parseFloat((clientIncorrectCount * 0.25).toFixed(2))} ગુણ</p>
+                      <p className="text-[14px] md:text-base font-black text-red-950 dark:text-red-200">ખોટા જવાબ</p>
+                      <p className="text-[11px] md:text-xs text-red-700 dark:text-red-300 mt-0.5 font-bold">-{parseFloat((clientIncorrectCount * 0.25).toFixed(2))} ગુણ</p>
                     </div>
-                    <span className="text-lg md:text-2xl font-black text-red-700 font-mono bg-white px-2 py-0.5 rounded-lg border border-red-200 shrink-0">
+                    <span className="text-lg md:text-2xl font-black text-red-700 dark:text-red-100 font-mono bg-white dark:bg-red-900 px-2 py-0.5 rounded-lg border border-red-200 dark:border-red-700 shrink-0">
                       {clientIncorrectCount}
                     </span>
                   </div>
 
-                  <div className="bg-amber-50 border border-amber-100/80 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
+                  <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-100/80 dark:border-amber-800/60 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
                     <div>
-                      <p className="text-[14px] md:text-base font-black text-amber-950">કોરા છોડેલ</p>
-                      <p className="text-[11px] md:text-xs text-amber-700 mt-0.5 font-bold">-{parseFloat((clientLeftCount * 0.25).toFixed(2))} ગુણ</p>
+                      <p className="text-[14px] md:text-base font-black text-amber-950 dark:text-amber-200">કોરા છોડેલ</p>
+                      <p className="text-[11px] md:text-xs text-amber-700 dark:text-amber-300 mt-0.5 font-bold">-{parseFloat((clientLeftCount * 0.25).toFixed(2))} ગુણ</p>
                     </div>
-                    <span className="text-lg md:text-2xl font-black text-amber-700 font-mono bg-white px-2 py-0.5 rounded-lg border border-amber-200 shrink-0">
+                    <span className="text-lg md:text-2xl font-black text-amber-700 dark:text-amber-100 font-mono bg-white dark:bg-amber-900 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-700 shrink-0">
                       {clientLeftCount}
                     </span>
                   </div>
 
-                  <div className="bg-indigo-50 border border-indigo-100/80 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
+                  <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100/80 dark:border-indigo-800/60 rounded-xl p-3 md:p-4 flex flex-row items-center justify-between gap-2 text-left">
                     <div>
-                      <p className="text-[14px] md:text-base font-black text-indigo-950">E વિકલ્પ પસંદ</p>
-                      <p className="text-[11px] md:text-xs text-indigo-700 mt-0.5 font-bold">૦.૦૦ ગુણ</p>
+                      <p className="text-[14px] md:text-base font-black text-indigo-950 dark:text-indigo-200">E વિકલ્પ પસંદ</p>
+                      <p className="text-[11px] md:text-xs text-indigo-700 dark:text-indigo-300 mt-0.5 font-bold">૦.૦૦ ગુણ</p>
                     </div>
-                    <span className="text-lg md:text-2xl font-black text-indigo-700 font-mono bg-white px-2 py-0.5 rounded-lg border border-indigo-200 shrink-0">
+                    <span className="text-lg md:text-2xl font-black text-indigo-700 dark:text-indigo-100 font-mono bg-white dark:bg-indigo-900 px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-700 shrink-0">
                       {clientECount}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-blue-50/40 rounded-xl p-4 md:p-6 text-sm md:text-base text-blue-950 max-w-md mx-auto border border-blue-100/70 text-left space-y-2">
-                <p className="text-base md:text-lg font-black text-blue-950 flex items-center gap-1.5">
+              <div className="bg-blue-50/40 dark:bg-blue-950/30 rounded-xl p-4 md:p-6 text-sm md:text-base text-blue-950 dark:text-blue-200 max-w-md mx-auto border border-blue-100/70 dark:border-blue-900/60 text-left space-y-2">
+                <p className="text-base md:text-lg font-black text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
                   💡 ગુણાંકન પદ્ધતિ (Marking System):
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-xs md:text-sm text-blue-900 font-bold leading-relaxed">
-                  <li>દરેક સાચા જવાબ માટે <strong className="text-emerald-700">+૧.૦ ગુણ</strong> મળેલ છે.</li>
-                  <li>ખોટા અથવા કોરા રાખેલ (ન દર્શાવેલ) જવાબો માટે <strong className="text-red-700">-૦.૨૫ ગુણ</strong> કપાશે.</li>
-                  <li><strong className="text-indigo-700">E વિકલ્પ</strong> પસંદ કરેલ પ્રશ્નો માટે કોઈ નકારાત્મક ગુણ કપાશે નહીં (૦.૦૦ ગુણ).</li>
+                <ul className="list-disc list-inside space-y-1 text-xs md:text-sm text-blue-900 dark:text-blue-300 font-bold leading-relaxed">
+                  <li>દરેક સાચા જવાબ માટે <strong className="text-emerald-700 dark:text-emerald-400">+૧.૦ ગુણ</strong> મળેલ છે.</li>
+                  <li>ખોટા અથવા કોરા રાખેલ (ન દર્શાવેલ) જવાબો માટે <strong className="text-red-700 dark:text-red-400">-૦.૨૫ ગુણ</strong> કપાશે.</li>
+                  <li><strong className="text-indigo-700 dark:text-indigo-400">E વિકલ્પ</strong> પસંદ કરેલ પ્રશ્નો માટે કોઈ નકારાત્મક ગુણ કપાશે નહીં (૦.૦૦ ગુણ).</li>
                 </ul>
               </div>
 
               {/* Score sharing panel */}
-              <div className="bg-slate-50 rounded-xl p-4 md:p-6 max-w-md mx-auto text-left space-y-3">
-                <p className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-4 md:p-6 max-w-md mx-auto text-left space-y-3">
+                <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   🏆 તમારો સ્કોર મિત્રો સાથે શેર કરો! (Share Score)
                 </p>
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                   તમારી સફળતા અને ઉત્સાહ તમારા મિત્રો સાથે સોશિયલ મીડિયા પર શેર કરો જેથી તેઓ પણ તેમની તૈયારી ચકાસી શકે.
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -616,7 +616,7 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
                       navigator.clipboard.writeText(text + `\n\nજોડાઓ: ${window.location.origin}`);
                       alert('📋 રિઝલ્ટ વિગતો ક્લિપબોર્ડ પર કોપી કરવામાં આવી છે!');
                     }}
-                    className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 bg-white text-slate-700 hover:bg-gray-50 text-xs font-bold rounded-xl shadow-sm transition-all hover:scale-[1.02] cursor-pointer border-0"
+                    className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-600 text-xs font-bold rounded-xl shadow-sm transition-all hover:scale-[1.02] cursor-pointer border border-gray-200 dark:border-slate-600"
                     title="રિઝલ્ટ કોપી કરો"
                   >
                     <span className="hidden sm:inline">કોપી કરો</span>
@@ -627,10 +627,10 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
             </div>
           )}
 
-          <div className="pt-6 border-t border-gray-100 flex justify-center">
+          <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex justify-center">
             <button
               onClick={onFinished}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 py-3 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all text-sm"
+              className="bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all text-sm"
             >
               ડેશબોર્ડ પર પાછા જાઓ
             </button>
@@ -641,15 +641,15 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
       {/* CONFIRM CANCEL MODAL */}
       {showCancelConfirm && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-6">
+          <div className="bg-white dark:bg-[#121824] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-6">
             <div className="text-center">
-              <div className="mx-auto h-12 w-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
+              <div className="mx-auto h-12 w-12 bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mb-4 border border-red-100 dark:border-red-900/50">
                 <AlertTriangle className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 font-sans">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 font-sans">
                 પરીક્ષા કેન્સલ કરવા માંગો છો?
               </h3>
-              <p className="text-sm text-gray-500 mt-2 font-sans">
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-2 font-sans">
                 કેન્સલ કરવાથી તમારી આ પરીક્ષા રદ થશે અને કોઈ ડેટા કે પ્રગતિ સાચવવામાં આવશે નહીં.
               </p>
             </div>
@@ -657,7 +657,7 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
             <div className="flex gap-4">
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition-all"
+                className="flex-1 py-3 px-4 border border-gray-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-all"
               >
                 પાછા જાઓ
               </button>
@@ -675,34 +675,34 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
       {/* CONFIRM SUBMISSION MODAL */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-6">
+          <div className="bg-white dark:bg-[#121824] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 dark:border-slate-800 space-y-6">
             <div className="text-center">
-              <div className="mx-auto h-12 w-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-4">
+              <div className="mx-auto h-12 w-12 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mb-4 border border-amber-100 dark:border-amber-900/50">
                 <AlertCircle className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 font-sans">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 font-sans">
                 પરીક્ષા સબમિટ કરવા માંગો છો?
               </h3>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
                 એકવાર સબમિટ કર્યા પછી તમે તમારા જવાબો બદલી શકશો નહીં.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-center text-sm">
+            <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-100 dark:border-slate-700 text-center text-sm">
               <div>
-                <p className="text-gray-500">કુલ પ્રશ્નો</p>
-                <p className="text-lg font-bold text-gray-900">{totalQuestions}</p>
+                <p className="text-gray-500 dark:text-slate-400">કુલ પ્રશ્નો</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{totalQuestions}</p>
               </div>
               <div>
-                <p className="text-gray-500">ઉત્તર આપેલ પ્રશ્નો</p>
-                <p className="text-lg font-bold text-emerald-600">{answeredCount}</p>
+                <p className="text-gray-500 dark:text-slate-400">ઉત્તર આપેલ પ્રશ્નો</p>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{answeredCount}</p>
               </div>
             </div>
 
             <div className="flex gap-4">
               <button
                 onClick={() => setShowSubmitConfirm(false)}
-                className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition-all"
+                className="flex-1 py-3 px-4 border border-gray-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-all"
               >
                 રદ કરો
               </button>

@@ -1,6 +1,6 @@
 // src/utils/cache.ts
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 60 * 1000; // 1 minute cache duration for fast updates
 
 export async function fetchWithCache<T>(url: string, options: RequestInit = {}): Promise<T> {
   if (typeof window === 'undefined') {
@@ -17,9 +17,13 @@ export async function fetchWithCache<T>(url: string, options: RequestInit = {}):
   const cached = localStorage.getItem(cacheKey);
 
   if (cached) {
-    const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp < CACHE_DURATION) {
-      return data as T;
+    try {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        return data as T;
+      }
+    } catch (e) {
+      localStorage.removeItem(cacheKey);
     }
   }
 
@@ -29,7 +33,29 @@ export async function fetchWithCache<T>(url: string, options: RequestInit = {}):
   }
 
   const data = await response.json();
-  localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {
+    // Storage quota or error
+  }
   
   return data as T;
 }
+
+export function clearCache(url?: string) {
+  if (typeof window === 'undefined') return;
+  if (url) {
+    localStorage.removeItem(`cache_${url}`);
+  } else {
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('cache_')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      console.error('Error clearing cache:', e);
+    }
+  }
+}
+

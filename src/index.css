@@ -39,6 +39,23 @@ body {
   font-family: "Anek Gujarati", "Inter", sans-serif;
 }
 
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-33.3333%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+}
+
+.animate-marquee:hover,
+.animate-marquee:focus-within {
+  animation-play-state: paused;
+}
+
+
 /* Rich HTML Content styling for blog/news */
 .blog-news-content a {
   color: #059669;
@@ -150,28 +167,88 @@ html.dark {
 
 .dark body,
 .dark .min-h-screen,
-.dark .bg-slate-50\/50,
-.dark .bg-slate-100 {
+.dark main {
   background-color: #0b0f19 !important;
   color: #cbd5e1 !important;
 }
 
-/* Card and container backgrounds */
+/* Card and container backgrounds (including responsive breakpoints) */
 .dark .bg-white,
-.dark .bg-slate-50\/90,
-.dark .bg-emerald-50\/90,
-.dark .bg-amber-50\/90,
-.dark .bg-purple-50\/90,
-.dark .bg-sky-50\/90,
-.dark .bg-blue-50,
-.dark .bg-blue-50\/90,
-.dark .bg-slate-50 {
+.dark .sm\:bg-white,
+.dark .md\:bg-white,
+.dark .lg\:bg-white,
+.dark .xl\:bg-white,
+.dark .bg-slate-50,
+.dark .sm\:bg-slate-50,
+.dark .md\:bg-slate-50,
+.dark .lg\:bg-slate-50,
+.dark .bg-slate-100,
+.dark .md\:bg-slate-100,
+.dark .bg-slate-200,
+.dark .bg-gray-50,
+.dark .sm\:bg-gray-50,
+.dark .md\:bg-gray-50,
+.dark .lg\:bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-gray-200,
+.dark .bg-zinc-50,
+.dark .bg-zinc-100,
+.dark .bg-[#f8fafc],
+.dark .bg-[#f1f5f9],
+.dark .bg-[#f9fafb] {
   background-color: #121824 !important;
+  color: #f1f5f9;
 }
 
 /* Header backgrounds and translucent layers */
-.dark .bg-white\/95 {
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-slate-50\/90,
+.dark .bg-slate-50\/80,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/30,
+.dark .bg-gray-50\/50,
+.dark .bg-gray-50\/80,
+.dark .bg-slate-100\/80 {
   background-color: rgba(18, 24, 36, 0.95) !important;
+}
+
+/* Tinted light containers, badges, and tags */
+.dark .bg-blue-50,
+.dark .bg-blue-50\/90,
+.dark .bg-blue-50\/50,
+.dark .bg-blue-50\/40,
+.dark .bg-blue-100,
+.dark .bg-emerald-50,
+.dark .bg-emerald-50\/90,
+.dark .bg-emerald-50\/50,
+.dark .bg-emerald-100,
+.dark .bg-indigo-50,
+.dark .bg-indigo-50\/90,
+.dark .bg-indigo-50\/50,
+.dark .bg-indigo-100,
+.dark .bg-amber-50,
+.dark .bg-amber-50\/90,
+.dark .bg-amber-50\/30,
+.dark .bg-amber-100,
+.dark .bg-purple-50,
+.dark .bg-purple-50\/90,
+.dark .bg-purple-100,
+.dark .bg-sky-50,
+.dark .bg-sky-50\/90,
+.dark .bg-sky-100,
+.dark .bg-teal-50,
+.dark .bg-teal-100,
+.dark .bg-orange-50,
+.dark .bg-orange-50\/20,
+.dark .bg-orange-100,
+.dark .bg-red-50,
+.dark .bg-rose-50,
+.dark .bg-green-50 {
+  background-color: #1a2336 !important;
 }
 
 /* Inputs, Selects, Textareas */
@@ -191,54 +268,140 @@ html.dark {
   color: #64748b !important;
 }
 
+/* Option tags inside select dropdowns */
+.dark select option {
+  background-color: #121824 !important;
+  color: #f1f5f9 !important;
+}
+
 /* Borders */
 .dark .border-slate-100,
 .dark .border-slate-150,
 .dark .border-slate-200,
+.dark .border-slate-300,
 .dark .border-gray-100,
+.dark .border-gray-150,
 .dark .border-gray-200,
-.dark .border-gray-150 {
+.dark .border-gray-300,
+.dark .border-zinc-100,
+.dark .border-zinc-200,
+.dark .border-blue-100,
+.dark .border-blue-200,
+.dark .border-emerald-100,
+.dark .border-emerald-200,
+.dark .border-indigo-100,
+.dark .border-indigo-200,
+.dark .border-amber-100,
+.dark .border-amber-200,
+.dark .border-sky-100,
+.dark .border-sky-200,
+.dark .border-purple-100,
+.dark .border-purple-200 {
   border-color: #1f293d !important;
 }
 
 /* Text Colors */
+.dark .text-slate-950,
 .dark .text-slate-900,
-.dark .text-gray-900,
 .dark .text-slate-800,
-.dark .text-gray-800,
 .dark .text-slate-700,
+.dark .text-gray-950,
+.dark .text-gray-900,
+.dark .text-gray-800,
 .dark .text-gray-700,
+.dark .text-zinc-950,
+.dark .text-zinc-900,
+.dark .text-zinc-800,
+.dark .text-zinc-700,
+.dark .text-black,
+.dark .text-[#09150d],
+.dark .text-[#132d1e],
+.dark .text-[#0f172a],
+.dark .text-[#1e293b],
 .dark h1,
 .dark h2,
 .dark h3,
-.dark h4 {
+.dark h4,
+.dark h5,
+.dark h6 {
   color: #f1f5f9 !important;
 }
 
 .dark .text-slate-600,
-.dark .text-gray-600,
 .dark .text-slate-500,
-.dark .text-gray-500,
 .dark .text-slate-400,
-.dark .text-gray-400 {
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400,
+.dark .text-zinc-600,
+.dark .text-zinc-500,
+.dark .text-zinc-400 {
   color: #94a3b8 !important;
 }
 
 /* Links and category items inside white containers */
-.dark .text-blue-700 {
-  color: #38bdf8 !important;
+.dark .text-blue-700,
+.dark .text-blue-800,
+.dark .text-blue-900,
+.dark .text-blue-950 {
+  color: #60a5fa !important;
 }
-.dark .text-emerald-700 {
+
+.dark .text-emerald-700,
+.dark .text-emerald-800,
+.dark .text-emerald-900,
+.dark .text-emerald-950,
+.dark .text-green-700 {
   color: #34d399 !important;
 }
-.dark .text-amber-700 {
+
+.dark .text-amber-700,
+.dark .text-amber-800,
+.dark .text-amber-900,
+.dark .text-amber-950 {
   color: #fbbf24 !important;
 }
-.dark .text-purple-700 {
+
+.dark .text-purple-700,
+.dark .text-purple-800,
+.dark .text-purple-900,
+.dark .text-purple-950 {
   color: #c084fc !important;
 }
-.dark .text-sky-700 {
+
+.dark .text-sky-700,
+.dark .text-sky-800,
+.dark .text-sky-900,
+.dark .text-sky-950 {
   color: #38bdf8 !important;
+}
+
+.dark .text-teal-700,
+.dark .text-teal-800,
+.dark .text-teal-900,
+.dark .text-teal-950 {
+  color: #2dd4bf !important;
+}
+
+.dark .text-indigo-700,
+.dark .text-indigo-800,
+.dark .text-indigo-900,
+.dark .text-indigo-950 {
+  color: #818cf8 !important;
+}
+
+.dark .text-orange-600,
+.dark .text-orange-700,
+.dark .text-orange-800,
+.dark .text-orange-900 {
+  color: #fb923c !important;
+}
+
+.dark .text-red-600,
+.dark .text-red-700,
+.dark .text-red-800,
+.dark .text-red-900 {
+  color: #f87171 !important;
 }
 
 /* Hover effects */
@@ -246,14 +409,39 @@ html.dark {
 .dark .hover\:bg-slate-100:hover,
 .dark .hover\:bg-gray-50:hover,
 .dark .hover\:bg-gray-100:hover,
-.dark .hover\:border-blue-300:hover {
+.dark .hover\:bg-gray-200:hover,
+.dark .hover\:bg-blue-50:hover,
+.dark .hover\:bg-emerald-50:hover,
+.dark .hover\:bg-indigo-50:hover,
+.dark .hover\:border-blue-300:hover,
+.dark .hover\:border-gray-300:hover {
   background-color: #1e2538 !important;
   border-color: #38bdf8 !important;
 }
 
 .dark .bg-slate-50:hover,
-.dark .bg-slate-100:hover {
+.dark .bg-slate-100:hover,
+.dark .bg-gray-50:hover,
+.dark .bg-gray-100:hover {
   background-color: #1e2538 !important;
+}
+
+/* Modals & Dialogs */
+.dark .fixed .bg-white,
+.dark [role="dialog"],
+.dark .shadow-2xl.bg-white,
+.dark .shadow-xl.bg-white {
+  background-color: #161e2e !important;
+  color: #f1f5f9 !important;
+  border-color: #2e3b52 !important;
+}
+
+/* Dropdown menus & Popovers */
+.dark .absolute.bg-white,
+.dark .popover-content {
+  background-color: #161e2e !important;
+  border-color: #2e3b52 !important;
+  color: #f1f5f9 !important;
 }
 
 /* Blog/news content overrides for dark mode */
@@ -267,7 +455,7 @@ html.dark {
   color: #cbd5e1 !important;
 }
 .dark .blog-news-content p {
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
 }
 .dark .blog-news-content blockquote {
   background-color: #162421 !important;

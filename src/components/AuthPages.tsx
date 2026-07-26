@@ -613,8 +613,8 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-gray-50/50">
-      <div className="max-w-[400px] w-full space-y-6 bg-white p-8 rounded-[2rem] shadow-xl shadow-orange-900/5 border border-gray-100 relative">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-gray-50/50 dark:bg-slate-950/50">
+      <div className="max-w-[400px] w-full space-y-6 bg-white dark:bg-[#121824] p-8 rounded-[2rem] shadow-xl shadow-orange-900/5 border border-gray-100 dark:border-slate-800 relative">
         <button
           onClick={() => {
             if (isForgotPassword) {
@@ -633,14 +633,14 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
               onBack();
             }
           }}
-          className="absolute top-6 left-6 text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-50"
+          className="absolute top-6 left-6 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors p-2 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800"
           aria-label="Go back"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
 
         <div className="text-center pt-4">
-          <div className="mx-auto h-16 w-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-6 border border-orange-100">
+          <div className="mx-auto h-16 w-16 bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center mb-6 border border-orange-100 dark:border-orange-900/50">
             {isForgotPassword ? (
               <Lock className="h-7 w-7" />
             ) : mode === 'login' ? (
@@ -649,10 +649,10 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
               <UserPlus className="h-7 w-7" />
             )}
           </div>
-          <h2 className="mt-2 text-[28px] font-bold tracking-tight text-gray-900 font-sans">
+          <h2 className="mt-2 text-[28px] font-bold tracking-tight text-gray-900 dark:text-slate-100 font-sans">
             {isForgotPassword ? 'પાસવર્ડ ભૂલી ગયા છો?' : mode === 'login' ? 'એકાઉન્ટમાં લોગિન કરો' : 'નવું એકાઉન્ટ બનાવો'}
           </h2>
-          <p className="mt-3 text-gray-600 text-[15px]">
+          <p className="mt-3 text-gray-600 dark:text-slate-400 text-[15px]">
             {isForgotPassword
               ? (forgotStep === 1 
                   ? (!forgotOtpSent ? 'તમારો રજીસ્ટર કરેલ મોબાઈલ નંબર દાખલ કરો' : 'મોબાઈલ પર આવેલ ઓટીપી દાખલ કરો') 
@@ -682,11 +682,11 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
             {forgotStep === 1 && (
               <>
                 <div className="space-y-1.5">
-                  <label className="block text-[15px] font-medium text-gray-700">મોબાઈલ નંબર</label>
+                  <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">મોબાઈલ નંબર</label>
                   <div className="flex flex-col gap-2">
                     <div className="relative flex-1 w-full">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-400" />
+                        <Phone className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                       </div>
                       <input
                         type="tel"
@@ -696,7 +696,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                           const eng = convertGujaratiToEnglish(e.target.value);
                           setPhone(eng.replace(/\D/g, '').slice(0, 10));
                         }}
-                        className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
+                        className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
                         placeholder="૧૦ આંકડાનો મોબાઈલ નંબર"
                       />
                     </div>
@@ -717,10 +717,10 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                 {forgotOtpSent && (
                   <>
                     <div className="space-y-1.5">
-                      <label className="block text-[15px] font-medium text-gray-700">ઓટીપી (OTP)</label>
+                      <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">ઓટીપી (OTP)</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                          <Smartphone className="h-5 w-5 text-gray-400" />
+                          <Smartphone className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                         </div>
                         <input
                           type="text"
@@ -729,13 +729,13 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                             const eng = convertGujaratiToEnglish(e.target.value);
                             setForgotOtp(eng.replace(/\D/g, '').slice(0, 6));
                           }}
-                          className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
+                          className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
                           placeholder="૬ આંકડાનો ઓટીપી"
                         />
                       </div>
                       {forgotDemoCode && (
-                        <p className="text-xs text-orange-600 font-medium mt-1">
-                          સેન્ડબોક્સ ડેમો ઓટીપી: <span className="font-bold font-mono tracking-wider bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">{forgotDemoCode}</span>
+                        <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+                          સેન્ડબોક્સ ડેમો ઓટીપી: <span className="font-bold font-mono tracking-wider bg-orange-50 dark:bg-orange-950/50 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">{forgotDemoCode}</span>
                         </p>
                       )}
                     </div>
@@ -766,22 +766,22 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
             {forgotStep === 2 && (
               <>
                 <div className="space-y-1.5">
-                  <label className="block text-[15px] font-medium text-gray-700">નવો પાસવર્ડ</label>
+                  <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">નવો પાસવર્ડ</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
+                      <Lock className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
+                      className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
                       placeholder="નવો પાસવર્ડ (૬ અક્ષર)"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
                     >
                       {showPassword ? (
                         <EyeOff className="h-5 w-5" />
@@ -793,18 +793,18 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[15px] font-medium text-gray-700">
+                  <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                     પાસવર્ડ ફરીથી લખો (કન્ફર્મ પાસવર્ડ)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
+                      <Lock className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
+                      className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
                       placeholder="પાસવર્ડ ફરીથી ટાઇપ કરો"
                     />
                   </div>
@@ -835,12 +835,12 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
               {mode === 'login' ? (
                 <>
                   <div className="space-y-1.5">
-                    <label className="block text-[15px] font-medium text-gray-700">
+                    <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                       મોબાઈલ નંબર
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-400" />
+                        <Phone className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                       </div>
                       <input
                         type="tel"
@@ -849,7 +849,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                           const eng = convertGujaratiToEnglish(e.target.value);
                           setPhone(eng.replace(/\D/g, '').slice(0, 10));
                         }}
-                        className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all"
+                        className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all"
                         placeholder="૧૦ આંકડાનો મોબાઈલ નંબર લખો"
                       />
                     </div>
@@ -857,32 +857,32 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="block text-[15px] font-medium text-gray-700">
+                      <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                         પાસવર્ડ
                       </label>
                       <button
                         type="button"
                         onClick={() => setIsForgotPassword(true)}
-                        className="text-sm font-semibold text-orange-600 hover:text-orange-500"
+                        className="text-sm font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-500"
                       >
                         પાસવર્ડ ભૂલી ગયા છો?
                       </button>
                     </div>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
+                        <Lock className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                       </div>
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all"
+                        className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all"
                         placeholder="તમારો પાસવર્ડ લખો"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
                       >
                         {showPassword ? (
                           <EyeOff className="h-5 w-5" />
@@ -907,13 +907,13 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                 <div className="space-y-5">
                   {/* ૧. મોબાઈલ નંબર */}
                   <div className="space-y-1.5">
-                    <label className="block text-[15px] font-medium text-gray-700">
+                    <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                       મોબાઈલ નંબર
                     </label>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="relative flex-1 w-full">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                          <Phone className="h-5 w-5 text-gray-400" />
+                          <Phone className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                         </div>
                         <input
                           type="tel"
@@ -923,7 +923,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                             const eng = convertGujaratiToEnglish(e.target.value);
                             setPhone(eng.replace(/\D/g, '').slice(0, 10));
                           }}
-                          className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                          className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:text-gray-500 dark:disabled:text-slate-400"
                           placeholder="૧૦ આંકડાનો મોબાઈલ નંબર લખો"
                         />
                       </div>
@@ -940,21 +940,21 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
 
                   {/* ૨. ઓટીપી દાખલ કરો - Only show after OTP is sent */}
                   {regOtpSent && (
-                    <div className="space-y-4 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl">
+                    <div className="space-y-4 p-4 bg-orange-50/50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50 rounded-2xl">
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
-                          <label className="block text-[15px] font-medium text-gray-700">
+                          <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                             Enter OTP (ઓટીપી દાખલ કરો)
                           </label>
                           {regOtpVerified && (
-                            <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                            <span className="text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
                               <Check className="h-4 w-4" /> વેરિફાય થયેલ છે
                             </span>
                           )}
                         </div>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Smartphone className="h-5 w-5 text-gray-400" />
+                            <Smartphone className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                           </div>
                           <input
                             type="text"
@@ -964,7 +964,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                               const eng = convertGujaratiToEnglish(e.target.value);
                               setOtpVal(eng.replace(/\D/g, '').slice(0, 6));
                             }}
-                            className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] tracking-widest text-center font-bold disabled:bg-gray-100 disabled:text-gray-500"
+                            className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] tracking-widest text-center font-bold disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:text-gray-500 dark:disabled:text-slate-400"
                             placeholder="______"
                             maxLength={6}
                           />
@@ -988,27 +988,27 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                   <div className={`space-y-4 transition-all ${!regOtpVerified ? 'opacity-60' : 'opacity-100'}`}>
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center">
-                        <label className="block text-[15px] font-medium text-gray-700">
+                        <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                           પાસવર્ડ
                         </label>
                       </div>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
+                          <Lock className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                         </div>
                         <input
                           type={showPassword ? 'text' : 'password'}
                           disabled={!regOtpVerified}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                          className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-50 dark:disabled:bg-slate-900/60 disabled:cursor-not-allowed"
                           placeholder="ઓછામાં ઓછા ૬ અક્ષર"
                         />
                         <button
                           type="button"
                           disabled={!regOtpVerified}
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                          className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 disabled:opacity-30"
                         >
                           {showPassword ? (
                             <EyeOff className="h-5 w-5" />
@@ -1020,19 +1020,19 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-[15px] font-medium text-gray-700">
+                      <label className="block text-[15px] font-medium text-gray-700 dark:text-slate-300">
                         કન્ફર્મ પાસવર્ડ (પાસવર્ડ ફરીથી લખો)
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
+                          <Lock className="h-5 w-5 text-gray-400 dark:text-slate-500" />
                         </div>
                         <input
                           type={showPassword ? 'text' : 'password'}
                           disabled={!regOtpVerified}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                          className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-50 dark:disabled:bg-slate-900/60 disabled:cursor-not-allowed"
                           placeholder="પાસવર્ડ ફરીથી ટાઇપ કરો"
                         />
                       </div>
@@ -1053,11 +1053,11 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
               )}
             </form>
 <div className="mt-8 text-center">
-              <p className="text-[15px] text-gray-600">
+              <p className="text-[15px] text-gray-600 dark:text-slate-400">
                 {mode === 'login' ? 'નવા ઉમેદવાર છો? ' : 'પહેલેથી એકાઉન્ટ બનાવેલું છે? '}
                 <button
                   onClick={() => onToggleMode(mode === 'login' ? 'register' : 'login')}
-                  className="font-bold text-[#ea580c] hover:text-[#c2410c] transition-colors"
+                  className="font-bold text-[#ea580c] dark:text-orange-400 hover:text-[#c2410c] dark:hover:text-orange-300 transition-colors"
                 >
                   {mode === 'login' ? 'નવું રજીસ્ટ્રેશન કરો' : 'અહીં લોગિન કરો'}
                 </button>

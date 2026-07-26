@@ -1010,6 +1010,147 @@ app.delete('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest,
   }
 });
 
+// ==========================================
+// NEWS TICKER ROUTES (CACHED VIA SETTINGS TABLE)
+// ==========================================
+
+async function saveSetting(key: string, value: string): Promise<void> {
+  const upperKey = key.toUpperCase();
+  const existing = await queryWithRetry(() => db.select().from(settings).where(sql`upper(${settings.key}) = upper(${upperKey})`));
+  if (existing.length > 0) {
+    await queryWithRetry(() => db.update(settings).set({ value }).where(sql`upper(${settings.key}) = upper(${upperKey})`));
+  } else {
+    await queryWithRetry(() => db.insert(settings).values({ key: upperKey, value }));
+  }
+}
+
+async function getNewsTickersFromDb(): Promise<any[]> {
+  const raw = await getSetting('NEWS_TICKERS');
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+async function saveNewsTickersToDb(tickersArr: any[]): Promise<void> {
+  await saveSetting('NEWS_TICKERS', JSON.stringify(tickersArr));
+}
+
+// Public GET News Tickers (Cached)
+app.get('/api/news-tickers', async (req, res) => {
+  try {
+    const cachedTickers = cache.get('news_tickers');
+    if (cachedTickers) {
+      return res.json(cachedTickers);
+    }
+
+    const allTickers = await getNewsTickersFromDb();
+    const active = allTickers
+      .filter((item: any) => item.isActive !== false)
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    cache.set('news_tickers', active);
+    res.json(active);
+  } catch (error: any) {
+    console.error('Error fetching news tickers:', error);
+    res.json([]);
+  }
+});
+
+// Admin GET All News Tickers
+app.get('/api/admin/news-tickers', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const allTickers = await getNewsTickersFromDb();
+    const sorted = allTickers.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    res.json(sorted);
+  } catch (error: any) {
+    console.error('Error fetching admin news tickers:', error);
+    res.status(500).json({ error: 'News tickers ની માહિતી મેળવવામાં નિષ્ફળ.' });
+  }
+});
+
+// Admin Create News Ticker
+app.post('/api/admin/news-tickers', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { title, link, isActive, sortOrder } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'હેડલાઇન (Title) આપવું ફરજિયાત છે.' });
+    }
+
+    const allTickers = await getNewsTickersFromDb();
+    const newTicker = {
+      id: Date.now(),
+      title: title.trim(),
+      link: link && link.trim() ? link.trim() : null,
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+      sortOrder: sortOrder ? Number(sortOrder) : 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    allTickers.push(newTicker);
+    await saveNewsTickersToDb(allTickers);
+
+    cache.del('news_tickers');
+    res.json({ message: 'નવી ન્યૂઝ હેડલાઇન ઉમેરાઈ ગઈ!', ticker: newTicker });
+  } catch (error: any) {
+    console.error('Error creating news ticker:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Admin Update News Ticker
+app.put('/api/admin/news-tickers/:id', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { title, link, isActive, sortOrder } = req.body;
+
+    const allTickers = await getNewsTickersFromDb();
+    const idx = allTickers.findIndex((t: any) => String(t.id) === String(id));
+    if (idx === -1) {
+      return res.status(404).json({ error: 'ન્યૂઝ આઇટમ મળી નથી.' });
+    }
+
+    if (title !== undefined) allTickers[idx].title = title.trim();
+    if (link !== undefined) allTickers[idx].link = link && link.trim() ? link.trim() : null;
+    if (isActive !== undefined) allTickers[idx].isActive = Boolean(isActive);
+    if (sortOrder !== undefined) allTickers[idx].sortOrder = Number(sortOrder);
+
+    await saveNewsTickersToDb(allTickers);
+
+    cache.del('news_tickers');
+    res.json({ message: 'ન્યૂઝ હેડલાઇન અપડેટ થઈ ગઈ!', ticker: allTickers[idx] });
+  } catch (error: any) {
+    console.error('Error updating news ticker:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Admin Delete News Ticker
+app.delete('/api/admin/news-tickers/:id', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    let allTickers = await getNewsTickersFromDb();
+    const initialLen = allTickers.length;
+    allTickers = allTickers.filter((t: any) => String(t.id) !== String(id));
+
+    if (allTickers.length === initialLen) {
+      return res.status(404).json({ error: 'ન્યૂઝ આઇટમ મળી નથી.' });
+    }
+
+    await saveNewsTickersToDb(allTickers);
+
+    cache.del('news_tickers');
+    res.json({ message: 'ન્યૂઝ હેડલાઇન સફળતાપૂર્વક ડિલીટ થઈ ગઈ!' });
+  } catch (error: any) {
+    console.error('Error deleting news ticker:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Exams Endpoints
 app.get('/api/exams', async (req, res) => {
   const cachedData = cache.get('exams');
@@ -1287,6 +1428,7 @@ app.put('/api/admin/exams/:id', requireAuth, requireAdmin, async (req: AuthReque
       return res.status(404).json({ error: 'પરીક્ષા મળી નથી.' });
     }
 
+    cache.del('exams');
     res.json({ message: 'પરીક્ષા સફળતાપૂર્વક અપડેટ કરવામાં આવી!', exam: updatedExamArr[0] });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -1317,11 +1459,17 @@ app.delete('/api/admin/exams/:id', requireAuth, requireAdmin, async (req: AuthRe
       return res.status(404).json({ error: 'પરીક્ષા મળી નથી.' });
     }
 
+    cache.del('exams');
     res.json({ message: 'પરીક્ષા સફળતાપૂર્વક ડિલીટ કરવામાં આવી!' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 });
+
+function checkAnswerKeyUploaded(val: any): boolean {
+  if (val === true || val === 1 || val === '1' || val === 'true' || val === 't' || val === 'T') return true;
+  return false;
+}
 
 // Admin Toggle Answer Key Status
 app.put('/api/admin/exams/:id/toggle-key', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
@@ -1329,14 +1477,22 @@ app.put('/api/admin/exams/:id/toggle-key', requireAuth, requireAdmin, async (req
     const { id } = req.params;
     const { answerKeyUploaded } = req.body;
     
+    const targetStatus = Boolean(answerKeyUploaded);
+
     const updatedArr = await db.update(exams)
-      .set({ answerKeyUploaded })
+      .set({ answerKeyUploaded: targetStatus })
       .where(eq(exams.id, Number(id)))
       .returning();
       
     if (updatedArr.length === 0) {
       return res.status(404).json({ error: 'પરીક્ષા મળી નથી.' });
     }
+
+    cache.del('exams');
+    cache.del('leaderboard');
+
+    // Recalculate leaderboard asynchronously when key status toggles
+    recalculateLeaderboard().catch(console.error);
 
     res.json({ message: 'આન્સર કી સ્ટેટસ સફળતાપૂર્વક અપડેટ થયું!', exam: updatedArr[0] });
   } catch (error: any) {
@@ -1838,7 +1994,7 @@ app.get('/api/generate-pdf', async (req, res) => {
 
       const qList = typeof exam.questions === 'string' ? JSON.parse(exam.questions) : exam.questions || [];
       const preciseScore = calculatePreciseScore(qList, ansObj);
-      const isAnswerKeyAvailable = exam.type !== 'bharti' || exam.answerKeyUploaded === true;
+      const isAnswerKeyAvailable = exam.type !== 'bharti' || checkAnswerKeyUploaded(exam.answerKeyUploaded);
 
       let correctCount = 0;
       let incorrectCount = 0;
@@ -1898,7 +2054,8 @@ app.get('/api/generate-pdf', async (req, res) => {
         } catch (e) {}
         
         const preciseScore = calculatePreciseScore(r.questions, r.answers);
-        const isAnswerKeyAvailable = r.examType !== 'bharti' || r.answerKeyUploaded === true;
+        const keyUploaded = checkAnswerKeyUploaded(r.answerKeyUploaded) || checkAnswerKeyUploaded(r.answer_key_uploaded) || checkAnswerKeyUploaded(r.answerkeyuploaded);
+        const isAnswerKeyAvailable = r.examType !== 'bharti' || keyUploaded;
 
         return {
           id: r.id,
@@ -1908,7 +2065,7 @@ app.get('/api/generate-pdf', async (req, res) => {
           examName: r.examName,
           totalMarks: r.totalMarks,
           timeTaken: tTaken,
-          answerKeyUploaded: r.answerKeyUploaded
+          answerKeyUploaded: keyUploaded
         };
       });
 
@@ -2303,7 +2460,8 @@ app.get('/api/user/exams/:userId', requireAuth, async (req: AuthRequest, res) =>
       } catch (e) {}
       
       const preciseScore = calculatePreciseScore(r.questions, r.answers);
-      const isAnswerKeyAvailable = r.examType !== 'bharti' || r.answerKeyUploaded === true;
+      const keyUploaded = checkAnswerKeyUploaded(r.answerKeyUploaded) || checkAnswerKeyUploaded(r.answer_key_uploaded) || checkAnswerKeyUploaded(r.answerkeyuploaded);
+      const isAnswerKeyAvailable = r.examType !== 'bharti' || keyUploaded;
 
       let correctCount = 0;
       let incorrectCount = 0;
@@ -2344,7 +2502,7 @@ app.get('/api/user/exams/:userId', requireAuth, async (req: AuthRequest, res) =>
         incorrectCount,
         leftCount,
         eCount,
-        answerKeyUploaded: r.answerKeyUploaded,
+        answerKeyUploaded: keyUploaded,
         questions: qList,
         answers: ansObj
       };
@@ -2367,7 +2525,7 @@ async function recalculateLeaderboard() {
     `);
 
     const parsedEntries = results.rows
-      .filter((r: any) => r.examType !== 'bharti' || r.answerKeyUploaded === true)
+      .filter((r: any) => r.examType !== 'bharti' || checkAnswerKeyUploaded(r.answerKeyUploaded) || checkAnswerKeyUploaded(r.answer_key_uploaded) || checkAnswerKeyUploaded(r.answerkeyuploaded))
       .map((r: any) => {
         const preciseScore = calculatePreciseScore(r.questions, r.answers);
         return {
@@ -2380,9 +2538,9 @@ async function recalculateLeaderboard() {
         };
       });
 
-    // 1. Mock Merit list
+    // 1. Mock Merit list (only positive marks score > 0)
     const mockList = parsedEntries
-      .filter((entry: any) => entry.examType === 'mock')
+      .filter((entry: any) => entry.examType === 'mock' && entry.score > 0)
       .sort((a: any, b: any) => b.score - a.score)
       .map((entry: any, idx: number) => ({
         rank: idx + 1,
@@ -2392,9 +2550,9 @@ async function recalculateLeaderboard() {
         score: Number(entry.score.toFixed(2))
       }));
 
-    // 2. Bharti Merit list
+    // 2. Bharti Merit list (only positive marks score > 0)
     const bhartiList = parsedEntries
-      .filter((entry: any) => entry.examType === 'bharti')
+      .filter((entry: any) => entry.examType === 'bharti' && entry.score > 0)
       .sort((a: any, b: any) => b.score - a.score)
       .map((entry: any, idx: number) => {
         const rank = idx + 1;
@@ -2415,22 +2573,24 @@ async function recalculateLeaderboard() {
         };
       });
 
-    // 3. Combined Merit list
+    // 3. Combined Merit list (only positive marks score > 0)
     const userMap = new Map<string, { name: string, category: string, examsTaken: number, totalScore: number }>();
-    parsedEntries.forEach((entry: any) => {
-      const existing = userMap.get(entry.userName);
-      if (existing) {
-        existing.examsTaken += 1;
-        existing.totalScore += entry.score;
-      } else {
-        userMap.set(entry.userName, {
-          name: entry.userName,
-          category: entry.userCategory,
-          examsTaken: 1,
-          totalScore: entry.score
-        });
-      }
-    });
+    parsedEntries
+      .filter((entry: any) => entry.score > 0)
+      .forEach((entry: any) => {
+        const existing = userMap.get(entry.userName);
+        if (existing) {
+          existing.examsTaken += 1;
+          existing.totalScore += entry.score;
+        } else {
+          userMap.set(entry.userName, {
+            name: entry.userName,
+            category: entry.userCategory,
+            examsTaken: 1,
+            totalScore: entry.score
+          });
+        }
+      });
 
     const combinedList = Array.from(userMap.values())
       .map((u: any) => ({
@@ -2439,6 +2599,7 @@ async function recalculateLeaderboard() {
         examsTaken: u.examsTaken,
         score: Number(u.totalScore.toFixed(2))
       }))
+      .filter((u: any) => u.score > 0)
       .sort((a: any, b: any) => b.score - a.score)
       .map((entry: any, idx: number) => ({
         rank: idx + 1,

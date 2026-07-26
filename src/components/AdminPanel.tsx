@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, Database, DollarSign } from 'lucide-react';
-import { User, BlogPost, Exam, Question, PushNotification, ExamCalendarEvent } from '../types';
+import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, Database, DollarSign, Megaphone, ExternalLink, Flame } from 'lucide-react';
+import { User, BlogPost, Exam, Question, PushNotification, ExamCalendarEvent, NewsTickerItem } from '../types';
 import ClassicEditor from './ClassicEditor';
 import { safeFormatDate } from '../utils/date';
 import { getProxiedImageUrl } from '../utils/image';
+import { clearCache } from '../utils/cache';
 
 export const MOCK_TEST_SUBJECTS = [
   'સામાન્ય જ્ઞાન',
@@ -18,7 +19,7 @@ export const MOCK_TEST_SUBJECTS = [
 
 export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'cms' | 'add-exam' | 'notifications' | 'calendar' | 'monetization' | 'db-utility' | 'otp-integration' | 'payment-integration' | 'seo-settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'cms' | 'add-exam' | 'notifications' | 'calendar' | 'news-ticker' | 'monetization' | 'db-utility' | 'otp-integration' | 'payment-integration' | 'seo-settings'>('users');
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
   const [smsGatewayType, setSmsGatewayType] = useState('disabled');
@@ -296,6 +297,22 @@ export default function AdminPanel() {
   const [subCount, setSubCount] = useState(0);
   const [notifSending, setNotifSending] = useState(false);
 
+  // News Ticker States
+  const [newsTickers, setNewsTickers] = useState<NewsTickerItem[]>([]);
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsLink, setNewsLink] = useState('');
+  const [newsIsActive, setNewsIsActive] = useState(true);
+  const [newsSortOrder, setNewsSortOrder] = useState('0');
+  const [newsTickerSuccess, setNewsTickerSuccess] = useState('');
+  const [newsTickerError, setNewsTickerError] = useState('');
+  const [newsTickerLoading, setNewsTickerLoading] = useState(false);
+
+  const [editingNewsTickerId, setEditingNewsTickerId] = useState<string | number | null>(null);
+  const [editNewsTitle, setEditNewsTitle] = useState('');
+  const [editNewsLink, setEditNewsLink] = useState('');
+  const [editNewsIsActive, setEditNewsIsActive] = useState(true);
+  const [editNewsSortOrder, setEditNewsSortOrder] = useState('0');
+
   useEffect(() => {
     fetchUsers();
     fetchPosts();
@@ -304,7 +321,163 @@ export default function AdminPanel() {
     fetchSubCount();
     fetchCalendarEvents();
     fetchSettings();
+    fetchNewsTickers();
   }, []);
+
+  const fetchNewsTickers = async () => {
+    try {
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      const res = await fetch('/api/admin/news-tickers', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNewsTickers(data);
+      }
+    } catch (err) {
+      console.error('Error fetching admin news tickers:', err);
+    }
+  };
+
+  const handleAddNewsTicker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsTitle.trim()) {
+      setNewsTickerError('કૃપા કરીને ન્યૂઝ હેડલાઇન લખો.');
+      return;
+    }
+    setNewsTickerLoading(true);
+    setNewsTickerError('');
+    setNewsTickerSuccess('');
+    try {
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      const res = await fetch('/api/admin/news-tickers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newsTitle.trim(),
+          link: newsLink.trim() || null,
+          isActive: newsIsActive,
+          sortOrder: parseInt(newsSortOrder) || 0
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewsTickerSuccess('નવી હેડલાઇન સફળતાપૂર્વક ઉમેરાઈ ગઈ!');
+        setNewsTitle('');
+        setNewsLink('');
+        setNewsIsActive(true);
+        setNewsSortOrder('0');
+        fetchNewsTickers();
+      } else {
+        setNewsTickerError(data.error || 'ઉમેરવામાં નિષ્ફળતા મળી.');
+      }
+    } catch (err: any) {
+      setNewsTickerError(err.message || 'નેટવર્ક ભૂલ.');
+    } finally {
+      setNewsTickerLoading(false);
+    }
+  };
+
+  const handleToggleNewsTickerActive = async (id: string | number, currentActive: boolean) => {
+    try {
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      
+      setNewsTickers(prev => prev.map(item => String(item.id) === String(id) ? { ...item, isActive: !currentActive } : item));
+
+      const res = await fetch(`/api/admin/news-tickers/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: !currentActive })
+      });
+      fetchNewsTickers();
+    } catch (err) {
+      fetchNewsTickers();
+    }
+  };
+
+  const handleStartEditNewsTicker = (item: NewsTickerItem) => {
+    setEditingNewsTickerId(item.id);
+    setEditNewsTitle(item.title);
+    setEditNewsLink(item.link || '');
+    setEditNewsIsActive(item.isActive);
+    setEditNewsSortOrder(String(item.sortOrder || 0));
+  };
+
+  const handleSaveEditNewsTicker = async (id: string | number) => {
+    if (!editNewsTitle.trim()) {
+      alert('કૃપા કરીને હેડલાઇન ખાલી ના રાખો.');
+      return;
+    }
+    try {
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      const res = await fetch(`/api/admin/news-tickers/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editNewsTitle.trim(),
+          link: editNewsLink.trim() || null,
+          isActive: editNewsIsActive,
+          sortOrder: parseInt(editNewsSortOrder) || 0
+        })
+      });
+      if (res.ok) {
+        setEditingNewsTickerId(null);
+        setNewsTickerSuccess('ન્યૂઝ હેડલાઇન સફળતાપૂર્વક સુધારાઈ!');
+        fetchNewsTickers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'અપડેટ કરવામાં ભૂલ આવી.');
+      }
+    } catch (err: any) {
+      alert('નેટવર્ક એરર.');
+    }
+  };
+
+  const handleDeleteNewsTicker = (id: string | number) => {
+    setConfirmModal({
+      title: 'ન્યૂઝ હેડલાઇન ડિલીટ કરો',
+      message: 'શું તમે ખરેખર આ ન્યૂઝ હેડલાઇન ડિલીટ કરવા માંગો છો?',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          const stored = localStorage.getItem('exam_user');
+          const token = stored ? JSON.parse(stored).token : '';
+          
+          setNewsTickers(prev => prev.filter(item => String(item.id) !== String(id)));
+
+          const res = await fetch(`/api/admin/news-tickers/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (res.ok) {
+            setNewsTickerSuccess('ન્યૂઝ હેડલાઇન સફળતાપૂર્વક ડિલીટ થઈ ગઈ!');
+          } else {
+            const data = await res.json().catch(() => ({}));
+            setNewsTickerError(data.error || 'ડિલીટ કરવામાં નિષ્ફળતા મળી.');
+          }
+          fetchNewsTickers();
+        } catch (err: any) {
+          setNewsTickerError(err.message || 'ડિલીટ કરતી વખતે નેટવર્ક એરર આવી.');
+          fetchNewsTickers();
+        }
+      }
+    });
+  };
+
 
   useEffect(() => {
     if (activeTab === 'db-utility') {
@@ -940,7 +1113,10 @@ export default function AdminPanel() {
     });
   };
 
-  const handleToggleAnswerKey = async (examId: string, currentStatus: boolean) => {
+  const handleToggleAnswerKey = async (examId: string | number, currentStatus: boolean) => {
+    const nextStatus = !Boolean(currentStatus);
+    // Optimistic UI update
+    setExams(prev => prev.map(e => String(e.id) === String(examId) ? { ...e, answerKeyUploaded: nextStatus } : e));
     try {
       const res = await fetch(`/api/admin/exams/${examId}/toggle-key`, {
         method: 'PUT',
@@ -948,9 +1124,14 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}`
         },
-        body: JSON.stringify({ answerKeyUploaded: !currentStatus })
+        body: JSON.stringify({ answerKeyUploaded: nextStatus })
       });
-      if (!res.ok) throw new Error('આન્સર કી સ્ટેટસ બદલવામાં ખામી.');
+      if (!res.ok) {
+        // Revert on failure
+        setExams(prev => prev.map(e => String(e.id) === String(examId) ? { ...e, answerKeyUploaded: Boolean(currentStatus) } : e));
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'આન્સર કી સ્ટેટસ બદલવામાં ખામી.');
+      }
       fetchExams();
     } catch (err: any) {
       alert(err.message);
@@ -1043,6 +1224,7 @@ export default function AdminPanel() {
       }
 
       setCalendarSuccess(editingEventId ? 'ઇવેન્ટ સફળતાપૂર્વક અપડેટ થઈ!' : 'નવી ઇવેન્ટ સફળતાપૂર્વક ઉમેરવામાં આવી!');
+      clearCache('/api/calendar');
       setCalendarForm({
         examName: '',
         department: 'GPSSB',
@@ -1095,6 +1277,7 @@ export default function AdminPanel() {
             throw new Error(errorData.error || 'ઇવેન્ટ ડિલીટ કરવામાં નિષ્ફળતા.');
           }
           showToast('કૅલેન્ડર ઇવેન્ટ સફળતાપૂર્વક કાઢી નાખવામાં આવી!', 'success');
+          clearCache('/api/calendar');
           fetchCalendarEvents();
           if (editingEventId === id) {
             setEditingEventId(null);
@@ -1136,7 +1319,7 @@ export default function AdminPanel() {
 ]`;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 w-full p-0" style={{ padding: '0px', width: '100%' }}>
       {/* Page Title */}
       <div className="border-b border-gray-150 pb-5">
         <h2 className="text-3xl font-bold text-gray-900 font-sans tracking-tight">એડમિન પેનલ</h2>
@@ -1197,6 +1380,19 @@ export default function AdminPanel() {
           }`}
         >
           <Calendar className="h-4 w-4" /> પરીક્ષા કૅલેન્ડર (Calendar)
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('news-ticker');
+            setNewsTickerSuccess('');
+            setNewsTickerError('');
+            fetchNewsTickers();
+          }}
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
+            activeTab === 'news-ticker' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
+          }`}
+        >
+          <Megaphone className="h-4 w-4 text-amber-500" /> News Ticker (ન્યૂઝ ટિકર)
         </button>
         <button
           onClick={() => {
@@ -1268,7 +1464,7 @@ export default function AdminPanel() {
             {editingUser ? (
               /* Inline User Editor Modal Overlay */
               <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+                <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border-0 md:border border-gray-100 space-y-4">
                   <h4 className="text-lg font-bold text-gray-900 font-sans border-b pb-2">યુઝર માહિતી સુધારો</h4>
                   <form onSubmit={handleUpdateUserSubmit} className="space-y-4">
                     <div>
@@ -1553,7 +1749,7 @@ export default function AdminPanel() {
             {isEditingPost ? (
               <form onSubmit={handlePostSubmit} className="space-y-6">
                 {/* WordPress Header Top Bar */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border-0 md:border border-gray-200 shadow-sm">
                   <div className="flex items-center gap-2">
                     <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg text-lg">✍</span>
                     <div>
@@ -1582,7 +1778,7 @@ export default function AdminPanel() {
 
                 <div className="max-w-5xl mx-auto space-y-6">
                   {/* Title Block & Editor */}
-                  <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
+                  <div className="bg-white p-6 rounded-2xl border-0 md:border border-gray-200 shadow-sm space-y-5">
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">પોસ્ટનું શીર્ષક (Title)</label>
                       <input
@@ -1646,7 +1842,7 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Publish / Status Settings Box */}
-                    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3.5">
+                    <div className="bg-white p-5 rounded-2xl border-0 md:border border-gray-200 shadow-sm space-y-3.5">
                       <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide border-b border-gray-100 pb-2 flex items-center gap-1.5">
                         ⚡ પ્રકાશન સેટિંગ્સ (Publish Settings)
                       </h4>
@@ -1753,7 +1949,7 @@ export default function AdminPanel() {
                     </div>
 
                     {/* SEO Meta Box */}
-                    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-3 md:col-span-2">
+                    <div className="bg-white p-5 rounded-2xl border-0 md:border border-gray-200 shadow-sm space-y-3 md:col-span-2">
                       <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide border-b border-gray-100 pb-2 flex items-center gap-1.5">
                         🌐 SEO મેટા ટેગ્સ (Meta Tags)
                       </h4>
@@ -1810,7 +2006,7 @@ export default function AdminPanel() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {posts.map((p) => (
-                  <div key={p.id} className="bg-white border border-gray-150 p-4 rounded-2xl flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <div key={p.id} className="bg-white border border-black p-4 rounded-2xl flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
                       <div className="flex justify-between items-start mb-2.5">
                         <div className="flex flex-wrap gap-1.5 items-center">
@@ -1862,7 +2058,7 @@ export default function AdminPanel() {
                     </div>
                     
                     {/* Views & Date Footer */}
-                    <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                    <div className="mt-3 pt-2.5 border-t border-black flex items-center justify-between text-[10px] text-gray-400 font-mono">
                       <span>તારીખ: {safeFormatDate(p.createdAt || p.date)}</span>
                       <span className="font-black text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full">👁 {p.views || 0} વ્યુઝ</span>
                     </div>
@@ -1909,7 +2105,7 @@ export default function AdminPanel() {
                   </div>
 
                   {/* Right side - Editor */}
-                  <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                  <div className="lg:col-span-3 bg-white p-6 rounded-2xl border-0 md:border border-gray-200 shadow-sm space-y-4">
                     <form onSubmit={handleSaveStaticPage} className="space-y-4">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                         <h4 className="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
@@ -2136,7 +2332,7 @@ export default function AdminPanel() {
 
               {/* Right Column: JSON Sample and Template Guide */}
               <div className="space-y-6">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+                <div className="bg-slate-50 border-0 md:border border-slate-200 rounded-2xl p-5 space-y-3">
                   <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1">
                     <Info className="h-4 w-4 text-blue-600" /> પ્રશ્ન પત્ર JSON નમૂનો
                   </h4>
@@ -2153,7 +2349,7 @@ export default function AdminPanel() {
               </div>
 
               {/* CURRENT BHARTI ANSWER KEYS STATUS MANAGER FOR SIMULATION */}
-              <div className="lg:col-span-3 border border-gray-150 rounded-3xl p-6 bg-slate-50/40 space-y-4">
+              <div className="lg:col-span-3 border-0 md:border border-gray-150 rounded-3xl p-6 bg-slate-50/40 space-y-4">
                 <h4 className="font-extrabold text-sm text-slate-800 tracking-wider uppercase">આન્સર કી અપલોડર સિમ્યુલેશન</h4>
                 <p className="text-xs text-slate-500 leading-normal">
                   સબમિટ કરેલી સરકારી ભરતી પરીક્ષાઓ માટે નીચેથી ઓફિશિયલ આન્સર કી જાહેર કરો / પાછી ખેંચો જેથી માર્ક્સ અનલોક કરી શકાય:
@@ -2163,19 +2359,29 @@ export default function AdminPanel() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
                     {exams.filter(e => e.type === 'bharti').map(e => (
-                      <div key={e.id} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-150 shadow-sm hover:shadow-md transition-all">
-                        <span className="font-bold text-slate-700 text-xs md:text-sm truncate mr-2" title={e.name}>{e.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleAnswerKey(e.id, e.answerKeyUploaded)}
-                          className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 cursor-pointer transition-all text-[11px] shrink-0 ${
-                            e.answerKeyUploaded 
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100' 
-                              : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
-                          }`}
-                        >
-                          {e.answerKeyUploaded ? 'ઉપલબ્ધ (કી જાહેર)' : 'બાકી (અનલોક કરો)'}
-                        </button>
+                      <div key={e.id} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all gap-3">
+                        <span className="font-bold text-slate-700 text-xs md:text-sm truncate" title={e.name}>{e.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-xs font-bold ${e.answerKeyUploaded ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            {e.answerKeyUploaded ? 'જાહેર' : 'બાકી'}
+                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={e.answerKeyUploaded}
+                            onClick={() => handleToggleAnswerKey(e.id, e.answerKeyUploaded)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              e.answerKeyUploaded ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                            title={e.answerKeyUploaded ? 'સ્થિતિ: જાહેર (ક્લિક કરી બાકી કરો)' : 'સ્થિતિ: બાકી (ક્લિક કરી જાહેર કરો)'}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                e.answerKeyUploaded ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2184,11 +2390,11 @@ export default function AdminPanel() {
             </form>
 
             {/* Published Exams Manager Section */}
-            <div className="mt-12 bg-white rounded-3xl border border-gray-150 p-6 md:p-8 space-y-6">
+            <div className="mt-12 bg-white rounded-3xl border-0 md:border border-gray-150 p-6 md:p-8 space-y-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-4">
                 <div>
                   <h4 className="text-lg font-bold text-gray-900 font-sans flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600" /> પ્રકાશિત થયેલી પરીક્ષાઓનું સંચાન
+                    <FileText className="h-5 w-5 text-blue-600" /> પ્રકાશિત થયેલી પરીક્ષાઓ
                   </h4>
                   <p className="text-xs text-gray-500 mt-1">અહીંથી તમે કોઈપણ ચાલુ અથવા પૂરી થયેલી પરીક્ષાને એડિટ અથવા સંપૂર્ણપણે ડિલીટ કરી શકો છો.</p>
                 </div>
@@ -2204,7 +2410,7 @@ export default function AdminPanel() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {exams.map((exam) => (
-                    <div key={exam.id} className="border border-gray-150 hover:border-gray-200 rounded-2xl p-5 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all flex flex-col justify-between">
+                    <div key={exam.id} className="border border-gray-300 hover:border-gray-400 rounded-2xl p-5 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start gap-2 mb-3">
                           <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg border uppercase ${
@@ -2327,7 +2533,7 @@ export default function AdminPanel() {
 
             <div className="max-w-4xl mx-auto space-y-8">
               {/* Create Notification Form */}
-              <form onSubmit={handleNotifSubmit} className="space-y-5 bg-slate-50/50 p-6 rounded-2xl border border-gray-150">
+              <form onSubmit={handleNotifSubmit} className="space-y-5 bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider">નવું નોટિફિકેશન મોકલો</h4>
                 
                 <div className="space-y-1">
@@ -2407,7 +2613,7 @@ export default function AdminPanel() {
                     </div>
                   ) : (
                     notifList.map((notif) => (
-                      <div key={notif.id} className="bg-white border border-gray-150 rounded-2xl p-4 flex gap-3 shadow-sm hover:shadow transition-all relative group">
+                      <div key={notif.id} className="bg-white border-0 md:border border-gray-150 rounded-2xl p-4 flex gap-3 shadow-sm hover:shadow transition-all relative group">
                         <div className="p-2.5 bg-slate-50 rounded-xl border border-gray-100 self-start text-lg">
                           {notif.type === 'job' ? '💼' : notif.type === 'exam' ? '📝' : notif.type === 'alert' ? '⚠️' : 'ℹ️'}
                         </div>
@@ -2473,7 +2679,7 @@ export default function AdminPanel() {
 
             <div className="space-y-8">
               {/* Create/Edit Event Form */}
-              <form onSubmit={handleCalendarSubmit} className="space-y-5 bg-slate-50/50 p-6 rounded-2xl border border-gray-150">
+              <form onSubmit={handleCalendarSubmit} className="space-y-5 bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   {editingEventId ? '✏️ ઇવેન્ટ સુધારો' : '➕ નવી ઇવેન્ટ ઉમેરો'}
                 </h4>
@@ -2626,7 +2832,7 @@ export default function AdminPanel() {
                     </div>
                   ) : (
                     calendarEvents.map((evt) => (
-                      <div key={evt.id} className="bg-white border border-gray-150 rounded-2xl p-4.5 flex flex-col justify-between shadow-sm hover:shadow transition-all relative group">
+                      <div key={evt.id} className="bg-white border-0 md:border border-gray-150 rounded-2xl p-4.5 flex flex-col justify-between shadow-sm hover:shadow transition-all relative group">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -2707,6 +2913,259 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* TAB: NEWS TICKER MANAGEMENT */}
+        {activeTab === 'news-ticker' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-gray-150 pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 font-sans flex items-center gap-2">
+                  <Megaphone className="h-6 w-6 text-amber-500" /> News Ticker (ન્યૂઝ ટિકર હેડલાઇન્સ)
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  હેડરની નીચે ચાલતા News Ticker માં નવી હેડલાઇન્સ ઉમેરો, સુધારો અથવા ડિલીટ કરો.
+                </p>
+              </div>
+              <div className="bg-amber-50 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-amber-200">
+                ⚡ Cache-Optimized (ડેટાબેઝ ક્વેરી ઓછી થશે)
+              </div>
+            </div>
+
+            {newsTickerSuccess && (
+              <div className="p-4 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-sm border border-emerald-200 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{newsTickerSuccess}</span>
+              </div>
+            )}
+
+            {newsTickerError && (
+              <div className="p-4 bg-rose-50 text-rose-800 rounded-xl font-bold text-sm border border-rose-200 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{newsTickerError}</span>
+              </div>
+            )}
+
+            {/* ADD NEW HEADLINE FORM */}
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+              <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <PlusCircle className="w-4 h-4 text-amber-600" /> નવી ન્યૂઝ હેડલાઇન ઉમેરો
+              </h4>
+
+              <form onSubmit={handleAddNewsTicker} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* Title */}
+                  <div className="md:col-span-6">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      હેડલાઇન / શીર્ષક <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newsTitle}
+                      onChange={(e) => setNewsTitle(e.target.value)}
+                      placeholder="દા.ત. GPSC વર્ગ-૧ અને ૨ નું પરિણામ જાહેર..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-sans"
+                      required
+                    />
+                  </div>
+
+                  {/* Clickable Link */}
+                  <div className="md:col-span-4">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      ક્લિકેબલ લિંક URL (ઓપ્શનલ)
+                    </label>
+                    <input
+                      type="text"
+                      value={newsLink}
+                      onChange={(e) => setNewsLink(e.target.value)}
+                      placeholder="https://... અથવા /post/your-slug"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-sans"
+                    />
+                  </div>
+
+                  {/* Sort Order */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      ક્રમ (Order)
+                    </label>
+                    <input
+                      type="number"
+                      value={newsSortOrder}
+                      onChange={(e) => setNewsSortOrder(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-sans"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 select-none">
+                    <input
+                      type="checkbox"
+                      checked={newsIsActive}
+                      onChange={(e) => setNewsIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                    />
+                    <span>તુરંત સક્રિય (Active) રાખો</span>
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={newsTickerLoading}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>{newsTickerLoading ? 'ઉમેરાઈ રહ્યું છે...' : 'હેડલાઇન ઉમેરો'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* LIST OF EXISTING NEWS TICKERS */}
+            <div className="space-y-4">
+              <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-slate-600" /> તમામ ન્યૂઝ હેડલાઇન્સ ({newsTickers.length})
+              </h4>
+
+              {newsTickers.length === 0 ? (
+                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-slate-500 text-sm font-sans">
+                  હજુ સુધી કોઈ ન્યૂઝ હેડલાઇન ઉમેરાયેલ નથી.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
+                  <table className="w-full text-left text-sm text-gray-700 font-sans">
+                    <thead className="bg-slate-100 text-slate-800 font-black uppercase text-xs border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3">ક્રમ</th>
+                        <th className="px-4 py-3">હેડલાઇન / શીર્ષક</th>
+                        <th className="px-4 py-3">લિંક URL</th>
+                        <th className="px-4 py-3 text-center">સ્થિતિ</th>
+                        <th className="px-4 py-3 text-right">ક્રિયા (Action)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {newsTickers.map((item) => {
+                        const isEditing = editingNewsTickerId === item.id;
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                            {isEditing ? (
+                              <>
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="number"
+                                    value={editNewsSortOrder}
+                                    onChange={(e) => setEditNewsSortOrder(e.target.value)}
+                                    className="w-16 px-2 py-1 border rounded text-xs"
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="text"
+                                    value={editNewsTitle}
+                                    onChange={(e) => setEditNewsTitle(e.target.value)}
+                                    className="w-full px-2 py-1 border rounded text-xs font-sans"
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="text"
+                                    value={editNewsLink}
+                                    onChange={(e) => setEditNewsLink(e.target.value)}
+                                    className="w-full px-2 py-1 border rounded text-xs font-sans"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <label className="inline-flex items-center cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={editNewsIsActive}
+                                      onChange={(e) => setEditNewsIsActive(e.target.checked)}
+                                      className="w-4 h-4 rounded text-amber-600"
+                                    />
+                                  </label>
+                                </td>
+                                <td className="px-4 py-3 text-right space-x-2">
+                                  <button
+                                    onClick={() => handleSaveEditNewsTicker(item.id)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    સેવ
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingNewsTickerId(null)}
+                                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    કેન્સલ
+                                  </button>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-4 py-3 font-bold text-slate-500 text-xs">
+                                  #{item.sortOrder || 0}
+                                </td>
+                                <td className="px-4 py-3 font-extrabold text-slate-900 font-sans">
+                                  {item.title}
+                                </td>
+                                <td className="px-4 py-3 text-xs text-blue-600 font-mono max-w-xs truncate">
+                                  {item.link ? (
+                                    <span className="flex items-center gap-1">
+                                      <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
+                                      <span>{item.link}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400 font-sans italic">— કોઈ લિંક નથી —</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    onClick={() => handleToggleNewsTickerActive(item.id, item.isActive)}
+                                    className={`px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 mx-auto ${
+                                      item.isActive
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}
+                                  >
+                                    {item.isActive ? (
+                                      <>
+                                        <ToggleRight className="w-3.5 h-3.5 text-emerald-600" /> સક્રિય
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ToggleLeft className="w-3.5 h-3.5 text-rose-600" /> નિષ્ક્રિય
+                                      </>
+                                    )}
+                                  </button>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => handleStartEditNewsTicker(item)}
+                                      className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-700 transition-all cursor-pointer"
+                                      title="એડિટ કરો"
+                                    >
+                                      <Edit className="w-4 h-4 text-blue-600" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteNewsTicker(item.id)}
+                                      className="p-1.5 hover:bg-rose-100 rounded-lg text-rose-600 transition-all cursor-pointer"
+                                      title="ડિલીટ કરો"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* TAB 5.5: MONETIZATION & ADSENSE MANAGEMENT */}
         {activeTab === 'monetization' && (
           <div className="space-y-8 animate-fade-in">
@@ -2729,7 +3188,7 @@ export default function AdminPanel() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Placement 1: Single Post Below Header */}
-                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                <div className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-4">
                   <div className="border-b pb-2">
                     <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
                       <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૧</span> સિંગલ પોસ્ટ: હેડરની નીચે
@@ -2748,7 +3207,7 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Placement 2: Single Post Below Thumbnail */}
-                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                <div className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-4">
                   <div className="border-b pb-2">
                     <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
                       <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૨</span> સિંગલ પોસ્ટ: થંબનેલ નીચે કન્ટેન્ટ પહેલા
@@ -2767,7 +3226,7 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Placement 3: Single Post Above Related Content */}
-                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                <div className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-4">
                   <div className="border-b pb-2">
                     <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
                       <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૩</span> સંબંધિત અન્ય માહિતી અને સમાચારની ઉપર
@@ -2786,7 +3245,7 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Placement 4: Sidebar Bottom */}
-                <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-4">
+                <div className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-4">
                   <div className="border-b pb-2">
                     <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2 font-sans">
                       <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-sans">૪</span> સાઇડબારમાં સૌથી નીચે
@@ -2873,7 +3332,7 @@ export default function AdminPanel() {
             )}
 
             {/* Database Export Section */}
-            <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-6 mt-6 animate-fade-in">
+            <div className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-6 mt-6 animate-fade-in">
               <div className="border-b pb-3">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <Database className="h-4 w-4 text-emerald-600" /> ડેટાબેઝ બેકઅપ અને એક્સપોર્ટ (Database Backup & Export)
@@ -3003,7 +3462,7 @@ export default function AdminPanel() {
             )}
             
             {/* Flexible SMS OTP Integration */}
-            <form onSubmit={handleSaveSMS} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
+            <form onSubmit={handleSaveSMS} className="bg-slate-50 border-0 md:border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
                 <div className="border-b pb-2">
                   <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                     <Send className="h-4 w-4 text-emerald-600" /> મોબાઈલ વેરિફિકેશન ગેટવે (Flexible SMS OTP Integration)
@@ -3142,7 +3601,7 @@ export default function AdminPanel() {
             )}
             
             {/* Razorpay Section */}
-            <form onSubmit={handleSaveRazorpay} className="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 space-y-5">
+            <form onSubmit={handleSaveRazorpay} className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-5">
               <div className="border-b pb-2">
                 <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-blue-600" /> રેઝરપે પેમેન્ટ ગેટવે (Razorpay Integration)
@@ -3199,7 +3658,7 @@ export default function AdminPanel() {
             )}
 
               {/* XML Sitemap Settings Card */}
-              <form onSubmit={handleSaveSitemap} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
+              <form onSubmit={handleSaveSitemap} className="bg-slate-50 border-0 md:border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
                 <div className="border-b pb-2 flex flex-col md:flex-row md:items-center justify-between gap-2">
                   <div>
                     <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -3308,7 +3767,7 @@ export default function AdminPanel() {
               </form>
 
               {/* Google Analytics & Custom Head Code Settings Card */}
-              <form onSubmit={handleSaveAnalytics} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
+              <form onSubmit={handleSaveAnalytics} className="bg-slate-50 border-0 md:border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">
                 <div className="border-b pb-2">
                   <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                     <Settings className="h-4 w-4 text-indigo-600" /> ગૂગલ એનાલિટિક્સ અને કસ્ટમ કોડ (Google Analytics & Custom Code)
@@ -3359,7 +3818,7 @@ export default function AdminPanel() {
       {/* Custom Confirmation Modal */}
       {confirmModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-150 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border-0 md:border border-gray-150 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6">
               <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-4 border border-rose-100">
                 <Trash2 className="h-6 w-6" />

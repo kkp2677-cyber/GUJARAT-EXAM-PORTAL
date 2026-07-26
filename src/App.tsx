@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BookOpen, Trophy, Award, LogIn, LogOut, ShieldAlert, User as UserIcon, Menu, X, ArrowLeft, Sun, Moon, Phone, Mail, Check, Loader2 } from 'lucide-react';
+import { BookOpen, Trophy, Award, LogIn, LogOut, ShieldAlert, User as UserIcon, Menu, X, ArrowLeft, Sun, Moon, Phone, Mail, Check, Loader2, BadgeCheck, Calendar } from 'lucide-react';
 import { User, Exam, BlogPost } from './types';
 import PublicHome from './components/PublicHome';
 const AgeCalculator = lazy(() => import('./components/AgeCalculator'));
@@ -10,6 +10,7 @@ const ExamEngine = lazy(() => import('./components/ExamEngine'));
 const Leaderboard = lazy(() => import('./components/Leaderboard'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 import NotificationBell from './components/NotificationBell';
+import NewsTicker from './components/NewsTicker';
 const BlogCategoryView = lazy(() => import('./components/BlogCategoryView'));
 const BlogPostDetail = lazy(() => import('./components/BlogPostDetail'));
 const ExamInstructionsModal = lazy(() => import('./components/ExamInstructionsModal'));
@@ -201,6 +202,16 @@ export default function App() {
       window.removeEventListener('open-auth', handleOpenAuth);
     };
   }, []);
+
+  const handleGoToMockTests = () => {
+    if (user) {
+      navigateToSection('dashboard');
+      setTimeout(() => window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' })), 50);
+    } else {
+      setAuthMode('login');
+      navigateToSection('auth');
+    }
+  };
 
   // URL router state-synchronizer
   const handleUrlRouting = async () => {
@@ -541,24 +552,30 @@ export default function App() {
       )}
       
       {/* HEADER NAVIGATION BAR */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-150 shadow-sm sticky top-0 z-40 transition-all">
+      <header className="bg-white/95 dark:bg-[#121824]/95 backdrop-blur-md border-b border-slate-150 dark:border-slate-800 shadow-sm sticky top-0 z-40 transition-all">
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-12 h-20 flex justify-between items-center">
           
           {/* Logo Name */}
           <div 
             onClick={() => navigateToHome()}
-            className="flex items-center gap-3 cursor-pointer select-none group"
+            className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
             <img 
               src="/logo.svg" 
               alt="OJAS Exam" 
-              className="w-11 h-11 object-contain group-hover:scale-105 transition-transform" 
+              className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 object-contain group-hover:scale-105 transition-transform" 
               referrerPolicy="no-referrer"
             />
-            <div className="flex flex-col">
-              <span className="text-xl md:text-2xl font-black text-slate-900 tracking-tight font-sans block group-hover:text-emerald-600 transition-colors">
-                OJAS Exam
-              </span>
+            <div className="flex flex-col justify-center leading-none">
+              <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black tracking-wide font-sans uppercase flex items-center group-hover:opacity-90 transition-opacity">
+                <span className="text-[#0f3862] dark:text-white">OJAS</span>
+                <span className="ml-1 sm:ml-1.5 text-[#0f3862] dark:text-white">E</span>
+                <span className="text-[#f26522]">X</span>
+                <span className="text-[#0f3862] dark:text-white">AM</span>
+              </div>
+              <div className="text-[8.5px] sm:text-[9.5px] md:text-[11px] font-extrabold tracking-wider text-right -mt-0.5 font-sans">
+                <span className="text-[#0f3862] dark:text-slate-300">ઓજસ</span> <span className="text-[#f26522]">એક્ઝામ</span>
+              </div>
             </div>
           </div>
 
@@ -568,22 +585,22 @@ export default function App() {
               onClick={() => navigateToHome()}
               className={`font-black text-[15px] xl:text-[16.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1.5 shadow-sm border ${
                 currentSection === 'home' 
-                  ? 'text-blue-700 bg-blue-50 border-blue-200 shadow-blue-500/5' 
-                  : 'text-slate-700 bg-white border-slate-200 hover:text-blue-600 hover:border-blue-300'
+                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600'
               }`}
             >
               🏠 Home
             </button>
 
             {/* Content Categorized Update Pages */}
-            <div className="h-6 w-px bg-slate-200"></div>
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
             
             <button
               onClick={() => navigateToCategory('job')}
               className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
                 currentSection === 'blog' && selectedBlogCategory === 'job' 
-                  ? 'text-blue-700 bg-blue-50/90 border-blue-200 shadow-md shadow-blue-500/5' 
-                  : 'text-slate-700 bg-white border-slate-200 hover:bg-blue-50/30 hover:border-blue-200 hover:text-blue-600'
+                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-blue-50/30 dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400'
               }`}
             >
               💼 નવી ભરતીઓ
@@ -592,8 +609,8 @@ export default function App() {
               onClick={() => navigateToCategory('answer_key')}
               className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
                 currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
-                  ? 'text-emerald-700 bg-emerald-50/90 border-emerald-200 shadow-md shadow-emerald-500/5' 
-                  : 'text-slate-700 bg-white border-slate-200 hover:bg-emerald-50/30 hover:border-emerald-200 hover:text-emerald-600'
+                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/90 dark:bg-slate-800 border-emerald-200 dark:border-emerald-700 shadow-md shadow-emerald-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-emerald-50/30 dark:hover:bg-slate-700 hover:border-emerald-200 dark:hover:border-emerald-700 hover:text-emerald-600 dark:hover:text-emerald-400'
               }`}
             >
               🔑 આન્સર કી
@@ -602,31 +619,27 @@ export default function App() {
               onClick={() => navigateToCategory('result')}
               className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
                 currentSection === 'blog' && selectedBlogCategory === 'result' 
-                  ? 'text-amber-700 bg-amber-50/90 border-amber-200 shadow-md shadow-amber-500/5' 
-                  : 'text-slate-700 bg-white border-slate-200 hover:bg-amber-50/30 hover:border-amber-200 hover:text-amber-600'
+                  ? 'text-amber-700 dark:text-amber-300 bg-amber-50/90 dark:bg-slate-800 border-amber-200 dark:border-amber-700 shadow-md shadow-amber-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-amber-50/30 dark:hover:bg-slate-700 hover:border-amber-200 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400'
               }`}
             >
               🏆 રિઝલ્ટ
             </button>
             <button
-              onClick={() => navigateToCategory('selection_list')}
-              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                currentSection === 'blog' && selectedBlogCategory === 'selection_list' 
-                  ? 'text-purple-700 bg-purple-50/90 border-purple-200 shadow-md shadow-purple-500/5' 
-                  : 'text-slate-700 bg-white border-slate-200 hover:bg-purple-50/30 hover:border-purple-200 hover:text-purple-600'
-              }`}
-            >
-              📋 સિલેક્શન લિસ્ટ
-            </button>
-            <button
               onClick={() => navigateToCategory('news')}
               className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
                 currentSection === 'blog' && selectedBlogCategory === 'news' 
-                  ? 'text-sky-700 bg-sky-50/90 border-sky-200 shadow-md shadow-sky-500/5' 
-                  : 'text-slate-700 bg-white border-slate-200 hover:bg-sky-50/30 hover:border-sky-200 hover:text-sky-600'
+                  ? 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-slate-800 border-sky-200 dark:border-sky-700 shadow-md shadow-sky-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-sky-50/30 dark:hover:bg-slate-700 hover:border-sky-200 dark:hover:border-sky-700 hover:text-sky-600 dark:hover:text-sky-400'
               }`}
             >
               📰 સમાચાર
+            </button>
+            <button
+              onClick={handleGoToMockTests}
+              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-indigo-50/30 dark:hover:bg-slate-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400`}
+            >
+              📝 મોક ટેસ્ટ
             </button>
           </nav>
 
@@ -644,16 +657,16 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <div 
                   onClick={() => navigateToSection('dashboard')}
-                  className="flex items-center gap-2 bg-slate-50 border border-gray-150 px-4 py-2 rounded-xl hover:bg-slate-100 hover:border-blue-300 transition-all cursor-pointer group"
+                  className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-blue-300 transition-all cursor-pointer group"
                 >
                   <div className="w-6.5 h-6.5 bg-blue-600 text-white font-bold rounded-full text-xs flex items-center justify-center group-hover:scale-105 transition-transform">
                     {user.name ? user.name[0] : 'ર'}
                   </div>
-                  <span className="text-sm font-semibold text-slate-700 group-hover:text-blue-600 transition-colors">{user.name || 'રમેશભાઈ પટેલ'}</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{user.name || 'રમેશભાઈ પટેલ'}</span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-50 hover:bg-red-100 text-red-600 font-bold p-2.5 rounded-xl transition-all cursor-pointer border border-red-100"
+                  className="bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 font-bold p-2.5 rounded-xl transition-all cursor-pointer border border-red-100 dark:border-red-900"
                   title="લોગઆઉટ"
                 >
                   <LogOut className="h-5 w-5" />
@@ -684,7 +697,7 @@ export default function App() {
             <NotificationBell />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="bg-slate-50 hover:bg-slate-100 border border-gray-200 p-2.5 rounded-xl text-gray-700 cursor-pointer"
+              className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 p-2.5 rounded-xl text-gray-700 dark:text-slate-200 cursor-pointer"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -699,20 +712,20 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="lg:hidden border-t border-gray-100 bg-white px-4 pt-2 pb-6 shadow-inner max-h-[85vh] overflow-y-auto overflow-x-hidden"
+              className="lg:hidden border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#121824] px-4 pt-2 pb-6 shadow-inner max-h-[85vh] overflow-y-auto overflow-x-hidden"
             >
               <div className="space-y-2">
                 {/* Conditional Submenu on Mobile */}
                 {!user ? (
                   /* Content Categories Submenu on Mobile (when NOT logged in) */
-                  <div className="pb-1 divide-y divide-gray-200">
+                  <div className="pb-1 divide-y divide-gray-200 dark:divide-slate-800">
                     <button
                       onClick={() => {
                         navigateToHome();
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
-                        currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       🏠 હોમ (Home)
@@ -723,7 +736,7 @@ export default function App() {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'job' ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        currentSection === 'blog' && selectedBlogCategory === 'job' ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-blue-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       💼 નવી ભરતીઓ
@@ -734,7 +747,7 @@ export default function App() {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'answer_key' ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        currentSection === 'blog' && selectedBlogCategory === 'answer_key' ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       🔑 આન્સર કી
@@ -745,21 +758,10 @@ export default function App() {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'result' ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-slate-800 dark:hover:bg-slate-700' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        currentSection === 'blog' && selectedBlogCategory === 'result' ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-amber-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       🏆 રિઝલ્ટ
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToCategory('selection_list');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'selection_list' ? 'text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-slate-700' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      📋 સિલેક્શન લિસ્ટ
                     </button>
                     <button
                       onClick={() => {
@@ -767,22 +769,31 @@ export default function App() {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'news' ? 'text-sky-600 bg-sky-50 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-slate-700' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        currentSection === 'blog' && selectedBlogCategory === 'news' ? 'text-sky-600 bg-sky-50 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-sky-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       📰 સમાચાર (News)
                     </button>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleGoToMockTests();
+                      }}
+                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                    >
+                      📝 મોક ટેસ્ટ
+                    </button>
                   </div>
                 ) : (
                   /* Dashboard Tabs Submenu on Mobile (when logged in) */
-                  <div className="pb-1 divide-y divide-gray-200">
+                  <div className="pb-1 divide-y divide-gray-200 dark:divide-slate-800">
                     <button
                       onClick={() => {
                         navigateToHome();
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
-                        currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       🏠 હોમ (Home)
@@ -798,18 +809,6 @@ export default function App() {
                       className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
                     >
                       📊 ડેશબોર્ડ
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToSection('dashboard');
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
-                        }, 100);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      🏆 મેરીટ લીસ્ટ
                     </button>
                     <button
                       onClick={() => {
@@ -834,6 +833,18 @@ export default function App() {
                       className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
                     >
                       🔖 સેવ કરેલા પ્રશ્નો (Bookmarks)
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigateToSection('dashboard');
+                        setTimeout(() => {
+                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
+                        }, 100);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
+                    >
+                      🏆 મેરીટ લીસ્ટ
                     </button>
 
                     <button
@@ -877,7 +888,7 @@ export default function App() {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
-                        currentSection === 'age_calculator' ? 'text-indigo-600 bg-indigo-50 dark:bg-slate-800' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        currentSection === 'age_calculator' ? 'text-indigo-600 bg-indigo-50 dark:bg-slate-800 dark:text-indigo-400' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       🎂 ઉમર ગણતરી (Age Calculator)
@@ -885,7 +896,7 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
                   {user ? (
                     <div className="space-y-3">
                       <div 
@@ -902,7 +913,7 @@ export default function App() {
                           {user.name ? user.name[0] : 'ર'}
                         </div>
                         <div>
-                          <span className="font-extrabold text-gray-800 dark:text-slate-200 text-[14px] block leading-snug">{user.name || 'રમેશભાઈ પટેલ'}</span>
+                          <span className="font-extrabold text-gray-800 dark:text-slate-100 text-[14px] block leading-snug">{user.name || 'રમેશભાઈ પટેલ'}</span>
                           <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold block uppercase tracking-wider">પ્રોફાઇલ</span>
                         </div>
                       </div>
@@ -911,7 +922,7 @@ export default function App() {
                           handleLogout();
                           setIsMobileMenuOpen(false);
                         }}
-                        className="w-full text-center bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2.5 rounded-xl text-sm cursor-pointer border border-red-100 flex items-center justify-center gap-2"
+                        className="w-full text-center bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl text-sm cursor-pointer border border-red-100 dark:border-red-900 flex items-center justify-center gap-2"
                       >
                         <LogOut className="h-4 w-4" /> લોગઆઉટ
                       </button>
@@ -935,7 +946,8 @@ export default function App() {
         </AnimatePresence>
       </header>
 
-
+      {/* NEWS TICKER BAR BELOW HEADER */}
+      <NewsTicker />
 
       {/* MAIN APPLICATION CANVAS CONTENT */}
       <main className={`max-w-7xl mx-auto ${(currentSection === 'blog' && activeBlogPost) || currentSection === 'static_page' ? 'px-0 py-4 sm:px-6 lg:px-8 sm:py-10' : 'px-4 sm:px-6 lg:px-8 py-10'} flex-grow w-full`}>
@@ -1130,15 +1142,28 @@ export default function App() {
       <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 mt-16 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start border-b border-slate-800 pb-8">
           <div className="space-y-4">
-            <h3 className="text-white text-lg font-bold font-sans flex items-center gap-3">
+            <div 
+              onClick={() => navigateToHome()}
+              className="flex items-center gap-2.5 cursor-pointer select-none group"
+            >
               <img 
                 src="/logo.svg" 
                 alt="OJAS Exam" 
-                className="w-8 h-8 object-contain" 
+                className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform grayscale brightness-125 contrast-125" 
                 referrerPolicy="no-referrer"
               />
-              OJAS Exam
-            </h3>
+              <div className="flex flex-col justify-center leading-none">
+                <div className="text-lg sm:text-xl font-black tracking-wide font-sans uppercase flex items-center group-hover:opacity-90 transition-opacity">
+                  <span className="text-white">OJAS</span>
+                  <span className="ml-1 sm:ml-1.5 text-white">E</span>
+                  <span className="text-slate-400">X</span>
+                  <span className="text-white">AM</span>
+                </div>
+                <div className="text-[8.5px] sm:text-[9.5px] font-extrabold tracking-wider text-right -mt-0.5 font-sans">
+                  <span className="text-slate-300">ઓજસ</span> <span className="text-slate-400">એક્ઝામ</span>
+                </div>
+              </div>
+            </div>
             <p className="text-slate-400 text-sm leading-relaxed">
               ગુજરાતની તમામ સત્તાવાર સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન સચોટ તૈયારી, મોક ટેસ્ટ અને પ્રશ્નોત્તરી માટેનું સત્તાવાર લોકપ્રિય પોર્ટલ.
             </p>
@@ -1152,8 +1177,8 @@ export default function App() {
               <button onClick={() => navigateToCategory('job')} className="text-left hover:text-white transition-colors cursor-pointer">💼 નવી ભરતીઓ</button>
               <button onClick={() => navigateToCategory('answer_key')} className="text-left hover:text-white transition-colors cursor-pointer">🔑 આન્સર કી</button>
               <button onClick={() => navigateToCategory('result')} className="text-left hover:text-white transition-colors cursor-pointer">🏆 રિઝલ્ટ</button>
-              <button onClick={() => navigateToCategory('selection_list')} className="text-left hover:text-white transition-colors cursor-pointer">📋 સિલેક્શન લિસ્ટ</button>
               <button onClick={() => navigateToCategory('news')} className="text-left hover:text-white transition-colors cursor-pointer">📰 સમાચાર</button>
+              <button onClick={handleGoToMockTests} className="text-left hover:text-white transition-colors cursor-pointer">📝 મોક ટેસ્ટ</button>
               <button onClick={() => navigateToSection("age_calculator")} className="text-left hover:text-white transition-colors cursor-pointer">🎂 ઉંમર ગણતરી (Age Calculator)</button>
             </div>
           </div>
@@ -1175,86 +1200,118 @@ export default function App() {
                 <span>info@ojasexam.in</span>
               </div>
               <hr className="border-slate-700 my-2" />
-              <p>© ૨૦૨૬ OJAS Exam. All Rights Reserved.</p>
+              <p>© 2026 OJAS Exam. All Rights Reserved.</p>
             </div>
           </div>
         </div>
 
       {/* Paywall Modal */}
       {showPaywall && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col my-4 md:my-8 max-h-[92vh] md:max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-[#121824] rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col my-4 md:my-8 max-h-[92vh] md:max-h-[90vh]">
             <div className="p-5 md:p-8 overflow-y-auto flex-1">
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-start mb-5">
                 <div>
-                  {user?.subscriptionPlan && user.subscriptionPlan !== 'free' ? (
-                    <h3 className="text-2xl font-extrabold text-slate-900">Congratulations..!! Now You are our Premium Members</h3>
-                  ) : (
-                    <h3 className="text-2xl font-extrabold text-slate-900">
-                      {user && subStatus && !subStatus.canTakeTest ? 'તમારી મર્યાદા પૂરી થઈ ગઈ છે' : 'પ્રીમિયમ સબસ્ક્રિપ્શન મેળવો'}
-                    </h3>
-                  )}
-                  <p className="text-slate-500 mt-2 text-sm font-medium">
+                  <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+                    {user?.subscriptionPlan && user.subscriptionPlan !== 'free'
+                      ? 'પ્રીમિયમ સબસ્ક્રિપ્શન'
+                      : (user && subStatus && !subStatus.canTakeTest ? 'તમારી મર્યાદા પૂરી થઈ ગઈ છે' : 'પ્રીમિયમ સબસ્ક્રિપ્શન મેળવો')}
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-xs sm:text-sm font-medium">
                     {user?.subscriptionPlan && user.subscriptionPlan !== 'free' 
-                      ? 'તમે અનલિમિટેડ ટેસ્ટ આપી શકો છો.'
+                      ? 'તમારું સબસ્ક્રિપ્શન એક્ટિવ છે.'
                       : (user && subStatus && !subStatus.canTakeTest)
                         ? `તમે ${subStatus.allowedExams || 3} ફ્રી મોક ટેસ્ટ આપી ચૂક્યા છો. વધુ મોક ટેસ્ટ આપવા માટે સબસ્ક્રાઇબ કરો.`
                         : 'તમારી તૈયારીને નવી ઊંચાઈઓ પર લઈ જાઓ અને વધુ મોક ટેસ્ટ આપવા માટે સબસ્ક્રાઇબ કરો.'}
                   </p>
                 </div>
-                <button onClick={() => setShowPaywall(false)} className="text-slate-400 hover:bg-slate-100 hover:text-slate-700 p-2 rounded-full transition-colors shrink-0 ml-4">
+                <button onClick={() => setShowPaywall(false)} className="text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 p-2 rounded-full transition-colors shrink-0 ml-4">
                   <X className="h-6 w-6" />
                 </button>
               </div>
 
               {user?.subscriptionPlan && user.subscriptionPlan !== 'free' ? (
-                <div className="space-y-4 text-center pb-4">
-                  <div className="mx-auto w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
-                    <Award className="h-10 w-10" />
-                  </div>
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left">
-                    <div className="mb-4">
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Plan Type</span>
-                      <span className="text-lg font-bold text-indigo-700">{user.subscriptionPlan === 'yearly' ? 'Yearly Plan (વાર્ષિક)' : 'Monthly Plan (માસિક)'}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       <div>
-                          <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Started On</span>
-                          <span className="text-sm font-medium text-slate-700">
-                             {user.subscriptionExpiry ? new Date(new Date(user.subscriptionExpiry).setMonth(new Date(user.subscriptionExpiry).getMonth() - (user.subscriptionPlan === 'yearly' ? 12 : 1))).toLocaleDateString('gu-IN') : 'N/A'}
-                          </span>
-                       </div>
-                       <div>
-                          <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Expires On</span>
-                          <span className="text-sm font-bold text-emerald-600">
-                             {user.subscriptionExpiry ? new Date(user.subscriptionExpiry).toLocaleDateString('gu-IN') : 'N/A'}
-                          </span>
-                       </div>
-                    </div>
-                  </div>
+                <div className="pb-2">
+                  {(() => {
+                    const expiry = user.subscriptionExpiry ? new Date(user.subscriptionExpiry) : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+                    const start = new Date(expiry);
+                    if (user.subscriptionPlan === 'yearly') {
+                      start.setFullYear(start.getFullYear() - 1);
+                    } else {
+                      start.setMonth(start.getMonth() - 1);
+                    }
+                    const now = new Date();
+                    const diffMs = expiry.getTime() - now.getTime();
+                    const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+                    const formatDateStr = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+
+                    return (
+                      <div className="bg-[#071c35] rounded-2xl md:rounded-3xl p-4 sm:p-5 text-white shadow-xl relative overflow-hidden font-sans border border-slate-800">
+                        {/* Top Row: Icon, Title, Days Left */}
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-center sm:items-start gap-2.5 sm:gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#14365d] flex items-center justify-center shrink-0 border border-white/10 shadow-inner">
+                              <BadgeCheck className="w-6 h-6 sm:w-7 sm:h-7 text-white fill-white/10" />
+                            </div>
+                            <div>
+                              <h3 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight tracking-tight">
+                                Active Subscription
+                              </h3>
+                              <p className="text-slate-300/90 text-xs sm:text-sm font-medium mt-0.5 leading-snug">
+                                તમે અનલિમિટેડ ટેસ્ટ આપી શકો છો.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="bg-[#0b4832] text-emerald-300 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold flex items-center gap-1 border border-emerald-600/40 shadow-xs shrink-0 whitespace-nowrap">
+                            <span>{daysLeft} days left</span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Row: Start Date & End Date Box */}
+                        <div className="bg-[#0c2a4d]/90 rounded-xl p-3 sm:p-3.5 mt-4 border border-white/10 grid grid-cols-2 divide-x divide-white/10">
+                          <div className="pr-2.5 sm:pr-3">
+                            <span className="block text-slate-400 text-[10px] sm:text-xs font-medium mb-1">Start Date</span>
+                            <div className="flex items-center gap-1.5 text-white font-bold text-xs sm:text-sm">
+                              <Calendar className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                              <span>{formatDateStr(start)}</span>
+                            </div>
+                          </div>
+
+                          <div className="pl-2.5 sm:pl-3">
+                            <span className="block text-slate-400 text-[10px] sm:text-xs font-medium mb-1">End Date</span>
+                            <div className="flex items-center gap-1.5 text-white font-bold text-xs sm:text-sm">
+                              <Calendar className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                              <span>{formatDateStr(expiry)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
               <div className="space-y-4">
-                <div className="border border-indigo-100 bg-indigo-50/50 p-5 rounded-2xl relative overflow-hidden transition-all hover:border-indigo-300">
+                <div className="border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 p-5 rounded-2xl relative overflow-hidden transition-all hover:border-indigo-300 dark:hover:border-indigo-700">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-bold text-lg text-slate-800">માસિક પ્લાન</h4>
-                    <span className="text-xl font-extrabold text-indigo-600">₹49 / મહિનો</span>
+                    <h4 className="font-bold text-lg text-slate-800 dark:text-slate-100">માસિક પ્લાન</h4>
+                    <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">₹49 / મહિનો</span>
                   </div>
-                  <ul className="space-y-2 mb-4 text-sm text-slate-600">
+                  <ul className="space-y-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-indigo-600" />
+                      <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       <span>૧ મહિના સુધી અનલિમિટેડ મોક ટેસ્ટની સુવિધા</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-indigo-600" />
+                      <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       <span>ફ્રી મેરીટ લીસ્ટ</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-indigo-600" />
+                      <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       <span>૮ થી વધુ વિષયો</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-indigo-600" />
+                      <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       <span>૫૦ હજાર + MCQ એક્સેસ</span>
                     </li>
                   </ul>
@@ -1263,27 +1320,27 @@ export default function App() {
                   </button>
                 </div>
                 
-                <div className="border border-emerald-100 bg-emerald-50/50 p-5 rounded-2xl relative overflow-hidden transition-all hover:border-emerald-300">
+                <div className="border border-emerald-100 dark:border-emerald-900/60 bg-emerald-50/50 dark:bg-emerald-950/30 p-5 rounded-2xl relative overflow-hidden transition-all hover:border-emerald-300 dark:hover:border-emerald-700">
                   <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-bl-lg uppercase tracking-wider">પોપ્યુલર</div>
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-bold text-lg text-slate-800">વાર્ષિક પ્લાન</h4>
-                    <span className="text-xl font-extrabold text-emerald-600">₹499 / વર્ષ</span>
+                    <h4 className="font-bold text-lg text-slate-800 dark:text-slate-100">વાર્ષિક પ્લાન</h4>
+                    <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">₹499 / વર્ષ</span>
                   </div>
-                  <ul className="space-y-2 mb-4 text-sm text-slate-600">
+                  <ul className="space-y-2 mb-4 text-sm text-slate-600 dark:text-slate-300">
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       <span>૧૨ મહિના સુધી અનલિમિટેડ મોક ટેસ્ટની સુવિધા</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       <span>ફ્રી મેરીટ લીસ્ટ</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       <span>૮ થી વધુ વિષયો</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       <span>૧ લાખ + MCQ એક્સેસ</span>
                     </li>
                   </ul>

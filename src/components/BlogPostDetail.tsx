@@ -355,23 +355,23 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
   };
 
   const renderLatestUpdatesSidebar = () => (
-    <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-xs space-y-4">
-      <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+    <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-4">
+      <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-800">
         <span className="flex h-2 w-2 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
         </span>
-        <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
-          Latest Updates..!
+        <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+          તાજેતરના અપડેટ્સ
         </h3>
       </div>
 
       {loadingLatest ? (
-        <div className="py-6 text-center text-xs text-gray-500">તાજી અપડેટ્સ લોડ થઈ રહી છે...</div>
+        <div className="py-6 text-center text-xs text-gray-500 dark:text-slate-400">તાજી અપડેટ્સ લોડ થઈ રહી છે...</div>
       ) : latestPosts.length === 0 ? (
-        <p className="text-xs text-gray-500 text-center">કોઈ તાજી અપડેટ ઉપલબ્ધ નથી.</p>
+        <p className="text-xs text-gray-500 dark:text-slate-400 text-center">કોઈ તાજી અપડેટ ઉપલબ્ધ નથી.</p>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-slate-800">
           {latestPosts.map((lPost) => (
             <div
               key={lPost.id}
@@ -382,7 +382,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
                   navigateToPost(lPost);
                 }
               }}
-              className="py-3 cursor-pointer group flex gap-3 items-start hover:bg-slate-50/50 -mx-2 px-2 rounded-xl transition-all"
+              className="py-3 cursor-pointer group flex gap-3 items-start hover:bg-slate-50/50 dark:hover:bg-slate-800/50 -mx-2 px-2 rounded-xl transition-all"
             >
               <span className={`w-1 h-10 rounded-full shrink-0 ${
                 lPost.category === 'job' ? 'bg-blue-500' :
@@ -392,10 +392,10 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
                 lPost.category === 'news' ? 'bg-sky-500' : 'bg-slate-400'
               }`} />
               <div className="space-y-1 min-w-0">
-                <h4 className="text-xs font-bold text-slate-850 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+                <h4 className="text-xs font-bold text-slate-850 dark:text-slate-200 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {lPost.title}
                 </h4>
-                <p className="text-[9px] text-gray-400 font-medium">
+                <p className="text-[9px] text-gray-400 dark:text-slate-400 font-medium">
                   {safeFormatDate(lPost.createdAt || lPost.date)}
                 </p>
               </div>
@@ -415,17 +415,17 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
       />
 
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-bold px-4 sm:px-0 pt-4 sm:pt-0">
+      <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-bold px-4 sm:px-0 pt-4 sm:pt-0">
         <button
           onClick={navigateToHome}
-          className="hover:text-blue-600 transition-colors cursor-pointer text-slate-500 uppercase tracking-wide font-extrabold"
+          className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-slate-500 dark:text-slate-400 uppercase tracking-wide font-extrabold"
         >
           Home
         </button>
-        <span className="text-slate-300 font-bold">{" / "}</span>
+        <span className="text-slate-300 dark:text-slate-600 font-bold">{" / "}</span>
         <button
           onClick={() => navigateToCategory(post.category)}
-          className="hover:text-blue-600 transition-colors cursor-pointer text-slate-700 font-extrabold"
+          className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-slate-700 dark:text-slate-200 font-extrabold"
         >
           {getCategoryLabel(post.category)}
         </button>
@@ -435,25 +435,25 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
         {/* Left Side: Main content */}
         <div className="lg:col-span-8 space-y-8">
           {/* Main Article Container */}
-          <article className="bg-white p-4 md:p-6 space-y-5 border-x-0 sm:border border-gray-150 rounded-none sm:rounded-2xl shadow-none sm:shadow-xs">
+          <article className="bg-white dark:bg-slate-900 p-4 md:p-6 space-y-5 border-x-0 sm:border border-gray-150 dark:border-slate-800 rounded-none sm:rounded-2xl shadow-none sm:shadow-xs">
             
             {/* Big Main Title */}
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 leading-snug tracking-tight font-sans">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100 leading-snug tracking-tight font-sans">
               {post.title}
             </h1>
 
             {/* Combined Author/Date & Share Block */}
-            <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-3 shadow-sm">
+            <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80 p-4 rounded-2xl space-y-3 shadow-sm">
               {/* Top: Author & Date */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-600 font-medium pb-2.5 border-b border-gray-200/60">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-600 dark:text-slate-300 font-medium pb-2.5 border-b border-gray-200/60 dark:border-slate-700/60">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-bold">✍️ Author:</span>
-                  <strong className="text-slate-800">OJAS Exam</strong>
+                  <span className="text-slate-500 dark:text-slate-400 font-bold">✍️ Author:</span>
+                  <strong className="text-slate-800 dark:text-slate-100">OJAS Exam</strong>
                 </div>
-                <div className="hidden md:block w-px h-3.5 bg-gray-200"></div>
+                <div className="hidden md:block w-px h-3.5 bg-gray-200 dark:bg-slate-700"></div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-bold">📅 Published on:</span>
-                  <strong className="text-slate-800">{safeFormatDate(post.createdAt || post.date, 'gu-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+                  <span className="text-slate-500 dark:text-slate-400 font-bold">📅 Published on:</span>
+                  <strong className="text-slate-800 dark:text-slate-100">{safeFormatDate(post.createdAt || post.date, 'gu-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</strong>
                 </div>
               </div>
               {/* Bottom: Share */}
@@ -466,7 +466,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
             <AdSpace htmlCode={adsPostBelowHeader} className="my-2" />
 
             {/* Featured Image */}
-            <div className="overflow-hidden bg-slate-50 border border-gray-150 max-h-[420px] relative md:max-w-[60%] md:mx-auto rounded-2xl shadow-sm">
+            <div className="overflow-hidden bg-slate-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-800 max-h-[420px] relative md:max-w-[60%] md:mx-auto rounded-2xl shadow-sm">
               <img
                 src={getProxiedImageUrl(post.thumbnail, 1200) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=1200'}
                 alt={post.title}
@@ -484,7 +484,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
             {/* Rich HTML Content Body */}
             <div className="pt-2 pb-4">
               <div
-                className="prose max-w-none text-slate-800 font-sans text-base md:text-lg leading-relaxed space-y-6 focus:outline-none blog-news-content"
+                className="prose max-w-none text-slate-800 dark:text-slate-200 font-sans text-base md:text-lg leading-relaxed space-y-6 focus:outline-none blog-news-content"
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             </div>
@@ -494,14 +494,14 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
               const { tags } = getFocusKeywordAndTags();
               return (
                 tags && tags.length > 0 && (
-                  <div className="border-t border-dashed border-gray-200 pt-6 space-y-4">
+                  <div className="border-t border-dashed border-gray-200 dark:border-slate-800 pt-6 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-start gap-2 text-xs">
-                      <span className="font-extrabold text-slate-700 uppercase tracking-wider min-w-[120px] pt-1 flex items-center gap-1.5">
+                      <span className="font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider min-w-[120px] pt-1 flex items-center gap-1.5">
                         🏷️ ટેગ્સ (Tags):
                       </span>
                       <div className="flex flex-wrap gap-2">
                         {tags.map((tag, idx) => (
-                          <span key={idx} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-xl font-bold transition-all hover:scale-[1.02]">
+                          <span key={idx} className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1 rounded-xl font-bold transition-all hover:scale-[1.02]">
                             #{tag.trim()}
                           </span>
                         ))}
@@ -517,8 +517,8 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
             </div>
 
             {/* Author / Source attribution */}
-            <div className="border-t border-gray-150 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-              <p>સ્રોત: <strong>સરકારી સત્તાવાર પોર્ટલ અને સમાચાર બોર્ડ</strong></p>
+            <div className="border-t border-gray-150 dark:border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500 dark:text-slate-400">
+              <p>સ્રોત: <strong className="text-slate-800 dark:text-slate-200">સરકારી સત્તાવાર પોર્ટલ અને સમાચાર બોર્ડ</strong></p>
               <p>છેલ્લે અપડેટ કરેલ: {safeFormatDate(post.updatedAt || post.createdAt || post.date)} {(() => {
                 const d = new Date(post.updatedAt || post.createdAt || post.date);
                 return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' });
@@ -531,15 +531,15 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
 
           {/* Related Articles list */}
           <section className="space-y-4 px-4 sm:px-0" id="related-articles">
-            <h3 className="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               <span>સંબંધિત અન્ય માહિતી અને સમાચાર</span>
             </h3>
 
             {loadingRelated ? (
-              <div className="py-8 text-center text-xs text-gray-500">અન્ય સંબંધિત માહિતી લોડ થઈ રહી છે...</div>
+              <div className="py-8 text-center text-xs text-gray-500 dark:text-slate-400">અન્ય સંબંધિત માહિતી લોડ થઈ રહી છે...</div>
             ) : relatedPosts.length === 0 ? (
-              <p className="text-xs text-gray-500 bg-slate-50 p-4 rounded-xl text-center border border-gray-100">આ કેટેગરીમાં અન્ય કોઈ પોસ્ટ્સ ઉપલબ્ધ નથી.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl text-center border border-gray-100 dark:border-slate-800">આ કેટેગરીમાં અન્ય કોઈ પોસ્ટ્સ ઉપલબ્ધ નથી.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {relatedPosts.map((rPost) => {
@@ -557,11 +557,11 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
                           navigateToPost(rPost);
                         }
                       }}
-                      className="bg-white rounded-none border border-gray-150 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer flex flex-col group justify-between"
+                      className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-slate-700 transition-all cursor-pointer flex flex-col group justify-between"
                     >
                       <div>
                         {/* Thumbnail */}
-                        <div className="h-36 w-full relative overflow-hidden bg-slate-100">
+                        <div className="h-36 w-full relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                           <img
                             src={getProxiedImageUrl(rPost.thumbnail, 400) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=400'}
                             alt={rPost.title}
@@ -574,18 +574,18 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
                         </div>
                         {/* Content */}
                         <div className="p-4 space-y-2">
-                          <p className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                          <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             <span>{safeFormatDate(rPost.createdAt || rPost.date)}</span>
-                            <span className="text-gray-200">•</span>
+                            <span className="text-gray-200 dark:text-slate-700">•</span>
                             <span>{rReadingTime} મિનિટ</span>
                           </p>
-                          <h4 className="font-extrabold text-xs text-gray-800 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+                          <h4 className="font-extrabold text-xs text-gray-800 dark:text-slate-200 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {rPost.title}
                           </h4>
                         </div>
                       </div>
-                      <div className="p-4 pt-0 text-[10px] font-bold text-blue-600 flex items-center justify-between group-hover:text-blue-700">
+                      <div className="p-4 pt-0 text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between group-hover:text-blue-700 dark:group-hover:text-blue-300">
                         <span>વિગતવાર વાંચો</span>
                         <ChevronRight className="h-3.5 w-3.5 transform group-hover:translate-x-0.5 transition-transform" />
                       </div>

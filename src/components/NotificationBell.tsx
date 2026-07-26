@@ -345,13 +345,13 @@ export default function NotificationBell() {
       {/* Bell Button */}
       <button
         onClick={togglePopover}
-        className="relative p-2.5 rounded-xl border border-gray-150 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-all cursor-pointer bg-white"
+        className="relative p-2.5 rounded-xl border border-gray-150 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer bg-white dark:bg-slate-900"
         title="નોટિફિકેશન પેનલ"
       >
         <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'animate-bounce text-orange-500' : ''}`} />
         
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 bg-orange-600 border-2 border-white text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 bg-orange-600 border-2 border-white dark:border-slate-900 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
             {unreadCount}
           </span>
         )}
@@ -359,25 +359,25 @@ export default function NotificationBell() {
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="fixed sm:absolute left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 top-[84px] sm:top-auto sm:mt-3 w-[calc(100vw-32px)] sm:w-[420px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
+        <div className="fixed sm:absolute left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 top-[84px] sm:top-auto sm:mt-3 w-[calc(100vw-32px)] sm:w-[420px] bg-white dark:bg-[#121824] border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
           
           {/* Header */}
-          <div className="p-4 bg-slate-50 border-b border-gray-100 flex justify-between items-center">
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/80 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
             <div>
-              <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
                 <span>🔔 નોટિફિકેશન સેન્ટર</span>
                 {unreadCount > 0 && (
-                  <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  <span className="bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 text-[10px] px-2 py-0.5 rounded-full font-bold">
                     {unreadCount} નવી પોસ્ટ
                   </span>
                 )}
               </h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">તાજી જાહેરાતો અને મોક ટેસ્ટ એલર્ટ્સ</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">તાજી જાહેરાતો અને મોક ટેસ્ટ એલર્ટ્સ</p>
             </div>
             
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded-lg text-slate-400 hover:bg-gray-200 transition-colors"
+              className="p-1 rounded-lg text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
@@ -385,25 +385,25 @@ export default function NotificationBell() {
 
           {/* Browser Permission Opt-in helper */}
           {permission !== 'granted' && (
-            <div className="p-3 bg-blue-50 border-b border-blue-100 flex flex-col gap-2">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border-b border-blue-100 dark:border-blue-900 flex flex-col gap-2">
               <div className="flex items-start gap-2.5">
-                <div className="p-1.5 bg-white text-blue-600 rounded-lg shadow-sm">
+                <div className="p-1.5 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-lg shadow-sm">
                   <BellOff className="h-4 w-4" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[11px] font-bold text-blue-900 leading-tight">બ્રાઉઝર પુશ નોટિફિકેશન મેળવો</p>
-                  <p className="text-[10px] text-blue-700 mt-0.5">નવી ભરતીઓ અને સરકારી ટેસ્ટ પબ્લિશ થતાં જ સીધી સ્ક્રીન પર વિગતવાર નોટિફિકેશન મેળવો.</p>
+                  <p className="text-[11px] font-bold text-blue-900 dark:text-blue-200 leading-tight">બ્રાઉઝર પુશ નોટિફિકેશન મેળવો</p>
+                  <p className="text-[10px] text-blue-700 dark:text-blue-300 mt-0.5">નવી ભરતીઓ અને સરકારી ટેસ્ટ પબ્લિશ થતાં જ સીધી સ્ક્રીન પર વિગતવાર નોટિફિકેશન મેળવો.</p>
                 </div>
               </div>
 
               {isInIframe || permissionError === 'iframe_blocked' ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-slate-800 text-[10px] leading-relaxed">
-                  <span className="font-extrabold text-amber-800 text-[11px] block">⚠️ સુરક્ષા એલર્ટ (iFrame Constraint):</span>
+                <div className="bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-xl p-2.5 text-slate-800 dark:text-slate-200 text-[10px] leading-relaxed">
+                  <span className="font-extrabold text-amber-800 dark:text-amber-300 text-[11px] block">⚠️ સુરક્ષા એલર્ટ (iFrame Constraint):</span>
                   <p className="mt-1">તમે હાલમાં પ્રિવ્યુ ફ્રેમમાં છો, તેથી બ્રાઉઝર સિક્યુરિટી પોલિસી મુજબ અહીં નોટિફિકેશન પરમિશન માંગી શકાશે નહીં.</p>
-                  <p className="mt-1.5 font-bold text-amber-900">એક્ટિવેટ કરવાની સરળ રીત:</p>
+                  <p className="mt-1.5 font-bold text-amber-900 dark:text-amber-200">એક્ટિવેટ કરવાની સરળ રીત:</p>
                   <ol className="list-decimal pl-4 mt-0.5 space-y-0.5">
-                    <li>સ્ક્રીન પર ઉપર જમણી બાજુએ આપેલ <strong className="text-blue-600">"નવી ટેબમાં ખોલો" (Open in New Tab)</strong> બટન પર ક્લિક કરો.</li>
-                    <li>ત્યાં આ જ બેલ આઇકન 🔔 પર ક્લિક કરી <strong className="bg-amber-100 px-1 py-0.5 rounded text-slate-900">"એક્ટિવેટ કરો"</strong> દબાવો.</li>
+                    <li>સ્ક્રીન પર ઉપર જમણી બાજુએ આપેલ <strong className="text-blue-600 dark:text-blue-400">"નવી ટેબમાં ખોલો" (Open in New Tab)</strong> બટન પર ક્લિક કરો.</li>
+                    <li>ત્યાં આ જ બેલ આઇકન 🔔 પર ક્લિક કરી <strong className="bg-amber-100 dark:bg-amber-900 px-1 py-0.5 rounded text-slate-900 dark:text-slate-100">"એક્ટિવેટ કરો"</strong> દબાવો.</li>
                   </ol>
                 </div>
               ) : (
@@ -415,13 +415,13 @@ export default function NotificationBell() {
                     એક્ટિવેટ કરો
                   </button>
                   {permissionError === 'denied' && (
-                    <div className="text-[10px] text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100 leading-relaxed">
+                    <div className="text-[10px] text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/50 p-2.5 rounded-lg border border-red-100 dark:border-red-900 leading-relaxed">
                       ❌ <strong>અસ્વીકાર કર્યો (Denied):</strong> તમે અગાઉ નોટિફિકેશન પરમિશન બ્લોક કરેલ છે. 
-                      <p className="mt-1 font-semibold text-slate-700">એક્ટિવેટ કરવા માટે: બ્રાઉઝર એડ્રેસ બારમાં ડાબી બાજુએ આપેલા લૉક આઇકોન (🔒 અથવા ⚙️) પર ક્લિક કરી નોટિફિકેશન "Allow/રીસેટ" કરો.</p>
+                      <p className="mt-1 font-semibold text-slate-700 dark:text-slate-300">એક્ટિવેટ કરવા માટે: બ્રાઉઝર એડ્રેસ બારમાં ડાબી બાજુએ આપેલા લૉક આઇકોન (🔒 અથવા ⚙️) પર ક્લિક કરી નોટિફિકેશન "Allow/રીસેટ" કરો.</p>
                     </div>
                   )}
                   {permissionError === 'blocked' && (
-                    <p className="text-[10px] text-red-600 bg-red-50 p-2 rounded-lg border border-red-100">
+                    <p className="text-[10px] text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/50 p-2 rounded-lg border border-red-100 dark:border-red-900">
                       ❌ બ્રાઉઝર સિક્યુરિટી બ્લોક અથવા પરમિશન મેળવવામાં મુશ્કેલી પડી.
                     </p>
                   )}
@@ -431,12 +431,12 @@ export default function NotificationBell() {
           )}
 
           {/* Notification List Body */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+          <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">
-                <Bell className="h-10 w-10 mx-auto text-slate-200 mb-2" />
-                <p className="text-sm font-semibold">હજુ સુધી કોઈ નોટિફિકેશન નથી</p>
-                <p className="text-xs text-slate-400 mt-0.5">અહીં નવી ભરતી અને પરીક્ષાઓની વિગત જોવા મળશે.</p>
+              <div className="p-8 text-center text-slate-400 dark:text-slate-500">
+                <Bell className="h-10 w-10 mx-auto text-slate-200 dark:text-slate-700 mb-2" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">હજુ સુધી કોઈ નોટિફિકેશન નથી</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">અહીં નવી ભરતી અને પરીક્ષાઓની વિગત જોવા મળશે.</p>
               </div>
             ) : (
               notifications.map((notif, index) => {
@@ -451,9 +451,9 @@ export default function NotificationBell() {
                     target={hasLink ? "_blank" : undefined}
                     rel={hasLink ? "noopener noreferrer" : undefined}
                     className={`p-4 transition-all duration-200 flex gap-3 ${
-                      hasLink ? 'cursor-pointer hover:bg-slate-100/70 group' : ''
+                      hasLink ? 'cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-800/70 group' : ''
                     } ${
-                      isUnread ? 'bg-orange-50/20 border-l-2 border-orange-500' : 'bg-white'
+                      isUnread ? 'bg-orange-50/20 dark:bg-orange-950/20 border-l-2 border-orange-500' : 'bg-white dark:bg-[#121824]'
                     }`}
                   >
                     <div className={`p-2.5 rounded-xl border self-start ${getBadgeColor(notif.type)}`}>
@@ -464,15 +464,15 @@ export default function NotificationBell() {
                         <span className={`text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border ${getBadgeColor(notif.type)}`}>
                           {getLabelGujarati(notif.type)}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-mono">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
                           {formatTimeAgo(notif.createdAt)}
                         </span>
                       </div>
-                      <h5 className={`font-bold text-slate-800 text-xs mt-1.5 leading-snug break-words ${hasLink ? 'text-blue-600 group-hover:underline flex items-center gap-1' : ''}`}>
+                      <h5 className={`font-bold text-slate-800 dark:text-slate-100 text-xs mt-1.5 leading-snug break-words ${hasLink ? 'text-blue-600 dark:text-blue-400 group-hover:underline flex items-center gap-1' : ''}`}>
                         {notif.title}
                         {hasLink && <span className="text-[10px] text-blue-500">🔗</span>}
                       </h5>
-                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed break-words">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-relaxed break-words">
                         {notif.body}
                       </p>
                     </div>
@@ -483,15 +483,15 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer View all / Quick Clear indicator & Clear Options */}
-          <div className="p-3 bg-slate-50 border-t border-gray-100 flex flex-col gap-2.5 px-4">
+          <div className="p-3 bg-slate-50 dark:bg-slate-900/80 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-2.5 px-4">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-slate-400 dark:text-slate-400">
                 કુલ: <strong>{notifications.length}</strong> સંદેશાઓ
               </span>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAsRead}
-                  className="text-[10px] text-blue-600 hover:text-blue-800 font-black flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-black flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
                   <span>બધા જોયેલા તરીકે માર્ક કરો</span>
@@ -501,7 +501,7 @@ export default function NotificationBell() {
 
             <button
               onClick={handleClearNotifications}
-              className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-extrabold py-2 px-3 rounded-xl border border-rose-100 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+              className="w-full bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-[10px] font-extrabold py-2 px-3 rounded-xl border border-rose-100 dark:border-rose-900 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
               type="button"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -517,24 +517,24 @@ export default function NotificationBell() {
         {toasts.map(toast => (
           <div 
             key={toast.id} 
-            className="bg-white border border-slate-150 rounded-2xl shadow-2xl p-4 flex gap-3 animate-slide-in border-l-4 border-l-blue-600 overflow-hidden transform transition-all duration-300 pointer-events-auto"
+            className="bg-white dark:bg-[#121824] border border-slate-150 dark:border-slate-800 rounded-2xl shadow-2xl p-4 flex gap-3 animate-slide-in border-l-4 border-l-blue-600 overflow-hidden transform transition-all duration-300 pointer-events-auto"
           >
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl self-start border border-blue-100">
+            <div className="p-2.5 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl self-start border border-blue-100 dark:border-blue-900">
               {getIcon(toast.type)}
             </div>
             <div className="flex-1 min-w-0 pr-6">
               <div className="flex items-center gap-1.5 justify-between">
-                <span className="text-[9px] uppercase tracking-wider font-extrabold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
+                <span className="text-[9px] uppercase tracking-wider font-extrabold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 px-1.5 py-0.5 rounded">
                   {getLabelGujarati(toast.type)}
                 </span>
-                <span className="text-[9px] text-slate-400 font-mono font-bold">હમણાં જ</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono font-bold">હમણાં જ</span>
               </div>
-              <h5 className="font-extrabold text-slate-900 text-xs mt-1.5 break-words leading-snug">{toast.title}</h5>
-              <p className="text-[11px] text-slate-600 mt-1 break-words leading-relaxed">{toast.body}</p>
+              <h5 className="font-extrabold text-slate-900 dark:text-slate-100 text-xs mt-1.5 break-words leading-snug">{toast.title}</h5>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 break-words leading-relaxed">{toast.body}</p>
             </div>
             <button 
               onClick={() => removeToast(toast.id)}
-              className="absolute top-3 right-3 p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="absolute top-3 right-3 p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               type="button"
             >
               <X className="h-3.5 w-3.5" />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { User, Exam, ExamHistory } from '../types';
-import { User as UserIcon, BookOpen, Clock, Calendar, MapPin, CheckCircle, FileText, Lock, RefreshCw, HelpCircle, Award, Download, LayoutDashboard, Trophy, ShieldCheck, Bookmark, Heart } from 'lucide-react';
+import { User as UserIcon, BookOpen, Clock, Calendar, MapPin, CheckCircle, FileText, Lock, RefreshCw, HelpCircle, Award, Download, LayoutDashboard, Trophy, ShieldCheck, Bookmark, Heart, BadgeCheck, Home, X } from 'lucide-react';
 import { subscribeToPushNotifications } from '../utils/push';
 import { Bell, BellOff, Search, Filter, ChevronDown, ChevronUp, SlidersHorizontal, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -8,6 +8,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { BarChart2 } from 'lucide-react';
 import { safeFormatDate } from '../utils/date';
 import { fetchWithCache } from '../utils/cache';
+import { navigateToHome } from '../utils/navigation';
+import DashboardCustomBanner from './DashboardCustomBanner';
 
 const Leaderboard = lazy(() => import('./Leaderboard'));
 const AdminPanel = lazy(() => import('./AdminPanel'));
@@ -243,16 +245,21 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
   const [passMsg, setPassMsg] = useState({ text: '', type: '' });
 
   const [showProfileAlertModal, setShowProfileAlertModal] = useState(false);
+  const [showMeritLockModal, setShowMeritLockModal] = useState(false);
 
   useEffect(() => {
     const handleTabChange = (e: any) => {
       if (e.detail) {
+        const isPremium = user?.subscriptionPlan && user?.subscriptionPlan !== 'free';
+        if (e.detail === 'merit_list' && !isPremium) {
+          setShowMeritLockModal(true);
+        }
         setActiveTab(e.detail);
       }
     };
     window.addEventListener('change-dashboard-tab', handleTabChange);
     return () => window.removeEventListener('change-dashboard-tab', handleTabChange);
-  }, []);
+  }, [user]);
 
   const fetchBookmarks = async () => {
     setBookmarksLoading(true);
@@ -530,6 +537,12 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
   const handleTabClick = (tabId: string, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
+    const isPremium = user?.subscriptionPlan && user?.subscriptionPlan !== 'free';
+    if (tabId === 'merit_list' && !isPremium) {
+      setShowMeritLockModal(true);
+      setActiveTab('merit_list');
+      return;
+    }
     setActiveTab(tabId as any);
   };
 
@@ -582,6 +595,15 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
             <nav className="flex flex-col gap-2 pb-2 lg:pb-0">
               <button
                 type="button"
+                onClick={() => navigateToHome()}
+                className="flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+              >
+                <Home className="h-4.5 w-4.5 text-blue-600" />
+                <span>🏠 હોમ (Home)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={(e) => handleTabClick('dashboard', e)}
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
                   activeTab === 'dashboard'
@@ -590,21 +612,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <LayoutDashboard className="h-4.5 w-4.5" />
-                <span>ડેસ્કબોર્ડ</span>
-              </button>
-
-
-              <button
-                type="button"
-                onClick={(e) => handleTabClick('merit_list', e)}
-                className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
-                  activeTab === 'merit_list'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'
-                }`}
-              >
-                <Trophy className="h-4.5 w-4.5" />
-                <span>મેરીટ લીસ્ટ</span>
+                <span>📊 ડેશબોર્ડ</span>
               </button>
 
               <button
@@ -617,7 +625,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <BookOpen className="h-4.5 w-4.5" />
-                <span>ભરતી પરીક્ષા મોક ટેસ્ટ</span>
+                <span>📝 મોક ટેસ્ટ આપો</span>
               </button>
 
               <button
@@ -630,12 +638,21 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <Bookmark className="h-4.5 w-4.5" />
-                <span>બુકમાર્ક પ્રશ્નો (Saved)</span>
+                <span>🔖 સેવ કરેલા પ્રશ્નો (Bookmarks)</span>
               </button>
 
-
-
-
+              <button
+                type="button"
+                onClick={(e) => handleTabClick('merit_list', e)}
+                className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full ${
+                  activeTab === 'merit_list'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-blue-600'
+                }`}
+              >
+                <Trophy className="h-4.5 w-4.5" />
+                <span>🏆 મેરીટ લીસ્ટ</span>
+              </button>
 
               <button
                 type="button"
@@ -645,7 +662,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-100`}
               >
                 <Award className="h-4.5 w-4.5" />
-                <span>સબસ્ક્રિપ્શન પ્લાન</span>
+                <span>🎗️ સબસ્ક્રિપ્શન પ્લાન</span>
               </button>
 
               <button
@@ -658,7 +675,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <Lock className="h-4.5 w-4.5" />
-                <span>પાસવર્ડ બદલો</span>
+                <span>🔑 પાસવર્ડ બદલો</span>
               </button>
 
               {user?.role === 'admin' && (
@@ -672,7 +689,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   }`}
                 >
                   <ShieldCheck className="h-4.5 w-4.5" />
-                  <span>🛠 એડમિન પેનલ</span>
+                  <span>🛠️ એડમિન પેનલ</span>
                 </button>
               )}
             </nav>
@@ -733,15 +750,15 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 </div>
               </div>
 
-              <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-3 font-sans px-1">
-                  <UserIcon className="h-5 w-5 text-blue-600" />
+              <div className="bg-transparent md:bg-white md:dark:bg-[#121824] rounded-none md:rounded-2xl border-0 md:border border-gray-150 md:dark:border-slate-800 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-slate-800 pb-3 font-sans px-1">
+                  <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   પ્રોફાઇલ સેક્શન
                 </h3>
 
               {message.text && (
                 <div className={`p-4 rounded-xl text-sm font-medium mb-6 ${
-                  message.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'
+                  message.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300'
                 }`}>
                   {message.text}
                 </div>
@@ -749,44 +766,44 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
               <form onSubmit={handleUpdateProfile} className="space-y-4 max-w-xl">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">આખું નામ <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">આખું નામ <span className="text-red-500 font-bold">*</span></label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="તમારું આખું નામ લખો"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">મોબાઈલ નંબર (બદલાશે નહીં)</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">મોબાઈલ નંબર (બદલાશે નહીં)</label>
                   <input
                     type="tel"
                     disabled
                     value={user.phone}
-                    className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 text-gray-500 rounded-xl text-sm"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-xl text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">ઈમેઈલ એડ્રેસ <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">ઈમેઈલ એડ્રેસ <span className="text-red-500 font-bold">*</span></label>
                   <input
                     type="email"
                     value={email} required
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">કેટેગરી (Category) <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">કેટેગરી (Category) <span className="text-red-500 font-bold">*</span></label>
                   <select
                     value={category} required
                     onChange={(e) => setCategory(e.target.value as any)}
-                    className="w-full px-4 py-2.5 border border-gray-300 bg-white rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   >
                     <option value="General">General</option>
                     <option value="OBC">OBC</option>
@@ -797,40 +814,91 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">જન્મ તારીખ (DOB) <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">જન્મ તારીખ (DOB) <span className="text-red-500 font-bold">*</span></label>
                   <input
                     type="date"
                     value={dob} required
                     onChange={(e) => setDob(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">સરનામું (Address) <span className="text-red-500 font-bold">*</span></label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">સરનામું (Address) <span className="text-red-500 font-bold">*</span></label>
                   <textarea
                     value={address} required
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="ગામ, તાલુકો, જિલ્લો અને પિનકોડ"
                     rows={3}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">એકાઉન્ટ પ્રકાર</label>
-                  <div className={`w-full px-4 py-2.5 border rounded-xl text-sm font-medium ${
-                    user.subscriptionPlan && user.subscriptionPlan !== 'free' 
-                      ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                      : 'bg-gray-50 text-gray-700 border-gray-200'
-                  }`}>
-                    {user.subscriptionPlan && user.subscriptionPlan !== 'free' ? 'Premium (પ્રીમિયમ)' : 'Free (ફ્રી)'}
-                    {user.subscriptionPlan && user.subscriptionPlan !== 'free' && user.subscriptionExpiry && (
-                      <span className="block mt-1 text-xs opacity-80">
-                        Expiry Date: {safeFormatDate(user.subscriptionExpiry)}
-                      </span>
-                    )}
-                  </div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-2">એકાઉન્ટ પ્રકાર / સબસ્ક્રિપ્શન વિગત</label>
+                  {user.subscriptionPlan && user.subscriptionPlan !== 'free' ? (
+                    (() => {
+                      const expiry = user.subscriptionExpiry ? new Date(user.subscriptionExpiry) : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+                      const start = new Date(expiry);
+                      if (user.subscriptionPlan === 'yearly') {
+                        start.setFullYear(start.getFullYear() - 1);
+                      } else {
+                        start.setMonth(start.getMonth() - 1);
+                      }
+                      const now = new Date();
+                      const diffMs = expiry.getTime() - now.getTime();
+                      const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+                      const formatDateStr = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+
+                      return (
+                        <div className="bg-[#071c35] rounded-2xl md:rounded-3xl p-4 sm:p-5 text-white shadow-xl relative overflow-hidden font-sans border border-slate-800">
+                          {/* Top Row: Icon, Title, Days Left */}
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-center sm:items-start gap-2.5 sm:gap-3">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#14365d] flex items-center justify-center shrink-0 border border-white/10 shadow-inner">
+                                <BadgeCheck className="w-6 h-6 sm:w-7 sm:h-7 text-white fill-white/10" />
+                              </div>
+                              <div>
+                                <h3 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight tracking-tight">
+                                  Active Subscription
+                                </h3>
+                                <p className="text-slate-300/90 text-xs sm:text-sm font-medium mt-0.5 leading-snug">
+                                  તમે અનલિમિટેડ ટેસ્ટ આપી શકો છો.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="bg-[#0b4832] text-emerald-300 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold flex items-center gap-1 border border-emerald-600/40 shadow-xs shrink-0 whitespace-nowrap">
+                              <span>{daysLeft} days left</span>
+                            </div>
+                          </div>
+
+                          {/* Bottom Row: Start Date & End Date Box */}
+                          <div className="bg-[#0c2a4d]/90 rounded-xl p-3 sm:p-3.5 mt-4 border border-white/10 grid grid-cols-2 divide-x divide-white/10">
+                            <div className="pr-2.5 sm:pr-3">
+                              <span className="block text-slate-400 text-[10px] sm:text-xs font-medium mb-1">Start Date</span>
+                              <div className="flex items-center gap-1.5 text-white font-bold text-xs sm:text-sm">
+                                <Calendar className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                                <span>{formatDateStr(start)}</span>
+                              </div>
+                            </div>
+
+                            <div className="pl-2.5 sm:pl-3">
+                              <span className="block text-slate-400 text-[10px] sm:text-xs font-medium mb-1">End Date</span>
+                              <div className="flex items-center gap-1.5 text-white font-bold text-xs sm:text-sm">
+                                <Calendar className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                                <span>{formatDateStr(expiry)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="w-full px-4 py-2.5 border rounded-xl text-sm font-medium bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700">
+                      Free (ફ્રી એકાઉન્ટ)
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -848,22 +916,10 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
           {/* DASHBOARD TAB PANEL */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-4 md:space-y-5 animate-fade-in">
 
-              {/* Motivational Banner */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 md:p-8 rounded-2xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-2xl font-black mb-2">તમારી સફળતાની સફર શરૂ કરો!</h3>
-                  <p className="text-blue-100 font-medium mb-4">સખત મહેનત અને યોગ્ય દિશા જ સફળતાની ચાવી છે.</p>
-                  <button 
-                    onClick={(e) => handleTabClick('mock_tests', e)}
-                    className="bg-white text-blue-700 font-bold py-2 px-6 rounded-xl hover:bg-blue-50 transition-colors"
-                  >
-                    વધુ મોક ટેસ્ટ આપો
-                  </button>
-                </div>
-                <Trophy className="h-16 w-16 text-blue-200/50" />
-              </div>
+              {/* Motivational Custom Banner */}
+              <DashboardCustomBanner onStartTest={(e) => handleTabClick('mock_tests', e)} />
 
               {/* Push Notification Banner */}
               {pushStatus !== 'granted' && (
@@ -893,16 +949,16 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
               )}
 
               {/* EXAM ATTEMPT HISTORY & WISHLIST TAB CONTAINER */}
-              <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 mt-6">
+              <div className="bg-transparent md:bg-white md:dark:bg-[#121824] rounded-none md:rounded-2xl border-0 md:border border-gray-150 md:dark:border-slate-800 shadow-none md:shadow-sm p-1.5 md:p-8 mt-6">
                 
                 {/* Modern Sub-Tab Switcher */}
-                <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-100 pb-3">
+                <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-100 dark:border-slate-800 pb-3">
                   <button
                     onClick={() => setDashboardSubTab('history')}
                     className={`flex items-center gap-2 py-2 px-4 rounded-lg font-bold text-sm transition-all cursor-pointer ${
                       dashboardSubTab === 'history'
                         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
-                        : 'text-gray-600 hover:bg-slate-100'
+                        : 'text-gray-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     <Clock className="h-4 w-4" />
@@ -913,7 +969,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                     className={`flex items-center gap-2 py-2 px-4 rounded-lg font-bold text-sm transition-all cursor-pointer ${
                       dashboardSubTab === 'wishlist'
                         ? 'bg-red-500 text-white shadow-md shadow-red-500/10'
-                        : 'text-gray-600 hover:bg-slate-100'
+                        : 'text-gray-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     <Heart className="h-4 w-4" />
@@ -924,8 +980,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 {dashboardSubTab === 'history' ? (
                   <>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 px-1">
-                      <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 font-sans">
-                        <Clock className="h-5 w-5 text-blue-600" />
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 font-sans">
+                        <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         મારી પરીક્ષાઓનો ઇતિહાસ (Attempt History)
                       </h3>
                       {history.length > 0 && (
@@ -949,37 +1005,37 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                       )}
                     </div>
                     {examsLoading ? (
-                      <p className="text-gray-500 text-base px-1">ઇતિહાસ લોડ થઈ રહ્યો છે...</p>
+                      <p className="text-gray-500 dark:text-slate-400 text-base px-1">ઇતિહાસ લોડ થઈ રહ્યો છે...</p>
                     ) : history.length === 0 ? (
-                      <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                        <p className="text-gray-500 text-base">તમે હજુ સુધી કોઈ પરીક્ષા આપી નથી.</p>
+                      <div className="text-center py-8 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-800">
+                        <p className="text-gray-500 dark:text-slate-400 text-base">તમે હજુ સુધી કોઈ પરીક્ષા આપી નથી.</p>
                       </div>
                     ) : (
                       <>
                         <div className="hidden md:block overflow-x-auto">
                           <table className="w-full text-left border-collapse">
                             <thead>
-                              <tr className="bg-slate-50 border-y border-gray-200">
-                                <th className="py-3 px-4 font-bold text-slate-700 text-sm">પરીક્ષાનું નામ</th>
-                                <th className="py-3 px-4 font-bold text-slate-700 text-sm">તારીખ</th>
-                                <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">લીધેલ સમય</th>
-                                <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">માર્ક્સ / પરિણામ</th>
-                                <th className="py-3 px-4 font-bold text-slate-700 text-sm text-center">રિપોર્ટ</th>
+                              <tr className="bg-slate-50 dark:bg-slate-800/80 border-y border-gray-200 dark:border-slate-700">
+                                <th className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300 text-sm">પરીક્ષાનું નામ</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300 text-sm">તારીખ</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300 text-sm text-center">લીધેલ સમય</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300 text-sm text-center">માર્ક્સ / પરિણામ</th>
+                                <th className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300 text-sm text-center">રિપોર્ટ</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                               {history.map((h) => (
-                                <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
-                                  <td className="py-3.5 px-4 font-bold text-gray-800 text-sm">{h.examName}</td>
-                                  <td className="py-3.5 px-4 text-gray-600 text-sm">{safeFormatDate(h.submittedAt)}</td>
-                                  <td className="py-3.5 px-4 font-mono font-bold text-gray-600 text-sm text-center">{h.timeTaken}</td>
+                                <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                  <td className="py-3.5 px-4 font-bold text-gray-800 dark:text-slate-100 text-sm">{h.examName}</td>
+                                  <td className="py-3.5 px-4 text-gray-600 dark:text-slate-300 text-sm">{safeFormatDate(h.submittedAt)}</td>
+                                  <td className="py-3.5 px-4 font-mono font-bold text-gray-600 dark:text-slate-300 text-sm text-center">{h.timeTaken}</td>
                                   <td className="py-3.5 px-4 text-center">
                                     {h.marksObtained !== null ? (
-                                      <span className="font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100 text-sm">
+                                      <span className="font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/60 text-sm">
                                         {h.marksObtained} / {h.totalMarks}
                                       </span>
                                     ) : (
-                                      <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
+                                      <span className="inline-block text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-lg border border-amber-100 dark:border-amber-800/60">
                                         ⏳ પરિણામ બાકી
                                       </span>
                                     )}
@@ -991,19 +1047,19 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                         disabled={pdfDownloading !== null}
                                         className={`inline-flex items-center gap-1.5 text-xs font-black py-2 px-3 rounded-xl border transition-all cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
                                           pdfDownloading === String(h.id)
-                                            ? 'bg-amber-50 text-amber-755 border-amber-200 animate-pulse'
-                                            : 'bg-blue-50 hover:bg-blue-100 text-blue-755 border-blue-200'
+                                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-755 dark:text-amber-300 border-amber-200 dark:border-amber-800 animate-pulse'
+                                            : 'bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-755 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                                         }`}
                                       >
                                         {pdfDownloading === String(h.id) ? (
-                                          <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
+                                          <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600 dark:text-amber-400" />
                                         ) : (
                                           <Download className="h-3.5 w-3.5" />
                                         )}
                                         {pdfDownloading === String(h.id) ? 'તૈયાર થાય છે...' : 'PDF'}
                                       </button>
                                     ) : (
-                                      <span className="text-xs text-gray-400 font-medium">-</span>
+                                      <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">-</span>
                                     )}
                                   </td>
                                 </tr>
@@ -1014,30 +1070,30 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                         {/* Mobile View Card List */}
                         <div className="block md:hidden space-y-3">
                           {history.slice((historyCurrentPage - 1) * HISTORY_PER_PAGE, historyCurrentPage * HISTORY_PER_PAGE).map((h) => (
-                            <div key={h.id} className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div key={h.id} className="bg-white dark:bg-[#121824] border border-gray-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow">
                               <div className="flex justify-between items-start">
-                                <h4 className="font-extrabold text-[16px] text-gray-850 leading-snug">{h.examName}</h4>
+                                <h4 className="font-extrabold text-[16px] text-gray-850 dark:text-slate-100 leading-snug">{h.examName}</h4>
                                 <div className="shrink-0">
                                   {h.marksObtained !== null ? (
-                                    <span className="font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 text-sm">
+                                    <span className="font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/60 text-sm">
                                       {h.marksObtained} / {h.totalMarks}
                                     </span>
                                   ) : (
-                                    <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                                    <span className="inline-block text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-100 dark:border-amber-800/60">
                                       ⏳ પરિણામ બાકી
                                     </span>
                                   )}
                                 </div>
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 border-t border-b border-gray-100 py-2">
+                              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-slate-300 border-t border-b border-gray-100 dark:border-slate-800 py-2">
                                 <div>
-                                  <span className="text-gray-400 font-bold block text-[10px] uppercase">તારીખ:</span>
-                                  <span className="font-semibold text-gray-700 text-xs md:text-sm">{safeFormatDate(h.submittedAt)}</span>
+                                  <span className="text-gray-400 dark:text-slate-400 font-bold block text-[10px] uppercase">તારીખ:</span>
+                                  <span className="font-semibold text-gray-700 dark:text-slate-200 text-xs md:text-sm">{safeFormatDate(h.submittedAt)}</span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-400 font-bold block text-[10px] uppercase">લીધેલ સમય:</span>
-                                  <span className="font-mono font-bold text-gray-700 text-xs md:text-sm">{h.timeTaken}</span>
+                                  <span className="text-gray-400 dark:text-slate-400 font-bold block text-[10px] uppercase">લીધેલ સમય:</span>
+                                  <span className="font-mono font-bold text-gray-700 dark:text-slate-200 text-xs md:text-sm">{h.timeTaken}</span>
                                 </div>
                               </div>
                               <div className="flex justify-end pt-1">
@@ -1047,20 +1103,20 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                     disabled={pdfDownloading !== null}
                                     className={`w-full inline-flex items-center justify-center gap-1.5 text-sm font-black py-2.5 px-4 rounded-xl border transition-all cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${
                                       pdfDownloading === String(h.id)
-                                        ? 'bg-amber-50 text-amber-750 border-amber-200 animate-pulse'
-                                        : 'bg-blue-50 hover:bg-blue-100 text-blue-755 border-blue-200'
+                                        ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-750 dark:text-amber-300 border-amber-200 dark:border-amber-800 animate-pulse'
+                                        : 'bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-755 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                                     }`}
                                   >
                                     {pdfDownloading === String(h.id) ? (
-                                      <RefreshCw className="h-4 w-4 animate-spin text-amber-600" />
+                                      <RefreshCw className="h-4 w-4 animate-spin text-amber-600 dark:text-amber-400" />
                                     ) : (
                                       <Download className="h-4 w-4" />
                                     )}
                                     {pdfDownloading === String(h.id) ? 'પીડીએફ જનરેટ થઈ રહી છે...' : 'ડાઉનલોડ રીઝલ્ટ (PDF)'}
                                   </button>
                                 ) : (
-                                  <p className="text-xs text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 text-center w-full leading-relaxed font-bold">
-                                    ⚠️ ઓફિશિયલ અંસાર કી બહાર પાડ્યા બાદ માર્ક્સ દેખાશે
+                                  <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 p-2.5 rounded-lg border border-amber-100 dark:border-amber-800/60 text-center w-full leading-relaxed font-bold">
+                                    ⚠️ ઓફિશિયલ આન્સર કી બહાર પાડ્યા બાદ માર્ક્સ દેખાશે
                                   </p>
                                 )}
                               </div>
@@ -1074,11 +1130,11 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                                 disabled={historyCurrentPage === 1}
-                                className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold disabled:opacity-50"
+                                className="px-3 py-1 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-lg text-xs font-bold disabled:opacity-50"
                               >
                                 પહેલાનું
                               </button>
-                              <span className="text-xs font-bold text-gray-600">
+                              <span className="text-xs font-bold text-gray-600 dark:text-slate-400">
                                 {historyCurrentPage} / {Math.ceil(history.length / HISTORY_PER_PAGE)}
                               </span>
                               <button
@@ -1087,7 +1143,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                                 disabled={historyCurrentPage === Math.ceil(history.length / HISTORY_PER_PAGE)}
-                                className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold disabled:opacity-50"
+                                className="px-3 py-1 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-lg text-xs font-bold disabled:opacity-50"
                               >
                                 પછીનું
                               </button>
@@ -1099,17 +1155,17 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   </>
                 ) : (
                   <>
-                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6 px-1 font-sans">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-6 px-1 font-sans">
                       <Heart className="h-5 w-5 text-red-500 fill-red-500" />
                       સેવ કરેલી પરીક્ષાઓ (Wish List)
                     </h3>
                     
                     {wishlistLoading ? (
-                      <p className="text-gray-500 text-base px-1">સેવ કરેલી પરીક્ષાઓ લોડ થઈ રહી છે...</p>
+                      <p className="text-gray-500 dark:text-slate-400 text-base px-1">સેવ કરેલી પરીક્ષાઓ લોડ થઈ રહી છે...</p>
                     ) : wishlist.length === 0 ? (
-                      <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                        <Heart className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 text-base">તમે હજુ સુધી કોઈ પરીક્ષા સેવ કરી નથી.</p>
+                      <div className="text-center py-12 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-800">
+                        <Heart className="h-10 w-10 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+                        <p className="text-gray-500 dark:text-slate-400 text-base">તમે હજુ સુધી કોઈ પરીક્ષા સેવ કરી નથી.</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1 animate-fade-in">
@@ -1118,19 +1174,19 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                           if (!exam) return null;
                           const isAttempted = history.some(h => String(h.examId) === String(exam.id));
                           return (
-                            <div key={exam.id} className={`border border-gray-200 rounded-2xl p-4 sm:p-4 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
-                              exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
+                            <div key={exam.id} className={`border border-gray-200 dark:border-slate-800 rounded-2xl p-4 sm:p-4 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white dark:bg-[#121824] md:bg-slate-50/50 md:dark:bg-slate-900/50 ${
+                              exam.type === 'bharti' ? 'border-indigo-100 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500' : 'border-blue-100 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500'
                             }`}>
                               <div>
-                                <div className="mb-2.5 pb-1.5 border-b border-slate-100/60 flex items-center justify-between gap-2">
+                                <div className="mb-2.5 pb-1.5 border-b border-slate-100/60 dark:border-slate-800 flex items-center justify-between gap-2">
                                   {exam.type === 'bharti' ? (
                                     <div className="flex flex-wrap items-center gap-2 flex-1">
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/60">
                                         💼 સત્તાવાર ભરતી
                                       </span>
                                       {exam.totalVacancies && (
                                         <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] sm:text-[10px] font-bold">
-                                          <span className="bg-teal-50 text-teal-800 px-2 py-0.5 rounded-full border border-teal-100 flex items-center gap-1 font-sans">
+                                          <span className="bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-900/60 flex items-center gap-1 font-sans">
                                             💼 જગ્યાઓ: <strong className="font-extrabold">{exam.totalVacancies}</strong>
                                           </span>
                                         </div>
@@ -1138,19 +1194,19 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                     </div>
                                   ) : (
                                     <div className="flex flex-wrap gap-1.5 items-center flex-1">
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-900/60">
                                         📝 મોક ટેસ્ટ
                                       </span>
                                       {exam.subject && (
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-100">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-100 dark:border-purple-900/60">
                                           🏷️ {exam.subject}
                                         </span>
                                       )}
                                       {exam.difficulty && (
                                         <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${
                                           exam.difficulty === 'difficult'
-                                            ? 'bg-red-50 text-red-700 border-red-100'
-                                            : 'bg-green-50 text-green-700 border-green-100'
+                                            ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-100 dark:border-red-900/60'
+                                            : 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border-green-100 dark:border-green-900/60'
                                         }`}>
                                           {exam.difficulty === 'difficult' ? '🔴 Difficult' : '🟢 Easy'}
                                         </span>
@@ -1163,20 +1219,20 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                       e.stopPropagation();
                                       handleToggleWishlist(Number(exam.id));
                                     }}
-                                    className="p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none shrink-0"
+                                    className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none shrink-0"
                                     title="Wish List માંથી દૂર કરો"
                                   >
                                     <Heart className="h-4.5 w-4.5 fill-red-500 text-red-500 transition-transform active:scale-125" />
                                   </button>
                                 </div>
                                 
-                                <h4 className="font-extrabold text-gray-800 text-lg leading-snug">{exam.name}</h4>
-                                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                                <h4 className="font-extrabold text-gray-800 dark:text-slate-100 text-lg leading-snug">{exam.name}</h4>
+                                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500 dark:text-slate-400">
                                   {exam.type === 'bharti' && exam.examDate && (
-                                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4 text-slate-400" /> પરીક્ષા તારીખ: {exam.examDate}</span>
+                                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4 text-slate-400 dark:text-slate-500" /> પરીક્ષા તારીખ: {exam.examDate}</span>
                                   )}
-                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-slate-400" /> {exam.totalQuestions} પ્રશ્નો</span>
-                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-slate-400" /> {exam.duration} મિનિટ</span>
+                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-slate-400 dark:text-slate-500" /> {exam.totalQuestions} પ્રશ્નો</span>
+                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-slate-400 dark:text-slate-500" /> {exam.duration} મિનિટ</span>
                                 </div>
                               </div>
                               <button
@@ -1205,9 +1261,9 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
 
           {/* MOCK TESTS TAB PANEL (ભરતી પરીક્ષા મોક ટેસ્ટ) */}
           {activeTab === 'mock_tests' && (
-            <div ref={mockTestHeaderRef} className="scroll-mt-24 bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-3 font-sans px-1">
-                <BookOpen className="h-5.5 w-5.5 text-blue-600" />
+            <div ref={mockTestHeaderRef} className="scroll-mt-24 bg-transparent md:bg-white md:dark:bg-[#121824] rounded-none md:rounded-2xl border-0 md:border border-gray-150 md:dark:border-slate-800 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-slate-800 pb-3 font-sans px-1">
+                <BookOpen className="h-5.5 w-5.5 text-blue-600 dark:text-blue-400" />
                 ભરતી પરીક્ષા મોક ટેસ્ટ
               </h3>
               
@@ -1224,12 +1280,12 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                       setMockTestPage(1); // Reset to first page on search
                     }}
                     placeholder="પરીક્ષાનું નામ શોધો..."
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-sans"
+                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl leading-5 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-sans"
                   />
                 </div>
 
                 {/* TAB SELECTION: મોક ટેસ્ટ (Mock Test) & ભરતી પરીક્ષા (Recruitment Exam) */}
-                <div className="flex border border-gray-200 mb-6 bg-slate-50/50 p-1.5 rounded-2xl gap-2">
+                <div className="flex border border-gray-200 dark:border-slate-800 mb-6 bg-slate-50/50 dark:bg-slate-900/50 p-1.5 rounded-2xl gap-2">
                   <button
                     onClick={() => {
                       setExamSubTab('mock');
@@ -1240,7 +1296,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                     className={`flex-1 py-3 text-center text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       examSubTab === 'mock'
                         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/15'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-100'
                     }`}
                   >
                     <span>📝 મોક ટેસ્ટ</span>
@@ -1255,7 +1311,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                     className={`flex-1 py-3 text-center text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       examSubTab === 'bharti'
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/15'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-100'
                     }`}
                   >
                     <span>💼 ભરતી પરીક્ષા</span>
@@ -1263,15 +1319,15 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 </div>
 
                 {examSubTab === 'bharti' && (
-                  <div className="mb-6 p-4 md:p-5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex gap-3 text-amber-900 shadow-sm animate-fade-in">
-                    <div className="bg-amber-100/75 p-2 h-9 w-9 rounded-xl text-amber-700 flex-shrink-0 flex items-center justify-center shadow-sm">
+                  <div className="mb-6 p-4 md:p-5 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 rounded-2xl flex gap-3 text-amber-900 dark:text-amber-200 shadow-sm animate-fade-in">
+                    <div className="bg-amber-100/75 dark:bg-amber-900/60 p-2 h-9 w-9 rounded-xl text-amber-700 dark:text-amber-300 flex-shrink-0 flex items-center justify-center shadow-sm">
                       <AlertCircle className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-extrabold text-sm md:text-base text-amber-950 mb-1.5 tracking-wide">
+                      <h4 className="font-extrabold text-sm md:text-base text-amber-950 dark:text-amber-200 mb-1.5 tracking-wide">
                         અગત્યની સૂચના:
                       </h4>
-                      <ul className="list-disc pl-5 space-y-1.5 text-xs md:text-sm text-amber-900/95 font-medium leading-relaxed">
+                      <ul className="list-disc pl-5 space-y-1.5 text-xs md:text-sm text-amber-900/95 dark:text-amber-300 font-medium leading-relaxed">
                         <li>અહીં તમે આપેલી પરીક્ષાના જવાબો સબમિટ કરો.</li>
                         <li>ઑફિશિયલ આન્સર કી આવ્યા બાદ તમે તમારા સાચા માર્ક્સ જાણી શકશો.</li>
                         <li>આ સાથે તમે તમારું અંદાજિત મેરિટ લિસ્ટ પણ જોઈ શકશો.</li>
@@ -1286,11 +1342,11 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   <div className="mb-6">
                     <button
                       onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                      className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border border-blue-100 hover:border-blue-300 rounded-2xl cursor-pointer transition-all duration-300 shadow-sm"
+                      className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-slate-800/80 dark:to-slate-800/60 border border-blue-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600 rounded-2xl cursor-pointer transition-all duration-300 shadow-sm"
                     >
                       <div className="flex items-center gap-2.5">
-                        <SlidersHorizontal className="h-4 w-4 text-blue-600 animate-pulse" />
-                        <span className="text-xs md:text-sm font-extrabold text-blue-900 tracking-wide">
+                        <SlidersHorizontal className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                        <span className="text-xs md:text-sm font-extrabold text-blue-900 dark:text-blue-200 tracking-wide">
                           મોક ટેસ્ટ ફિલ્ટર અને કઠિનતા સ્તર (Advanced Filters)
                         </span>
                         {(selectedSubject || selectedDifficulty) && (
@@ -1301,19 +1357,19 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                       </div>
                       <div className="flex items-center gap-2">
                         {isFilterExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-blue-600" />
+                          <ChevronUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         ) : (
-                          <ChevronDown className="h-4 w-4 text-blue-600" />
+                          <ChevronDown className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         )}
                       </div>
                     </button>
 
                     {/* Filter Panel content */}
                     {isFilterExpanded && (
-                      <div className="mt-3 bg-white border border-slate-100 p-5 rounded-2xl shadow-md space-y-5">
+                      <div className="mt-3 bg-white dark:bg-[#121824] border border-slate-100 dark:border-slate-800 p-5 rounded-2xl shadow-md space-y-5">
                         {/* 1. Subject filter */}
                         <div>
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
                             <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
                             વિષય મુજબ ફિલ્ટર કરો (Filter by Subject):
                           </p>
@@ -1326,7 +1382,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                               className={`px-3.5 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border ${
                                 selectedSubject === ''
                                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/10'
-                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                                  : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700'
                               }`}
                             >
                               બધા વિષય
@@ -1350,7 +1406,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                 className={`px-3.5 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border ${
                                   selectedSubject === sub
                                     ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/10'
-                                    : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                                    : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700'
                                 }`}
                               >
                                 {sub}
@@ -1360,8 +1416,8 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                         </div>
 
                         {/* 2. Difficulty filter */}
-                        <div className="pt-3 border-t border-slate-100">
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
                             <span className="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
                             કઠિનતા સ્તર ફિલ્ટર કરો (Difficulty Type):
                           </p>
@@ -1374,7 +1430,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                               className={`px-4 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border ${
                                 selectedDifficulty === ''
                                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/10'
-                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                                  : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700'
                               }`}
                             >
                               બધા સ્તર (All Levels)
@@ -1387,7 +1443,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                               className={`px-4 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
                                 selectedDifficulty === 'easy'
                                   ? 'bg-green-600 text-white border-green-600 shadow-sm shadow-green-500/10'
-                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                                  : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700'
                               }`}
                             >
                               🟢 Easy (સરળ)
@@ -1400,7 +1456,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                               className={`px-4 py-2 text-xs md:text-sm font-extrabold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
                                 selectedDifficulty === 'difficult'
                                   ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-500/10'
-                                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200'
+                                  : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700'
                               }`}
                             >
                               🔴 Difficult (અઘરું)
@@ -1413,9 +1469,9 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 )}
                 
                 {examsLoading ? (
-                  <p className="text-gray-500 text-base px-1">ટેસ્ટ લોડ થઈ રહી છે...</p>
+                  <p className="text-gray-500 dark:text-slate-400 text-base px-1">ટેસ્ટ લોડ થઈ રહી છે...</p>
                 ) : allExams.length === 0 ? (
-                  <p className="text-gray-500 text-base px-1">હાલમાં કોઈ પરીક્ષાઓ ઉપલબ્ધ નથી.</p>
+                  <p className="text-gray-500 dark:text-slate-400 text-base px-1">હાલમાં કોઈ પરીક્ષાઓ ઉપલબ્ધ નથી.</p>
                 ) : (
                   (() => {
                     const filteredExams = allExams.filter(exam => {
@@ -1436,7 +1492,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                     );
 
                     if (filteredExams.length === 0) {
-                      return <p className="text-gray-500 text-base text-center py-8">કોઈ પરીક્ષા મળી નથી.</p>;
+                      return <p className="text-gray-500 dark:text-slate-400 text-base text-center py-8">કોઈ પરીક્ષા મળી નથી.</p>;
                     }
 
                     return (
@@ -1445,19 +1501,19 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                           {paginatedExams.map((exam) => {
                             const isAttempted = history.some(h => String(h.examId) === String(exam.id));
                             return (
-                            <div key={exam.id} className={`border border-gray-200 rounded-2xl p-4 sm:p-4 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white md:bg-slate-50/50 ${
-                              exam.type === 'bharti' ? 'border-indigo-100 hover:border-indigo-500' : 'border-blue-100 hover:border-blue-500'
+                            <div key={exam.id} className={`border border-gray-200 dark:border-slate-800 rounded-2xl p-4 sm:p-4 md:p-4 hover:shadow-lg transition-all flex flex-col justify-between bg-white dark:bg-[#121824] md:bg-slate-50/50 md:dark:bg-slate-900/50 ${
+                              exam.type === 'bharti' ? 'border-indigo-100 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500' : 'border-blue-100 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500'
                             }`}>
                               <div>
-                                <div className="mb-2.5 pb-1.5 border-b border-slate-100/60 flex items-center justify-between gap-2">
+                                <div className="mb-2.5 pb-1.5 border-b border-slate-100/60 dark:border-slate-800 flex items-center justify-between gap-2">
                                   {exam.type === 'bharti' ? (
                                     <div className="flex flex-wrap items-center gap-2 flex-1">
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/60">
                                         💼 સત્તાવાર ભરતી
                                       </span>
                                       {exam.totalVacancies && (
                                         <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] sm:text-[10px] font-bold">
-                                          <span className="bg-teal-50 text-teal-800 px-2 py-0.5 rounded-full border border-teal-100 flex items-center gap-1 font-sans">
+                                          <span className="bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-900/60 flex items-center gap-1 font-sans">
                                             💼 જગ્યાઓ: <strong className="font-extrabold">{exam.totalVacancies}</strong>
                                           </span>
                                         </div>
@@ -1465,19 +1521,19 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                     </div>
                                   ) : (
                                     <div className="flex flex-wrap gap-1.5 items-center flex-1">
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-900/60">
                                         📝 મોક ટેસ્ટ
                                       </span>
                                       {exam.subject && (
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-100">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-100 dark:border-purple-900/60">
                                           🏷️ {exam.subject}
                                         </span>
                                       )}
                                       {exam.difficulty && (
                                         <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${
                                           exam.difficulty === 'difficult'
-                                            ? 'bg-red-50 text-red-700 border-red-100'
-                                            : 'bg-green-50 text-green-700 border-green-100'
+                                            ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-100 dark:border-red-900/60'
+                                            : 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 border-green-100 dark:border-green-900/60'
                                         }`}>
                                           {exam.difficulty === 'difficult' ? '🔴 Difficult' : '🟢 Easy'}
                                         </span>
@@ -1490,33 +1546,33 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                       e.stopPropagation();
                                       handleToggleWishlist(Number(exam.id));
                                     }}
-                                    className="p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none shrink-0"
+                                    className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none shrink-0"
                                     title={wishlist.some(item => Number(item.examId) === Number(exam.id)) ? "Wish List માંથી દૂર કરો" : "Wish List માં ઉમેરો"}
                                   >
                                     <Heart className={`h-4.5 w-4.5 transition-transform active:scale-125 ${
                                       wishlist.some(item => Number(item.examId) === Number(exam.id))
                                         ? "fill-red-500 text-red-500"
-                                        : "text-gray-400 hover:text-red-500"
+                                        : "text-gray-400 dark:text-slate-500 hover:text-red-500"
                                     }`} />
                                   </button>
                                 </div>
                                 
-                                <h4 className="font-extrabold text-gray-800 text-lg leading-snug">{exam.name}</h4>
-                                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                                <h4 className="font-extrabold text-gray-800 dark:text-slate-100 text-lg leading-snug">{exam.name}</h4>
+                                <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500 dark:text-slate-400">
                                   {exam.type === 'bharti' && exam.examDate && (
-                                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4 text-slate-400" /> પરીક્ષા તારીખ: {exam.examDate}</span>
+                                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4 text-slate-400 dark:text-slate-500" /> પરીક્ષા તારીખ: {exam.examDate}</span>
                                   )}
-                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-slate-400" /> {exam.totalQuestions} પ્રશ્નો</span>
-                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-slate-400" /> {exam.duration} મિનિટ</span>
+                                  <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-slate-400 dark:text-slate-500" /> {exam.totalQuestions} પ્રશ્નો</span>
+                                  <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-slate-400 dark:text-slate-500" /> {exam.duration} મિનિટ</span>
                                 </div>
                                 
                                 {exam.type === 'bharti' && (
                                   <div className="mt-3">
                                     <div>
                                       {exam.answerKeyUploaded ? (
-                                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 font-bold px-2.5 py-1 rounded-full border border-emerald-100">✔ ઓફિશિયલ આન્સર કી ઉપલબ્ધ</span>
+                                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 font-bold px-2.5 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/60">✔ ઓફિશિયલ આન્સર કી ઉપલબ્ધ</span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 font-bold px-2.5 py-1 rounded-full border border-amber-100">⏳ પરિણામ બાકી (આન્સર કી અપલોડ બાકી)</span>
+                                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 font-bold px-2.5 py-1 rounded-full border border-amber-100 dark:border-amber-900/60">⏳ પરિણામ બાકી (આન્સર કી અપલોડ બાકી)</span>
                                       )}
                                     </div>
                                   </div>
@@ -1527,7 +1583,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                 disabled={isAttempted}
                                 className={`mt-6 text-white font-bold py-2.5 rounded-xl transition-all ${
                                   isAttempted 
-                                    ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                                    ? 'bg-gray-400 dark:bg-slate-700 dark:text-slate-400 cursor-not-allowed shadow-none'
                                     : exam.type === 'bharti' 
                                        ? 'bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/15 cursor-pointer active:scale-[0.98]' 
                                        : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/15 cursor-pointer active:scale-[0.98]'
@@ -1544,7 +1600,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                             <button
                               onClick={() => setMockTestPage(p => Math.max(1, p - 1))}
                               disabled={mockTestPage === 1}
-                              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 disabled:opacity-50 cursor-pointer hover:bg-gray-50"
+                              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-600 dark:text-slate-300 disabled:opacity-50 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800"
                             >
                               પાછળ
                             </button>
@@ -1556,7 +1612,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                                   mockTestPage === i + 1
                                     ? 'bg-indigo-600 text-white'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                    : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
                                 }`}
                               >
                                 {i + 1}
@@ -1566,7 +1622,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                             <button
                               onClick={() => setMockTestPage(p => Math.min(totalPages, p + 1))}
                               disabled={mockTestPage === totalPages}
-                              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 disabled:opacity-50 cursor-pointer hover:bg-gray-50"
+                              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-600 dark:text-slate-300 disabled:opacity-50 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800"
                             >
                               આગળ
                             </button>
@@ -1581,17 +1637,47 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
           )}
 
           {activeTab === 'merit_list' && (
-            <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
-              <Suspense fallback={<div className="p-4 text-center text-gray-500">લોડ થઈ રહ્યું છે...</div>}>
-                <Leaderboard currentUserName={user.name} />
-              </Suspense>
-            </div>
+            user?.subscriptionPlan && user?.subscriptionPlan !== 'free' ? (
+              <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in">
+                <Suspense fallback={<div className="p-4 text-center text-gray-500">લોડ થઈ રહ્યું છે...</div>}>
+                  <Leaderboard currentUserName={user.name} />
+                </Suspense>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-[#121824] rounded-2xl border border-gray-150 dark:border-slate-800 shadow-sm p-8 text-center max-w-lg mx-auto my-6 space-y-4 animate-fade-in">
+                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/50 rounded-full flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400 shadow-inner">
+                  <Trophy className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                  મેરિટ લિસ્ટ પ્રીમિયમ યૂઝર જોઈ શકે છે.
+                </h3>
+                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+                  મેરિટ લિસ્ટ જોવા માટે અને તમામ વિદ્યાર્થીઓ વચ્ચે તમારો ક્રમ (Rank) જાણવા માટે સબસ્ક્રિપ્શન પ્લાન મેળવો.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      if (onShowSubscription) onShowSubscription();
+                    }}
+                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:opacity-95 transition-all text-sm inline-flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Award className="w-4.5 h-4.5" /> સબસ્ક્રિપ્શન પ્લાન જુઓ
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('dashboard')}
+                    className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl transition-colors text-sm inline-flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <LayoutDashboard className="w-4.5 h-4.5" /> ડેશબોર્ડ પર જાઓ
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
 {/* ADMIN PANEL TAB */}
           {activeTab === 'admin' && user?.role === 'admin' && (
-            <div className="animate-fade-in bg-white rounded-2xl border border-gray-150 shadow-sm p-2 md:p-4">
-              <Suspense fallback={<div className="p-4 text-center text-gray-500">એડમિન પેનલ લોડ થઈ રહ્યું છે...</div>}>
+            <div className="animate-fade-in bg-white dark:bg-[#121824] rounded-2xl border-0 md:border border-gray-150 dark:border-slate-800 shadow-sm p-0 w-full" style={{ padding: '0px', width: '100%' }}>
+              <Suspense fallback={<div className="p-4 text-center text-gray-500 dark:text-slate-400">એડમિન પેનલ લોડ થઈ રહ્યું છે...</div>}>
                 <AdminPanel />
               </Suspense>
             </div>
@@ -1600,30 +1686,30 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
           {/* BOOKMARKS TAB PANEL */}
           
           {activeTab === 'change_password' && (
-            <div className="bg-transparent md:bg-white rounded-none md:rounded-[2rem] border-0 md:border border-slate-100 shadow-none md:shadow-xl p-2 md:p-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                <Lock className="h-6 w-6 text-orange-600" /> પાસવર્ડ બદલો
+            <div className="bg-transparent md:bg-white md:dark:bg-[#121824] rounded-none md:rounded-[2rem] border-0 md:border border-slate-100 md:dark:border-slate-800 shadow-none md:shadow-xl p-2 md:p-8">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
+                <Lock className="h-6 w-6 text-orange-600 dark:text-orange-400" /> પાસવર્ડ બદલો
               </h2>
               {passMsg.text && (
-                <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 ${passMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                <div className={`p-4 rounded-xl mb-6 flex items-start gap-3 ${passMsg.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'}`}>
                   <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" />
                   <p className="text-sm font-medium leading-relaxed">{passMsg.text}</p>
                 </div>
               )}
               <form onSubmit={handleChangePassword} className="space-y-6 max-w-md">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">હાલનો પાસવર્ડ</label>
-                  <input type="password" value={passForm.current} onChange={e => setPassForm({...passForm, current: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500" required />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">હાલનો પાસવર્ડ</label>
+                  <input type="password" value={passForm.current} onChange={e => setPassForm({...passForm, current: e.target.value})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-orange-500" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">નવો પાસવર્ડ</label>
-                  <input type="password" value={passForm.newPass} onChange={e => setPassForm({...passForm, newPass: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500" required />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">નવો પાસવર્ડ</label>
+                  <input type="password" value={passForm.newPass} onChange={e => setPassForm({...passForm, newPass: e.target.value})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-orange-500" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">નવો પાસવર્ડ (ફરીથી)</label>
-                  <input type="password" value={passForm.confirm} onChange={e => setPassForm({...passForm, confirm: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500" required />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">નવો પાસવર્ડ (ફરીથી)</label>
+                  <input type="password" value={passForm.confirm} onChange={e => setPassForm({...passForm, confirm: e.target.value})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-orange-500" required />
                 </div>
-                <button type="submit" disabled={updateLoading} className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg transition-all">
+                <button type="submit" disabled={updateLoading} className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg transition-all cursor-pointer">
                   {updateLoading ? 'પ્રોસેસ થઈ રહી છે...' : 'પાસવર્ડ બદલો'}
                 </button>
               </form>
@@ -1631,24 +1717,24 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
           )}
 
           {activeTab === 'bookmarks' && (
-            <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-0 md:border border-gray-150 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3 px-1">
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 font-sans">
-                  <Bookmark className="h-5 w-5 text-blue-600 fill-blue-500/10" />
+            <div className="bg-transparent md:bg-white md:dark:bg-[#121824] rounded-none md:rounded-2xl border-0 md:border border-gray-150 md:dark:border-slate-800 shadow-none md:shadow-sm p-1.5 md:p-8 animate-fade-in space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3 px-1">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 font-sans">
+                  <Bookmark className="h-5 w-5 text-blue-600 dark:text-blue-400 fill-blue-500/10" />
                   બુકમાર્ક કરેલા પ્રશ્નો (Bookmarked Questions)
                 </h3>
-                <span className="text-xs bg-blue-50 text-blue-700 font-extrabold px-3 py-1 rounded-full">
+                <span className="text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900 font-extrabold px-3 py-1 rounded-full">
                   કુલ: {bookmarks.length} પ્રશ્ન
                 </span>
               </div>
 
               {bookmarksLoading ? (
-                <p className="text-gray-500">બુકમાર્ક્સ લોડ થઈ રહ્યા છે...</p>
+                <p className="text-gray-500 dark:text-slate-400">બુકમાર્ક્સ લોડ થઈ રહ્યા છે...</p>
               ) : bookmarks.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                  <Bookmark className="h-10 w-10 text-gray-300 mx-auto mb-3 animate-bounce" />
-                  <p className="text-gray-700 font-bold mb-1">તમે હજુ સુધી કોઈ પ્રશ્ન બુકમાર્ક કર્યો નથી.</p>
-                  <p className="text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
+                <div className="text-center py-12 bg-gray-50/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
+                  <Bookmark className="h-10 w-10 text-gray-300 dark:text-slate-600 mx-auto mb-3 animate-bounce" />
+                  <p className="text-gray-700 dark:text-slate-200 font-bold mb-1">તમે હજુ સુધી કોઈ પ્રશ્ન બુકમાર્ક કર્યો નથી.</p>
+                  <p className="text-gray-500 dark:text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
                     મોક ટેસ્ટ દરમિયાન મુશ્કેલ અથવા અઘરા પ્રશ્નોને બુકમાર્ક કરો જેથી તમે ગમે ત્યારે અહીં તેમનો રિવ્યુ અને અભ્યાસ કરી શકો.
                   </p>
                 </div>
@@ -1657,30 +1743,30 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   {bookmarks.map((bmk) => {
                     const q = bmk.question;
                     return (
-                      <div key={bmk.id} className="border border-gray-150 rounded-xl p-4 bg-white md:bg-slate-50/50 hover:shadow-md transition-all space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                      <div key={bmk.id} className="border border-gray-150 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-[#121824] md:bg-slate-50/50 md:dark:bg-slate-900/50 hover:shadow-md transition-all space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-lg">
+                            <span className="text-xs bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 font-bold px-2.5 py-1 rounded-lg">
                               {bmk.examName || 'Mock Test'}
                             </span>
                             {q.type === 'paragraph' && (
-                              <span className="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-1 rounded-lg">
+                              <span className="text-xs bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 font-bold px-2.5 py-1 rounded-lg">
                                 ફકરો (Passage)
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-gray-400 font-medium">
+                          <span className="text-[11px] text-gray-400 dark:text-slate-500 font-medium">
                             સેવ કરેલ: {safeFormatDate(bmk.bookmarkedAt)}
                           </span>
                         </div>
 
                         {q.type === 'paragraph' && q.passage && (
-                          <div className="bg-blue-50/70 border-l-4 border-blue-500 p-4 rounded-r-xl italic text-gray-700 text-sm leading-relaxed">
+                          <div className="bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-blue-500 p-4 rounded-r-xl italic text-gray-700 dark:text-slate-200 text-sm leading-relaxed">
                             "{q.passage}"
                           </div>
                         )}
 
-                        <h4 className="font-extrabold text-gray-800 text-base leading-snug">
+                        <h4 className="font-extrabold text-gray-800 dark:text-slate-100 text-base leading-snug">
                           {q.questionText}
                         </h4>
 
@@ -1693,14 +1779,14 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                                 key={opt}
                                 className={`p-3 rounded-xl border text-sm flex items-center gap-3 ${
                                   isCorrect
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-semibold'
-                                    : 'bg-white border-gray-150 text-gray-700'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 font-semibold'
+                                    : 'bg-white dark:bg-slate-800/80 border-gray-150 dark:border-slate-700 text-gray-700 dark:text-slate-200'
                                 }`}
                               >
                                 <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                                   isCorrect
                                     ? 'bg-emerald-600 text-white'
-                                    : 'bg-gray-100 text-gray-700'
+                                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300'
                                 }`}>
                                   {opt}
                                 </span>
@@ -1710,14 +1796,14 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                           })}
                         </div>
 
-                        <div className="flex justify-between items-center pt-2 border-t border-gray-100/50">
-                          <div className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-100/50 dark:border-slate-800">
+                          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                             સાચો જવાબ: વિકલ્પ ({q.correctAnswer})
                           </div>
                           <button
                             onClick={() => handleRemoveBookmark(q.id)}
-                            className="text-xs text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                            className="text-xs text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 border border-red-200 dark:border-red-900/60 hover:border-red-600 font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer"
                           >
                             બુકમાર્ક દૂર કરો
                           </button>
@@ -1735,6 +1821,55 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
         </div>
       </div>
 
+
+      {/* Premium Merit List Locked Modal */}
+      {showMeritLockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#121824] rounded-3xl max-w-md w-full p-6 text-center shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800 relative">
+            <button 
+              onClick={() => setShowMeritLockModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/50 rounded-full flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400 shadow-inner">
+              <Trophy className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-snug">
+              મેરિટ લિસ્ટ પ્રીમિયમ યૂઝર જોઈ શકે છે.
+            </h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm">
+              તમામ સ્પર્ધાત્મક પરીક્ષાઓનું લાઇવ મેરિટ લિસ્ટ અને તમારી સ્ટેટ વાઇઝ રેન્ક જોવા માટે કૃપા કરીને પ્રીમિયમ સબસ્ક્રિપ્શન મેળવો.
+            </p>
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setShowMeritLockModal(false);
+                  if (onShowSubscription) onShowSubscription();
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all text-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Award className="w-4.5 h-4.5" /> સબસ્ક્રિપ્શન પ્લાન જુઓ
+              </button>
+              <button
+                onClick={() => {
+                  setShowMeritLockModal(false);
+                  setActiveTab('dashboard');
+                }}
+                className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
+              >
+                <LayoutDashboard className="w-4 h-4" /> ડેશબોર્ડ પર જાઓ
+              </button>
+              <button
+                onClick={() => setShowMeritLockModal(false)}
+                className="w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-semibold py-1.5 text-xs transition-colors cursor-pointer"
+              >
+                બંધ કરો
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

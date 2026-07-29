@@ -33,28 +33,29 @@ const BG_COLORS = [
   { name: 'Red Tint', value: '#fee2e2' }, // red-100
 ];
 
-export default function ClassicEditor({ value, onChange, placeholder = 'અહીં પોસ્ટ લખવાનું શરૂ કરો...' }: ClassicEditorProps) {
+export default function ClassicEditor({ value = '', onChange, placeholder = 'અહીં પોસ્ટ લખવાનું શરૂ કરો...' }: ClassicEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isCodeView, setIsCodeView] = useState(false);
-  const [rawHtml, setRawHtml] = useState(value);
+  const [rawHtml, setRawHtml] = useState(value || '');
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [showBgColorMenu, setShowBgColorMenu] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
 
   // Keep track of internal content to prevent cursor resetting on props updates
-  const lastHtmlRef = useRef(value);
+  const lastHtmlRef = useRef(value || '');
 
   // Sync prop value to editor when it changes from outside
   useEffect(() => {
-    if (value !== lastHtmlRef.current) {
-      lastHtmlRef.current = value;
-      setRawHtml(value);
+    const safeValue = value || '';
+    if (safeValue !== lastHtmlRef.current) {
+      lastHtmlRef.current = safeValue;
+      setRawHtml(safeValue);
       if (editorRef.current && !isCodeView) {
-        editorRef.current.innerHTML = value;
+        editorRef.current.innerHTML = safeValue;
       }
     }
-    calculateStats(value);
+    calculateStats(safeValue);
   }, [value, isCodeView]);
 
   const calculateStats = (text: string) => {
@@ -482,7 +483,7 @@ export default function ClassicEditor({ value, onChange, placeholder = 'અહ�
       <div className="relative flex-1 min-h-[300px] flex flex-col">
         {isCodeView ? (
           <textarea
-            value={rawHtml}
+            value={rawHtml || ''}
             onChange={handleRawHtmlChange}
             className="w-full flex-1 p-4 font-mono text-sm text-slate-800 bg-slate-900 text-teal-300 outline-none min-h-[320px] resize-y"
             placeholder="<html>..."

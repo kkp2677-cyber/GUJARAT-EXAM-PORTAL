@@ -690,7 +690,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                       </div>
                       <input
                         type="tel"
-                        value={phone}
+                        value={phone || ''}
                         disabled={forgotOtpSent}
                         onChange={(e) => {
                           const eng = convertGujaratiToEnglish(e.target.value);
@@ -724,7 +724,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                         </div>
                         <input
                           type="text"
-                          value={forgotOtp}
+                          value={forgotOtp || ''}
                           onChange={(e) => {
                             const eng = convertGujaratiToEnglish(e.target.value);
                             setForgotOtp(eng.replace(/\D/g, '').slice(0, 6));
@@ -773,7 +773,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      value={password}
+                      value={password || ''}
                       onChange={(e) => setPassword(e.target.value)}
                       className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
                       placeholder="નવો પાસવર્ડ (૬ અક્ષર)"
@@ -802,7 +802,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      value={confirmPassword}
+                      value={confirmPassword || ''}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px]"
                       placeholder="પાસવર્ડ ફરીથી ટાઇપ કરો"
@@ -844,7 +844,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                       </div>
                       <input
                         type="tel"
-                        value={phone}
+                        value={phone || ''}
                         onChange={(e) => {
                           const eng = convertGujaratiToEnglish(e.target.value);
                           setPhone(eng.replace(/\D/g, '').slice(0, 10));
@@ -874,7 +874,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                       </div>
                       <input
                         type={showPassword ? 'text' : 'password'}
-                        value={password}
+                        value={password || ''}
                         onChange={(e) => setPassword(e.target.value)}
                         className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all"
                         placeholder="તમારો પાસવર્ડ લખો"
@@ -918,7 +918,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                         <input
                           type="tel"
                           disabled={regOtpSent && regOtpVerified}
-                          value={phone}
+                          value={phone || ''}
                           onChange={(e) => {
                             const eng = convertGujaratiToEnglish(e.target.value);
                             setPhone(eng.replace(/\D/g, '').slice(0, 10));
@@ -959,7 +959,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                           <input
                             type="text"
                             disabled={regOtpVerified}
-                            value={otpVal}
+                            value={otpVal || ''}
                             onChange={(e) => {
                               const eng = convertGujaratiToEnglish(e.target.value);
                               setOtpVal(eng.replace(/\D/g, '').slice(0, 6));
@@ -999,7 +999,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                         <input
                           type={showPassword ? 'text' : 'password'}
                           disabled={!regOtpVerified}
-                          value={password}
+                          value={password || ''}
                           onChange={(e) => setPassword(e.target.value)}
                           className="block w-full pl-11 pr-12 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-50 dark:disabled:bg-slate-900/60 disabled:cursor-not-allowed"
                           placeholder="ઓછામાં ઓછા ૬ અક્ષર"
@@ -1030,7 +1030,7 @@ export default function AuthPages({ mode, onToggleMode, onAuthSuccess, onBack }:
                         <input
                           type={showPassword ? 'text' : 'password'}
                           disabled={!regOtpVerified}
-                          value={confirmPassword}
+                          value={confirmPassword || ''}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           className="block w-full pl-11 pr-4 py-3.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-[15px] transition-all disabled:bg-gray-50 dark:disabled:bg-slate-900/60 disabled:cursor-not-allowed"
                           placeholder="પાસવર્ડ ફરીથી ટાઇપ કરો"

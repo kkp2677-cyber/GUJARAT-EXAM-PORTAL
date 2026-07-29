@@ -304,14 +304,14 @@ export default function ExamEngine({ exam, userId, onFinished, onResultStateChan
 
               {/* Passage paragraph (Passage types only) */}
               {currentQuestion.type === 'paragraph' && currentQuestion.passage && (
-                <div className="bg-blue-50 dark:bg-blue-950/40 border-l-4 border-blue-500 p-4 md:p-5 rounded-r-2xl italic text-gray-700 dark:text-slate-200 text-sm md:text-base leading-relaxed mb-4 md:mb-6">
+                <div className="bg-blue-50 dark:bg-blue-950/40 border-l-4 border-blue-500 p-4 md:p-5 rounded-r-2xl text-gray-700 dark:text-slate-200 text-sm md:text-base leading-relaxed mb-4 md:mb-6 whitespace-pre-wrap">
                   <p className="font-semibold text-xs text-blue-800 dark:text-blue-300 uppercase tracking-wide mb-1.5">ફકરો (Passage):</p>
-                  "{currentQuestion.passage}"
+                  {currentQuestion.passage}
                 </div>
               )}
 
               {/* Question Text */}
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 leading-snug mt-4">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100 leading-snug mt-4 whitespace-pre-wrap">
                 {currentQuestion.questionText}
               </h3>
 

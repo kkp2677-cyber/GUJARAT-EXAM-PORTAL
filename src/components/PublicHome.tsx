@@ -528,7 +528,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
               <input
                 type="text"
                 placeholder="કેલેન્ડર શોધો..."
-                value={calendarSearch}
+                value={calendarSearch || ''}
                 onChange={(e) => setCalendarSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#008080] focus:border-[#008080]"
               />

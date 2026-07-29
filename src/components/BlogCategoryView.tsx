@@ -154,7 +154,7 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
           <input
             type="text"
             placeholder="સર્ચ કરો..."
-            value={searchQuery}
+            value={searchQuery || ''}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
           />
@@ -203,12 +203,12 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
                   {/* Thumbnail */}
                   <div className="h-44 w-full relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                     <img
-                      src={getProxiedImageUrl(post.thumbnail, 800) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800'}
+                      src={getProxiedImageUrl(post.thumbnail, 800) || 'https://i.ibb.co/dsWnKwt1/1784729117633.webp'}
                       alt={post.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800';
+                        (e.target as HTMLImageElement).src = 'https://i.ibb.co/dsWnKwt1/1784729117633.webp';
                       }}
                     />
                     <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-extrabold border bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm ${

@@ -1185,10 +1185,10 @@ export default function App() {
           <div className="space-y-4">
             <h4 className="text-white text-sm font-bold tracking-wide uppercase">મહત્વપૂર્ણ નીતિઓ</h4>
             <div className="flex flex-col gap-2 text-sm text-slate-400 text-left">
-              <button onClick={() => handleNavigateToStaticPage('about')} className="text-left hover:text-white transition-colors cursor-pointer">ℹ️ અમારા વિશે (About Us)</button>
+              <button onClick={() => handleNavigateToStaticPage('about')} className="text-left hover:text-white transition-colors cursor-pointer">ℹ️ અમારા વિશે </button>
               <button onClick={() => handleNavigateToStaticPage('privacy')} className="text-left hover:text-white transition-colors cursor-pointer">🛡️ પ્રાઇવસી પોલિસી</button>
               <button onClick={() => handleNavigateToStaticPage('terms')} className="text-left hover:text-white transition-colors cursor-pointer">📜 નિયમો અને શરતો</button>
-              <button onClick={() => handleNavigateToStaticPage('disclaimer')} className="text-left hover:text-white transition-colors cursor-pointer">⚠️ ડિસ્ક્લેમર (Disclaimer)</button>
+              <button onClick={() => handleNavigateToStaticPage('disclaimer')} className="text-left hover:text-white transition-colors cursor-pointer">⚠️ ડિસ્ક્લેમર </button>
               <button onClick={() => handleNavigateToStaticPage('refund')} className="text-left hover:text-white transition-colors cursor-pointer">🔄 રીફંડ પોલિસી</button>
             </div>
           </div>

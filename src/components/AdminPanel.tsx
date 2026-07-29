@@ -1319,7 +1319,7 @@ export default function AdminPanel() {
 ]`;
 
   return (
-    <div className="space-y-10 w-full p-0" style={{ padding: '0px', width: '100%' }}>
+    <div className="space-y-10 w-full p-0" style={{ padding: '10px', width: '100%' }}>
       {/* Page Title */}
       <div className="border-b border-gray-150 pb-5">
         <h2 className="text-3xl font-bold text-gray-900 font-sans tracking-tight">એડમિન પેનલ</h2>
@@ -1345,7 +1345,7 @@ export default function AdminPanel() {
             activeTab === 'cms' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <FileText className="h-4 w-4" /> CMS વ્યવસ્થાપન (Blogs)
+          <FileText className="h-4 w-4" /> CMS (Blogs)
         </button>
         <button
           onClick={() => {
@@ -1356,7 +1356,7 @@ export default function AdminPanel() {
             activeTab === 'add-exam' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <PlusCircle className="h-4 w-4" /> કસોટી બિલ્ડર (JSON MCQ)
+          <PlusCircle className="h-4 w-4" /> મોક ટેસ્ટ બિલ્ડર (JSON MCQ)
         </button>
         <button
           onClick={() => {
@@ -1367,7 +1367,7 @@ export default function AdminPanel() {
             activeTab === 'notifications' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <Bell className="h-4 w-4" /> પુશ નોટિફિકેશન (Push Alerts)
+          <Bell className="h-4 w-4" /> Push Alerts
         </button>
         <button
           onClick={() => {
@@ -1379,7 +1379,7 @@ export default function AdminPanel() {
             activeTab === 'calendar' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <Calendar className="h-4 w-4" /> પરીક્ષા કૅલેન્ડર (Calendar)
+          <Calendar className="h-4 w-4" /> ભરતી કૅલેન્ડર
         </button>
         <button
           onClick={() => {
@@ -1392,7 +1392,7 @@ export default function AdminPanel() {
             activeTab === 'news-ticker' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <Megaphone className="h-4 w-4 text-amber-500" /> News Ticker (ન્યૂઝ ટિકર)
+          <Megaphone className="h-4 w-4 text-amber-500" /> News Ticker
         </button>
         <button
           onClick={() => {
@@ -1402,7 +1402,7 @@ export default function AdminPanel() {
             activeTab === 'monetization' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
         >
-          <DollarSign className="h-4 w-4 text-emerald-600" /> મોનેટાઈઝેશન (Monetization)
+          <DollarSign className="h-4 w-4 text-emerald-600" /> Monetization
         </button>
         <button
           onClick={() => setActiveTab('db-utility')}
@@ -1471,7 +1471,7 @@ export default function AdminPanel() {
                       <label className="block text-xs font-bold text-gray-700 uppercase mb-1">આખું નામ</label>
                       <input
                         type="text"
-                        value={editingUser.name}
+                        value={editingUser.name || ''}
                         onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
                         className="w-full px-3 py-2 border rounded-xl text-sm"
                         required
@@ -1481,7 +1481,7 @@ export default function AdminPanel() {
                       <label className="block text-xs font-bold text-gray-700 uppercase mb-1">ઈમેઈલ</label>
                       <input
                         type="email"
-                        value={editingUser.email}
+                        value={editingUser.email || ''}
                         onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                         className="w-full px-3 py-2 border rounded-xl text-sm"
                       />
@@ -1490,7 +1490,7 @@ export default function AdminPanel() {
                       <div>
                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">કેટેગરી</label>
                         <select
-                          value={editingUser.category}
+                          value={editingUser.category || 'General'}
                           onChange={(e) => setEditingUser({ ...editingUser, category: e.target.value as any })}
                           className="w-full px-3 py-2 border rounded-xl text-sm"
                         >
@@ -1505,7 +1505,7 @@ export default function AdminPanel() {
                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">જન્મ તારીખ</label>
                         <input
                           type="date"
-                          value={editingUser.dob}
+                          value={editingUser.dob || ''}
                           onChange={(e) => setEditingUser({ ...editingUser, dob: e.target.value })}
                           className="w-full px-3 py-2 border rounded-xl text-sm"
                         />
@@ -1514,7 +1514,7 @@ export default function AdminPanel() {
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase mb-1">સરનામું</label>
                       <textarea
-                        value={editingUser.address}
+                        value={editingUser.address || ''}
                         onChange={(e) => setEditingUser({ ...editingUser, address: e.target.value })}
                         className="w-full px-3 py-2 border rounded-xl text-sm"
                         rows={2}

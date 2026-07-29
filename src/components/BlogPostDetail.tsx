@@ -468,12 +468,12 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
             {/* Featured Image */}
             <div className="overflow-hidden bg-slate-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-800 max-h-[420px] relative md:max-w-[60%] md:mx-auto rounded-2xl shadow-sm">
               <img
-                src={getProxiedImageUrl(post.thumbnail, 1200) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=1200'}
+                src={getProxiedImageUrl(post.thumbnail, 1200) || 'https://i.ibb.co/dsWnKwt1/1784729117633.webp?w=1200'}
                 alt={post.title}
                 className="w-full object-cover max-h-[420px]"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=1200';
+                  (e.target as HTMLImageElement).src = 'https://i.ibb.co/dsWnKwt1/1784729117633.webp?w=1200';
                 }}
               />
             </div>
@@ -563,12 +563,12 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
                         {/* Thumbnail */}
                         <div className="h-36 w-full relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                           <img
-                            src={getProxiedImageUrl(rPost.thumbnail, 400) || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=400'}
+                            src={getProxiedImageUrl(rPost.thumbnail, 400) || 'https://i.ibb.co/dsWnKwt1/1784729117633.webp?w=400'}
                             alt={rPost.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             referrerPolicy="no-referrer"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=400';
+                              (e.target as HTMLImageElement).src = 'https://i.ibb.co/dsWnKwt1/1784729117633.webp?w=400';
                             }}
                           />
                         </div>

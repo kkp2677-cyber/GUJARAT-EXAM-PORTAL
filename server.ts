@@ -1772,7 +1772,7 @@ function generateSingleExamHTML(user: any, h: any): string {
       <!-- PORTAL SEAL -->
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs">
         <h4 class="font-bold text-slate-700 uppercase mb-1">OFFICIAL ELECTRONIC SIGNATURE & SEAL / સત્તાવાર ઇલેક્ટ્રોનિક સહી અને સિક્કો</h4>
-        <p class="text-slate-500">Digitally signed and authorized by OJAS EXAM WEBSITE. No physical signature is required.</p>
+        <p class="text-slate-500">Digitally signed and authorized by www.OjasExam.in. No physical signature is required.</p>
       </div>
 
       <!-- MULTI-PAGE QUESTIONS SECTION -->

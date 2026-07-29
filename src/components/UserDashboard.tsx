@@ -599,7 +599,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 className="flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full text-slate-700 hover:bg-slate-50 hover:text-blue-600"
               >
                 <Home className="h-4.5 w-4.5 text-blue-600" />
-                <span>🏠 હોમ (Home)</span>
+                <span>Home</span>
               </button>
 
               <button
@@ -612,7 +612,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <LayoutDashboard className="h-4.5 w-4.5" />
-                <span>📊 ડેશબોર્ડ</span>
+                <span>ડેશબોર્ડ</span>
               </button>
 
               <button
@@ -625,7 +625,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <BookOpen className="h-4.5 w-4.5" />
-                <span>📝 મોક ટેસ્ટ આપો</span>
+                <span>મોક ટેસ્ટ આપો</span>
               </button>
 
               <button
@@ -638,7 +638,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <Bookmark className="h-4.5 w-4.5" />
-                <span>🔖 સેવ કરેલા પ્રશ્નો (Bookmarks)</span>
+                <span>સેવ કરેલા પ્રશ્નો (Bookmarks)</span>
               </button>
 
               <button
@@ -651,7 +651,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <Trophy className="h-4.5 w-4.5" />
-                <span>🏆 મેરીટ લીસ્ટ</span>
+                <span>મેરીટ લીસ્ટ</span>
               </button>
 
               <button
@@ -662,7 +662,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 className={`flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all shrink-0 cursor-pointer w-full text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-100`}
               >
                 <Award className="h-4.5 w-4.5" />
-                <span>🎗️ સબસ્ક્રિપ્શન પ્લાન</span>
+                <span>સબસ્ક્રિપ્શન પ્લાન</span>
               </button>
 
               <button
@@ -675,7 +675,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 }`}
               >
                 <Lock className="h-4.5 w-4.5" />
-                <span>🔑 પાસવર્ડ બદલો</span>
+                <span>પાસવર્ડ બદલો</span>
               </button>
 
               {user?.role === 'admin' && (
@@ -689,7 +689,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   }`}
                 >
                   <ShieldCheck className="h-4.5 w-4.5" />
-                  <span>🛠️ એડમિન પેનલ</span>
+                  <span>એડમિન પેનલ</span>
                 </button>
               )}
             </nav>
@@ -770,7 +770,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   <input
                     type="text"
                     required
-                    value={name}
+                    value={name || ''}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="તમારું આખું નામ લખો"
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
@@ -782,7 +782,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   <input
                     type="tel"
                     disabled
-                    value={user.phone}
+                    value={user?.phone || ''}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-xl text-sm"
                   />
                 </div>
@@ -791,7 +791,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">ઈમેઈલ એડ્રેસ <span className="text-red-500 font-bold">*</span></label>
                   <input
                     type="email"
-                    value={email} required
+                    value={email || ''} required
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
@@ -801,7 +801,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">કેટેગરી (Category) <span className="text-red-500 font-bold">*</span></label>
                   <select
-                    value={category} required
+                    value={category || 'General'} required
                     onChange={(e) => setCategory(e.target.value as any)}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   >
@@ -817,7 +817,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">જન્મ તારીખ (DOB) <span className="text-red-500 font-bold">*</span></label>
                   <input
                     type="date"
-                    value={dob} required
+                    value={dob || ''} required
                     onChange={(e) => setDob(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                   />
@@ -826,7 +826,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">સરનામું (Address) <span className="text-red-500 font-bold">*</span></label>
                   <textarea
-                    value={address} required
+                    value={address || ''} required
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="ગામ, તાલુકો, જિલ્લો અને પિનકોડ"
                     rows={3}
@@ -1274,7 +1274,7 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                   </div>
                   <input
                     type="text"
-                    value={mockTestSearch}
+                    value={mockTestSearch || ''}
                     onChange={(e) => {
                       setMockTestSearch(e.target.value);
                       setMockTestPage(1); // Reset to first page on search
@@ -1761,12 +1761,12 @@ export default function UserDashboard({ user, onUpdateUser, onTakeExam, onShowSu
                         </div>
 
                         {q.type === 'paragraph' && q.passage && (
-                          <div className="bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-blue-500 p-4 rounded-r-xl italic text-gray-700 dark:text-slate-200 text-sm leading-relaxed">
-                            "{q.passage}"
+                          <div className="bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-blue-500 p-4 rounded-r-xl text-gray-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+                            {q.passage}
                           </div>
                         )}
 
-                        <h4 className="font-extrabold text-gray-800 dark:text-slate-100 text-base leading-snug">
+                        <h4 className="font-extrabold text-gray-800 dark:text-slate-100 text-base leading-snug whitespace-pre-wrap">
                           {q.questionText}
                         </h4>
 

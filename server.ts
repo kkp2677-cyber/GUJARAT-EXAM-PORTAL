@@ -1657,8 +1657,24 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
         background-color: #1a1a1a;
       }
     </style>
+    <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
   </head>
+  
   <body>
+   <amp-analytics type="googleanalytics">
+  <script type="application/json">
+  {
+    "vars": {
+      "gtag_id": "G-LXYDWTPRGS",
+      "config": {
+        "G-LXYDWTPRGS": {
+          "groups": "default"
+        }
+      }
+    }
+  }
+  </script>
+</amp-analytics>
     <amp-sidebar id="sidebar1" layout="nodisplay" side="right" style="width: 280px; background-color: #ffffff; padding: 20px;">
       <div class="sidebar-title-container">
         <a href="${protocol}://${hostHeader}/" class="sidebar-brand-link">
@@ -1708,22 +1724,8 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
           <span class="hamburger-bar"></span>
         </button>
       </div>
-      <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
+      
       </header>
-    <amp-analytics type="googleanalytics">
-  <script type="application/json">
-  {
-    "vars": {
-      "gtag_id": "G-LXYDWTPRGS",
-      "config": {
-        "G-G-LXYDWTPRGS": {
-          "groups": "default"
-        }
-      }
-    }
-  }
-  </script>
-</amp-analytics>
     <!-- Ad Slot: Below Header -->
     ${renderAmpAd(adsPostBelowHeader, 'below-header')}
     

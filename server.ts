@@ -1633,7 +1633,7 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
         align-items: center;
         justify-content: center;
         padding: 10px 16px;
-        color: white !important;
+        color: white;
         text-decoration: none;
         font-size: 14px;
         font-weight: bold;
@@ -1708,16 +1708,22 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
           <span class="hamburger-bar"></span>
         </button>
       </div>
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-LXYDWTPRGS"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-LXYDWTPRGS');
-</script>
-    </header>
-    
+      <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
+      </header>
+    <amp-analytics type="googleanalytics">
+  <script type="application/json">
+  {
+    "vars": {
+      "gtag_id": "G-LXYDWTPRGS",
+      "config": {
+        "G-G-LXYDWTPRGS": {
+          "groups": "default"
+        }
+      }
+    }
+  }
+  </script>
+</amp-analytics>
     <!-- Ad Slot: Below Header -->
     ${renderAmpAd(adsPostBelowHeader, 'below-header')}
     

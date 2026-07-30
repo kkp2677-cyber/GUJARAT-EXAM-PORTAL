@@ -276,7 +276,7 @@ export default function App() {
         }
       }
     } else if (path.startsWith('/blog/')) {
-      const category = path.substring(6);
+      const category = path.substring(6).replace(/\/$/, '');
       if (['job', 'answer_key', 'result', 'selection_list', 'news'].includes(category)) {
         setSelectedBlogCategory(category as any);
         setActiveBlogPost(null);
@@ -284,6 +284,10 @@ export default function App() {
       } else {
         setCurrentSection('home');
       }
+    } else if (segments.length === 1 && validCategories.includes(segments[0])) {
+      setSelectedBlogCategory(segments[0] as any);
+      setActiveBlogPost(null);
+      setCurrentSection('blog');
     } else if (path === '/leaderboard') {
       setActiveBlogPost(null);
       setCurrentSection('leaderboard');

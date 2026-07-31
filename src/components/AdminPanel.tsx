@@ -291,7 +291,8 @@ export default function AdminPanel() {
     title: '',
     body: '',
     type: 'info' as 'info' | 'alert' | 'job' | 'exam',
-    link: ''
+    link: '',
+    silentOnly: false
   });
   const [notifSuccess, setNotifSuccess] = useState('');
   const [subCount, setSubCount] = useState(0);
@@ -1158,8 +1159,12 @@ export default function AdminPanel() {
       });
       if (!res.ok) throw new Error('નોટિફિકેશન મોકલવામાં મુશ્કેલી પડી.');
       
-      setNotifSuccess('પુશ નોટિફિકેશન સફળતાપૂર્વક બ્રોડકાસ્ટ કરવામાં આવ્યું!');
-      setNotifForm({ title: '', body: '', type: 'info', link: '' });
+      setNotifSuccess(
+        notifForm.silentOnly 
+          ? 'નોટિફિકેશન સફળતાપૂર્વક નોટિફિકેશન સેન્ટરમાં ઉમેરવામાં આવ્યું (Silent)!' 
+          : 'પુશ નોટિફિકેશન સફળતાપૂર્વક બ્રોડકાસ્ટ કરવામાં આવ્યું!'
+      );
+      setNotifForm({ title: '', body: '', type: 'info', link: '', silentOnly: false });
       fetchAdminNotifications();
       
       setTimeout(() => setNotifSuccess(''), 4000);
@@ -2587,6 +2592,19 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
+                <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-150 shadow-sm">
+                  <input
+                    type="checkbox"
+                    id="silentOnly"
+                    checked={notifForm.silentOnly || false}
+                    onChange={(e) => setNotifForm({ ...notifForm, silentOnly: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                  <label htmlFor="silentOnly" className="text-xs md:text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                    🔕 Send as Silent In-App Notice Only (ફક્ત નોટિફિકેશન સેન્ટરમાં ઉમેરો - મોબાઈલ પર પુશ નોટિફિકેશન નહીં જાય)
+                  </label>
+                </div>
+
                 <button
                   type="submit"
                   disabled={notifSending}
@@ -2597,7 +2615,7 @@ export default function AdminPanel() {
                   }`}
                 >
                   <Send className={`h-4 w-4 ${notifSending ? 'animate-spin' : ''}`} /> 
-                  {notifSending ? 'બ્રોડકાસ્ટ મોકલી રહ્યું છે... (Sending...)' : 'બ્રોડકાસ્ટ પુશ નોટિફિકેશન (Send Push)'}
+                  {notifSending ? 'બ્રોડકાસ્ટ મોકલી રહ્યું છે... (Sending...)' : notifForm.silentOnly ? 'ફક્ત નોટિફિકેશન સેન્ટરમાં ઉમેરો (Silent Send)' : 'બ્રોડકાસ્ટ પુશ નોટિફિકેશન (Send Push)'}
                 </button>
               </form>
 

@@ -130,6 +130,18 @@ export default function App() {
     }
   }, [theme]);
 
+  // Prevent background scrolling when mobile menu (drawer) is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   // Restore logged-in user session from localStorage if exists
 
   useEffect(() => {
@@ -585,66 +597,160 @@ export default function App() {
 
           {/* Navigation Links - Desktop */}
           <nav className="hidden lg:flex items-center gap-4 xl:gap-5">
-            <button
-              onClick={() => navigateToHome()}
-              className={`font-black text-[15px] xl:text-[16.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1.5 shadow-sm border ${
-                currentSection === 'home' 
-                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
-                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600'
-              }`}
-            >
-              🏠 Home
-            </button>
+            {!user ? (
+              <>
+                <button
+                  onClick={() => navigateToHome()}
+                  className={`font-black text-[15px] xl:text-[16.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1.5 shadow-sm border ${
+                    currentSection === 'home' 
+                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600'
+                  }`}
+                >
+                  🏠 Home
+                </button>
 
-            {/* Content Categorized Update Pages */}
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-            
-            <button
-              onClick={() => navigateToCategory('job')}
-              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                currentSection === 'blog' && selectedBlogCategory === 'job' 
-                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
-                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-blue-50/30 dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400'
-              }`}
-            >
-              💼 નવી ભરતીઓ
-            </button>
-            <button
-              onClick={() => navigateToCategory('answer_key')}
-              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
-                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/90 dark:bg-slate-800 border-emerald-200 dark:border-emerald-700 shadow-md shadow-emerald-500/5' 
-                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-emerald-50/30 dark:hover:bg-slate-700 hover:border-emerald-200 dark:hover:border-emerald-700 hover:text-emerald-600 dark:hover:text-emerald-400'
-              }`}
-            >
-              🔑 આન્સર કી
-            </button>
-            <button
-              onClick={() => navigateToCategory('result')}
-              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                currentSection === 'blog' && selectedBlogCategory === 'result' 
-                  ? 'text-amber-700 dark:text-amber-300 bg-amber-50/90 dark:bg-slate-800 border-amber-200 dark:border-amber-700 shadow-md shadow-amber-500/5' 
-                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-amber-50/30 dark:hover:bg-slate-700 hover:border-amber-200 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400'
-              }`}
-            >
-              🏆 રિઝલ્ટ
-            </button>
-            <button
-              onClick={() => navigateToCategory('news')}
-              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                currentSection === 'blog' && selectedBlogCategory === 'news' 
-                  ? 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-slate-800 border-sky-200 dark:border-sky-700 shadow-md shadow-sky-500/5' 
-                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-sky-50/30 dark:hover:bg-slate-700 hover:border-sky-200 dark:hover:border-sky-700 hover:text-sky-600 dark:hover:text-sky-400'
-              }`}
-            >
-              📰 સમાચાર
-            </button>
-            <button
-              onClick={handleGoToMockTests}
-              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-indigo-50/30 dark:hover:bg-slate-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400`}
-            >
-              📝 મોક ટેસ્ટ
-            </button>
+                {/* Content Categorized Update Pages */}
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+                
+                <button
+                  onClick={() => navigateToCategory('job')}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                    currentSection === 'blog' && selectedBlogCategory === 'job' 
+                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-blue-50/30 dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400'
+                  }`}
+                >
+                  💼 નવી ભરતીઓ
+                </button>
+                <button
+                  onClick={() => navigateToCategory('answer_key')}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                    currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
+                      ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/90 dark:bg-slate-800 border-emerald-200 dark:border-emerald-700 shadow-md shadow-emerald-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-emerald-50/30 dark:hover:bg-slate-700 hover:border-emerald-200 dark:hover:border-emerald-700 hover:text-emerald-600 dark:hover:text-emerald-400'
+                  }`}
+                >
+                  🔑 આન્સર કી
+                </button>
+                <button
+                  onClick={() => navigateToCategory('result')}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                    currentSection === 'blog' && selectedBlogCategory === 'result' 
+                      ? 'text-amber-700 dark:text-amber-300 bg-amber-50/90 dark:bg-slate-800 border-amber-200 dark:border-amber-700 shadow-md shadow-amber-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-amber-50/30 dark:hover:bg-slate-700 hover:border-amber-200 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400'
+                  }`}
+                >
+                  🏆 રિઝલ્ટ
+                </button>
+                <button
+                  onClick={() => navigateToCategory('news')}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                    currentSection === 'blog' && selectedBlogCategory === 'news' 
+                      ? 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-slate-800 border-sky-200 dark:border-sky-700 shadow-md shadow-sky-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-sky-50/30 dark:hover:bg-slate-700 hover:border-sky-200 dark:hover:border-sky-700 hover:text-sky-600 dark:hover:text-sky-400'
+                  }`}
+                >
+                  📰 સમાચાર
+                </button>
+                <button
+                  onClick={handleGoToMockTests}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-indigo-50/30 dark:hover:bg-slate-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400`}
+                >
+                  📝 મોક ટેસ્ટ
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigateToHome()}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1 shadow-sm border ${
+                    currentSection === 'home' 
+                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300'
+                  }`}
+                >
+                  🏠 Home
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'dashboard' }));
+                    }, 100);
+                  }}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                    currentSection === 'dashboard' 
+                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
+                  }`}
+                >
+                  📊 ડેશબોર્ડ
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' }));
+                    }, 100);
+                  }}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-700`}
+                >
+                  📝 ટેસ્ટ આપો
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'bookmarks' }));
+                    }, 100);
+                  }}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-700`}
+                >
+                  🔖 બુકમાર્ક્સ
+                </button>
+
+                <button
+                  onClick={() => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
+                    }, 100);
+                  }}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-700`}
+                >
+                  🏆 મેરીટ લીસ્ટ
+                </button>
+
+                <button
+                  onClick={() => navigateToSection('age_calculator')}
+                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                    currentSection === 'age_calculator' 
+                      ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border-indigo-200 dark:border-indigo-700 shadow-indigo-500/5' 
+                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400'
+                  }`}
+                >
+                  🎂 ઉંમર ગણતરી
+                </button>
+
+                {user.role === 'admin' && (
+                  <button
+                    onClick={() => {
+                      navigateToSection('dashboard');
+                      setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'admin' }));
+                      }, 100);
+                    }}
+                    className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-700`}
+                  >
+                    🛠️ એડમીન
+                  </button>
+                )}
+              </>
+            )}
           </nav>
 
           {/* Right Action buttons */}
@@ -660,7 +766,12 @@ export default function App() {
             {user ? (
               <div className="flex items-center gap-3">
                 <div 
-                  onClick={() => navigateToSection('dashboard')}
+                  onClick={() => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'profile' }));
+                    }, 100);
+                  }}
                   className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 px-4 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-blue-300 transition-all cursor-pointer group"
                 >
                   <div className="w-6.5 h-6.5 bg-blue-600 text-white font-bold rounded-full text-xs flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -708,244 +819,318 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Navigation Drawer (Right Side Drawer with Overlay Backdrop) */}
         <AnimatePresence>
           {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="lg:hidden border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#121824] px-4 pt-2 pb-6 shadow-inner max-h-[85vh] overflow-y-auto overflow-x-hidden"
-            >
-              <div className="space-y-2">
-                {/* Conditional Submenu on Mobile */}
-                {!user ? (
-                  /* Content Categories Submenu on Mobile (when NOT logged in) */
-                  <div className="pb-1 divide-y divide-gray-200 dark:divide-slate-800">
-                    <button
-                      onClick={() => {
-                        navigateToHome();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
-                        currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      🏠 હોમ (Home)
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToCategory('job');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'job' ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-blue-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      💼 નવી ભરતીઓ
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToCategory('answer_key');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'answer_key' ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      🔑 આન્સર કી
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToCategory('result');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'result' ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-amber-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      🏆 રિઝલ્ટ
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToCategory('news');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 ${
-                        currentSection === 'blog' && selectedBlogCategory === 'news' ? 'text-sky-600 bg-sky-50 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-sky-400' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      📰 સમાચાર (News)
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        handleGoToMockTests();
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold transition-all duration-200 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
-                    >
-                      📝 મોક ટેસ્ટ
-                    </button>
-                  </div>
-                ) : (
-                  /* Dashboard Tabs Submenu on Mobile (when logged in) */
-                  <div className="pb-1 divide-y divide-gray-200 dark:divide-slate-800">
-                    <button
-                      onClick={() => {
-                        navigateToHome();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
-                        currentSection === 'home' ? 'text-blue-600 bg-blue-50 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      🏠 હોમ (Home)
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToSection('dashboard');
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'dashboard' }));
-                        }, 100);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      📊 ડેશબોર્ડ
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToSection('dashboard');
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' }));
-                        }, 100);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      📝 મોક ટેસ્ટ આપો
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToSection('dashboard');
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'bookmarks' }));
-                        }, 100);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      🔖 સેવ કરેલા પ્રશ્નો (Bookmarks)
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToSection('dashboard');
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
-                        }, 100);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      🏆 મેરીટ લીસ્ટ
-                    </button>
+            <>
+              {/* Backdrop Overlay */}
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 lg:hidden"
+              />
 
-                    <button
-                      onClick={() => {
-                        setShowPaywall(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-indigo-700 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      🎗️ સબસ્ક્રિપ્શન પ્લાન
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigateToSection('dashboard');
-                        setTimeout(() => {
-                          window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'change_password' }));
-                        }, 100);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
-                    >
-                      🔑 પાસવર્ડ બદલો
-                    </button>
-                    {user.role === 'admin' && (
+              {/* Drawer Container (Slides from right) */}
+              <motion.div
+                key="drawer"
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="fixed right-0 top-0 bottom-0 w-[290px] sm:w-[320px] bg-white dark:bg-[#121824] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l border-gray-200 dark:border-slate-800 lg:hidden"
+              >
+                {/* Drawer Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-800 shrink-0">
+                  <span className="text-base font-extrabold text-gray-700 dark:text-slate-300">Menu</span>
+                  <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Drawer Menu Body */}
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                  {!user ? (
+                    /* Content Categories for Guest Users */
+                    <div className="space-y-1.5">
+                      
                       <button
                         onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'admin' }));
-                          }, 100);
+                          navigateToHome();
                           setIsMobileMenuOpen(false);
                         }}
-                        className="block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold text-orange-600 dark:text-orange-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200"
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'home' 
+                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
                       >
-                        🛠️ એડમીન પેનલ
+                        <span>🏠 Home</span>
+                        <span className="text-xs text-gray-400">➤</span>
                       </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        navigateToSection('age_calculator');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`block w-full text-left px-6 py-2.5 rounded-xl text-[17px] font-bold ${
-                        currentSection === 'age_calculator' ? 'text-indigo-600 bg-indigo-50 dark:bg-slate-800 dark:text-indigo-400' : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      🎂 ઉમર ગણતરી (Age Calculator)
-                    </button>
-                  </div>
-                )}
 
-                <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
-                  {user ? (
-                    <div className="space-y-3">
-                      <div 
+                      <button
                         onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'profile' }));
-                          }, 100);
+                          navigateToCategory('job');
                           setIsMobileMenuOpen(false);
                         }}
-                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl"
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'blog' && selectedBlogCategory === 'job' 
+                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
                       >
-                        <div className="w-9 h-9 bg-blue-600 text-white font-bold rounded-full flex items-center justify-center text-sm shrink-0">
-                          {user.name ? user.name[0] : 'ર'}
-                        </div>
-                        <div>
-                          <span className="font-extrabold text-gray-800 dark:text-slate-100 text-[14px] block leading-snug">{user.name || 'રમેશભાઈ પટેલ'}</span>
-                          <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold block uppercase tracking-wider">પ્રોફાઇલ</span>
-                        </div>
+                        <span>💼 નવી ભરતીઓ</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToCategory('answer_key');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
+                            ? 'text-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 dark:text-emerald-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <span>🔑 આન્સર કી</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToCategory('result');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'blog' && selectedBlogCategory === 'result' 
+                            ? 'text-amber-600 bg-amber-50/70 dark:bg-amber-950/30 dark:text-amber-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <span>🏆 રિઝલ્ટ</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToCategory('news');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'blog' && selectedBlogCategory === 'news' 
+                            ? 'text-sky-600 bg-sky-50/70 dark:bg-sky-950/30 dark:text-sky-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <span>📰 સમાચાર (Education News)</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          handleGoToMockTests();
+                        }}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
+                      >
+                        <span>📝 ઓનલાઇન મોક ટેસ્ટ</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <div className="pt-3 border-t border-gray-100 dark:border-slate-800">
+                        <button
+                          onClick={() => {
+                            setAuthMode('login');
+                            navigateToSection('auth');
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex items-center justify-center gap-2.5 w-full py-3 bg-[#00966B] hover:bg-[#00825c] text-white rounded-full text-center text-[15px] font-bold transition-all duration-150 shadow-md cursor-pointer"
+                        >
+                          <LogIn className="h-5 w-5" />
+                          <span>લોગિન / નોંધણી</span>
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-center bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl text-sm cursor-pointer border border-red-100 dark:border-red-900 flex items-center justify-center gap-2"
-                      >
-                        <LogOut className="h-4 w-4" /> લોગઆઉટ
-                      </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => {
-                        setAuthMode('login');
-                        navigateToSection('auth');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow cursor-pointer text-sm flex items-center justify-center gap-2"
-                    >
-                      <LogIn className="h-4 w-4" /> લોગિન / નોંધણી
-                    </button>
+                    /* Dashboard & User Section for Logged-In Users */
+                    <div className="space-y-1.5">
+
+                      <button
+                        onClick={() => {
+                          navigateToHome();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'home' 
+                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <span>🏠 Home</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToSection('dashboard');
+                          setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'dashboard' }));
+                          }, 100);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'dashboard' 
+                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <span>📊 ડેશબોર્ડ</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToSection('dashboard');
+                          setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' }));
+                          }, 100);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
+                      >
+                        <span>📝 મોક ટેસ્ટ આપો</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToSection('dashboard');
+                          setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'bookmarks' }));
+                          }, 100);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
+                      >
+                        <span>🔖 સેવ કરેલા પ્રશ્નો</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToSection('dashboard');
+                          setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
+                          }, 100);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
+                      >
+                        <span>🏆 મેરીટ લીસ્ટ</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToSection('age_calculator');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
+                          currentSection === 'age_calculator' 
+                            ? 'text-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/30 dark:text-indigo-400' 
+                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <span>🎂 ઉંમર ગણતરી</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowPaywall(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50/55 dark:hover:bg-slate-800/60 transition-all duration-150"
+                      >
+                        <span>🎗️ સબસ્ક્રિપ્શન પ્લાન </span>
+                        <span className="text-xs text-indigo-400">➤</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          navigateToSection('dashboard');
+                          setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'change_password' }));
+                          }, 100);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
+                      >
+                        <span>🔑 પાસવર્ડ બદલો</span>
+                        <span className="text-xs text-gray-400">➤</span>
+                      </button>
+
+                      {user.role === 'admin' && (
+                        <button
+                          onClick={() => {
+                            navigateToSection('dashboard');
+                            setTimeout(() => {
+                              window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'admin' }));
+                            }, 100);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-50/60 dark:hover:bg-slate-800/60 transition-all duration-150"
+                        >
+                          <span>🛠️ એડમીન પેનલ</span>
+                          <span className="text-xs text-orange-400">➤</span>
+                        </button>
+                      )}
+
+                      <div className="pt-3 border-t border-gray-150 dark:border-slate-800 space-y-2">
+                        <div 
+                          onClick={() => {
+                            navigateToSection('dashboard');
+                            setTimeout(() => {
+                              window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'profile' }));
+                            }, 100);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold rounded-full flex items-center justify-center text-xs shadow-sm">
+                            {user.name ? user.name[0] : 'ર'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-extrabold text-gray-800 dark:text-slate-200 text-sm block truncate leading-tight">{user.name || 'રમેશભાઈ પટેલ'}</span>
+                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold block uppercase tracking-wider">પ્રોફાઇલ જુઓ</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex items-center justify-center gap-2.5 w-full py-3 bg-rose-50 hover:bg-rose-100/85 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 rounded-full text-center text-[15px] font-bold transition-all duration-150 border border-red-100 dark:border-red-900/40 shadow-sm cursor-pointer"
+                        >
+                          <LogOut className="h-5 w-5" />
+                          <span>લોગઆઉટ</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </header>

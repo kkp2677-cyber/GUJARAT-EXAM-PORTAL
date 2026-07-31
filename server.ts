@@ -1075,22 +1075,30 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
     };
     const categoryNameGujarati = getCategoryLabel(category);
     
-    const getGujaratiDate = (dateString: any): string => {
-      if (!dateString) return '';
-      try {
-        const d = new Date(dateString);
-        if (isNaN(d.getTime())) return '';
-        return d.toLocaleDateString('gu-IN', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        });
-      } catch (e) {
-        return '';
-      }
-    };
-    const publishedTimeGuj = getGujaratiDate(post.createdAt || post.date);
-    const updatedTimeGuj = getGujaratiDate(post.updatedAt || post.date);
+
+// last update function 
+// ૧. તારીખ અને સમય બંનેને ફોર્મેટ કરતું ફંક્શન
+const formatGujaratiDateTime = (dateString) => {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return '';
+
+  // તારીખ (ઉદા. 31/7/2026)
+  const datePart = d.toLocaleDateString('gu-IN'); 
+  
+  // સમય (ઉદા. 02:45 PM)
+  const timePart = d.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' });
+
+  return `${datePart} ${timePart}`;
+};
+
+// ૨. તમારા વેરિયેબલ
+const updatedTimeGuj = formatGujaratiDateTime(post?.updatedAt);
+const publishedTimeGuj = formatGujaratiDateTime(post?.createdAt || post?.date);
+
+
+
+    
     
     const jsonLd = {
       "@context": "https://schema.org",
@@ -1306,9 +1314,6 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
       .sidebar-cta {
         margin-top: 32px;
         padding: 16px;
-        background-color: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 12px;
         text-align: center;
       }
       .sidebar-cta-text {
@@ -1700,11 +1705,14 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
           <span>સમાચાર</span>
           <span class="sidebar-item-bullet">➤</span>
         </a>
+        <a href="${protocol}://${hostHeader}/auth" class="sidebar-item">
+          <span>Online Mock Tests</span>
+          <span class="sidebar-item-bullet">➤</span>
+        </a>
       </nav>
 
       <div class="sidebar-cta">
-        <span class="sidebar-cta-text">મુખ્ય વેબસાઇટ પર જાઓ</span>
-        <a href="${canonicalUrl}" class="sidebar-cta-button">Non AMP</a>
+        <a href="${canonicalUrl}" class="sidebar-cta-button">Visit Non AMP Site</a>
       </div>
 
       <div class="sidebar-footer">
@@ -1772,9 +1780,10 @@ app.get('/:category/:slug/amp/?', async (req, res, next) => {
           </a>
         </div>
       </div>
-      <div style="margin-top: 24px; padding: 12px 16px; background-color: #f9fafb; border-radius: 0px; font-size: 14px; color: #4b5563; font-family: sans-serif;">
+      <!-- AMP LAST UPDATE -->
+<div style="margin-top: 24px; padding: 12px 16px; background-color: #f9fafb; border-radius: 0px; font-size: 14px; color: #4b5563; font-family: sans-serif;">
         <strong>Last updated:</strong> ${updatedTimeGuj || publishedTimeGuj}
-      </div>
+      </div>       
       <!-- Ad Slot: Above Related (Below Content) -->
       ${renderAmpAd(adsPostAboveRelated, 'above-related')}
       
@@ -3729,6 +3738,10 @@ app.get('/api/notifications/vapid-public-key', (req, res) => {
 app.post('/api/notifications/subscribe', requireAuth, async (req: AuthRequest, res) => {
   try {
     const subscription = req.body;
+    if (!subscription || !subscription.endpoint || !subscription.keys || !subscription.keys.auth || !subscription.keys.p256dh) {
+      return res.status(400).json({ error: 'સબસ્ક્રિપ્શન વિગત અધૂરી છે.' });
+    }
+
     const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
     const userId = user[0]?.id || null;
     
@@ -3775,7 +3788,7 @@ app.post('/api/notifications', requireAuth, async (req: AuthRequest, res) => {
     const user = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
     if (user[0]?.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
-    const { title, body, type, link } = req.body;
+    const { title, body, type, link, silentOnly } = req.body;
 
     // Server-side deduplication check: check if the exact same notification was sent in the last 10 seconds
     const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
@@ -3791,42 +3804,53 @@ app.post('/api/notifications', requireAuth, async (req: AuthRequest, res) => {
       return res.status(200).json({ success: true, duplicated: true });
     }
     
-    // Insert into notifications history
+    // Insert into notifications history (it will be visible in the Notification Bell/Center)
     await db.insert(notifications).values({
       title, body, type, link, date: new Date().toISOString()
     });
 
-    // Send push notification to all subscribers
-    const subs = await db.select().from(pushSubscriptions);
-    const payload = JSON.stringify({
-      title,
-      body,
-      url: link || '/'
-    });
-    
-    let sentCount = 0;
-    for (const sub of subs) {
-      try {
-        const pushSubscription = {
-          endpoint: sub.endpoint,
-          keys: {
-            auth: sub.auth,
-            p256dh: sub.p256dh
+    // Execute push broadcasting in the background asynchronously so the client doesn't wait
+    if (!silentOnly) {
+      (async () => {
+        try {
+          const subs = await db.select().from(pushSubscriptions);
+          const payload = JSON.stringify({
+            title,
+            body,
+            url: link || '/'
+          });
+          
+          const batchSize = 20;
+          for (let i = 0; i < subs.length; i += batchSize) {
+            const batch = subs.slice(i, i + batchSize);
+            await Promise.allSettled(batch.map(async (sub) => {
+              try {
+                const pushSubscription = {
+                  endpoint: sub.endpoint,
+                  keys: {
+                    auth: sub.auth,
+                    p256dh: sub.p256dh
+                  }
+                };
+                await webpush.sendNotification(pushSubscription, payload);
+              } catch (err: any) {
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                  // Subscription has expired or is no longer valid, remove it
+                  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
+                } else {
+                  console.error('Error sending push notification to subscriber:', sub.endpoint, err);
+                }
+              }
+            }));
           }
-        };
-        await webpush.sendNotification(pushSubscription, payload);
-        sentCount++;
-      } catch (err: any) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          // Subscription has expired or is no longer valid, remove it
-          await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
-        } else {
-          console.error('Error sending push notification:', err);
+          console.log(`Finished push broadcast for: "${title}" to up to ${subs.length} subscribers.`);
+        } catch (bgError) {
+          console.error('Background push notification broadcast failed:', bgError);
         }
-      }
+      })();
     }
     
-    res.status(201).json({ success: true, sent: sentCount });
+    res.status(201).json({ success: true, queued: !silentOnly });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -518,8 +518,8 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
 
             {/* Author / Source attribution */}
             <div className="border-t border-gray-150 dark:border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500 dark:text-slate-400">
-              <p>સ્રોત: <strong className="text-slate-800 dark:text-slate-200">સરકારી સત્તાવાર પોર્ટલ અને સમાચાર બોર્ડ</strong></p>
-              <p>છેલ્લે અપડેટ કરેલ: {safeFormatDate(post.updatedAt || post.createdAt || post.date)} {(() => {
+              <p> Source : <strong className="text-slate-800 dark:text-slate-200">સરકારી સત્તાવાર પોર્ટલ અને સમાચાર બોર્ડ</strong></p>
+              <p>Last Update on : {safeFormatDate(post.updatedAt || post.createdAt || post.date)} {(() => {
                 const d = new Date(post.updatedAt || post.createdAt || post.date);
                 return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' });
               })()}</p>

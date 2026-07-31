@@ -12,15 +12,16 @@ export async function subscribeToPushNotifications(token: string) {
     await navigator.serviceWorker.ready;
     console.log('ServiceWorker ready');
 
-    // Ask for permission using both modern promise and legacy callback fallback to support all mobile devices
+    // Ask for permission using both modern promise and legacy callback fallback to support all mobile devices safely
     let permission = Notification.permission;
     if (permission === 'default') {
-      permission = await new Promise<NotificationPermission>((resolve) => {
-        const promise = Notification.requestPermission(resolve);
-        if (promise) {
-          promise.then(resolve);
-        }
-      });
+      try {
+        permission = await Notification.requestPermission();
+      } catch (e) {
+        permission = await new Promise<NotificationPermission>((resolve) => {
+          Notification.requestPermission(resolve);
+        });
+      }
     }
 
     if (permission !== 'granted') {

@@ -72,10 +72,85 @@ export default function BlogCategoryView({ category, onBack }: BlogCategoryViewP
 
 
 
-  // Handle HTML document title for SEO
+  // Handle HTML document title and meta tags for dynamic SEO
   useEffect(() => {
     const catLabel = getCategoryLabel(category);
-    document.title = `${catLabel} - સરકારી અપડેટ્સ | OJAS Exam`;
+    const originalTitle = document.title;
+    
+    // Select existing meta elements
+    const metaDescription = document.querySelector('meta[name="description"]');
+    const metaKeywords = document.querySelector('meta[name="keywords"]') || (() => {
+      const el = document.createElement('meta');
+      el.name = 'keywords';
+      document.head.appendChild(el);
+      return el;
+    })();
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDescription = document.querySelector('meta[property="og:description"]');
+
+    const originalDesc = metaDescription?.getAttribute('content') || '';
+    const originalKeywords = metaKeywords?.getAttribute('content') || '';
+    const originalOgTitle = ogTitle?.getAttribute('content') || '';
+    const originalOgDesc = ogDescription?.getAttribute('content') || '';
+
+    // Create custom SEO text based on category
+    let seoTitle = '';
+    let seoDesc = '';
+    let seoKeywords = '';
+
+    switch (category) {
+      case 'job':
+        seoTitle = `New OJAS Bharti | OJAS Exam`;
+        seoDesc = `ગુજરાત સરકારની નવીનતમ ભરતીઓની વિગતો, પત્રકો અને સત્તાવાર નોટિફિકેશન જુઓ. OJAS Exam પર લાયકાત મુજબ ઓનલાઇન અરજી કરવાની લિંક મેળવો.`;
+        seoKeywords = 'ojas, gsssb, maru gujarat, સરકારી ભરતી, Ojas Bharti, Gujarat Govt Jobs, GPSC Bharti, Class 3, Recruitment 2026, OJAS Exam';
+        break;
+      case 'answer_key':
+        seoTitle = `Answer Key & OMR Sheet | OJAS Exam`;
+        seoDesc = `ગુજરાત ગૌણ સેવા અને પંચાયત પસંદગી મંડળની વિવિધ પરીક્ષાઓની પ્રોવિઝનલ તથા ફાઇનલ આન્સર કી મેળવો. ઓફિશિયલ આન્સર કી ડાઉનલોડ લિંક.`;
+        seoKeywords = 'Answer Key, OMR Sheet, Exam Solutions, ગુજરાત પરીક્ષા સોલ્યુશન, OJAS Exam Answer Key';
+        break;
+      case 'result':
+        seoTitle = `Latest Exam Results & Cut-off Marks | OJAS Exam`;
+        seoDesc = `ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓના ઓનલાઇન પરિણામ અને કટ-ઓફ માર્ક્સ જુઓ. તમારા મેરિટ લિસ્ટ અને પરિણામ ડાઉનલોડ કરવા માટે સત્તાવાર લિંક.`;
+        seoKeywords = 'Exam Result, Merit List, Cutoff marks, ઓનલાઇન રિઝલ્ટ, સરાકરી નોકરી પરિણામ, OJAS Exam';
+        break;
+      case 'selection_list':
+        seoTitle = `સિલેક્શન લિસ્ટ (Final Selection List & Waiting List) | OJAS Exam`;
+        seoDesc = `સફળતાપૂર્વક પાસ થયેલા ઉમેદવારોની ફાઇનલ પસંદગી યાદી, વેટિંગ લિસ્ટ અને ડોક્યુમેન્ટ વેરિફિકેશન કાર્યક્રમની સંપૂર્ણ વિગતો અહી ઉપલબ્ધ છે.`;
+        seoKeywords = 'Selection List, Waiting List, Document Verification, ફાઇનલ સિલેક્શન લિસ્ટ, OJAS Selection List';
+        break;
+      case 'news':
+        seoTitle = `Govt Bharti Education News | OJAS Exam`;
+        seoDesc = `ગુજરાત શિક્ષણ વિભાગ અને પરીક્ષા બોર્ડના મહત્વના નિર્ણયો, પરિપત્રો, જી.આર અને શૈક્ષણિક સમાચારની સચોટ માહિતી સૌથી પહેલા અહિયાં વાંચો.`;
+        seoKeywords = 'Education News, Gujarat Board Circular, શૈક્ષણિક પરિપત્રો, સરકારી સમાચાર, OJAS Exam News';
+        break;
+      default:
+        seoTitle = `${catLabel} | OJAS Exam`;
+        seoDesc = `ગુજરાત પરીક્ષા વિષયક મહત્વની માહિતી, આન્સર કી, નવી ભરતી અને પરિણામ જુઓ OJAS EXAM પર.`;
+        seoKeywords = 'Competitve Exam Gujarat, OJAS Exam';
+    }
+
+    // Apply changes
+    document.title = seoTitle;
+    if (metaDescription) metaDescription.setAttribute('content', seoDesc);
+    if (metaKeywords) metaKeywords.setAttribute('content', seoKeywords);
+    if (ogTitle) ogTitle.setAttribute('content', seoTitle);
+    if (ogDescription) ogDescription.setAttribute('content', seoDesc);
+
+    return () => {
+      // Revert to original settings on unmount
+      document.title = originalTitle;
+      if (metaDescription) metaDescription.setAttribute('content', originalDesc);
+      if (metaKeywords) {
+        if (originalKeywords) {
+          metaKeywords.setAttribute('content', originalKeywords);
+        } else {
+          metaKeywords.removeAttribute('content');
+        }
+      }
+      if (ogTitle) ogTitle.setAttribute('content', originalOgTitle);
+      if (ogDescription) ogDescription.setAttribute('content', originalOgDesc);
+    };
   }, [category]);
 
   function getCategoryLabel(cat: string) {

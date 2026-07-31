@@ -134,11 +134,20 @@ export default function App() {
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.height = '100%';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.height = '100%';
     } else {
       document.body.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
     };
   }, [isMobileMenuOpen]);
 
@@ -831,7 +840,7 @@ export default function App() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 lg:hidden"
+                className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 lg:hidden touch-none"
               />
 
               {/* Drawer Container (Slides from right) */}
@@ -841,14 +850,14 @@ export default function App() {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-                className="fixed right-0 top-0 bottom-0 w-[290px] sm:w-[320px] bg-white dark:bg-[#121824] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l border-gray-200 dark:border-slate-800 lg:hidden"
+                className="fixed right-0 top-0 bottom-0 w-[290px] sm:w-[320px] bg-white dark:bg-[#121824] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l-2 border-blue-600 dark:border-l-slate-800 lg:hidden"
               >
                 {/* Drawer Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-800 shrink-0">
-                  <span className="text-base font-extrabold text-gray-700 dark:text-slate-300">Menu</span>
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-slate-800 dark:to-slate-900 text-white shrink-0">
+                  <span className="text-base font-black text-white">Menu</span>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                     aria-label="Close menu"
                   >
                     <X className="h-5 w-5" />

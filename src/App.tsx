@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BookOpen, Trophy, Award, LogIn, LogOut, ShieldAlert, User as UserIcon, Menu, X, ArrowLeft, Sun, Moon, Phone, Mail, Check, Loader2, BadgeCheck, Calendar } from 'lucide-react';
+import { BookOpen, Trophy, Award, LogIn, LogOut, ShieldAlert, User as UserIcon, Menu, X, ArrowLeft, Sun, Moon, Phone, Mail, Check, Loader2, BadgeCheck, Calendar, ChevronRight, Home, Briefcase, Key, Newspaper, Clock, Sparkles, Bookmark, Settings, Lock } from 'lucide-react';
 import { User, Exam, BlogPost } from './types';
 import PublicHome from './components/PublicHome';
 const AgeCalculator = lazy(() => import('./components/AgeCalculator'));
@@ -679,7 +679,7 @@ export default function App() {
                       : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300'
                   }`}
                 >
-                  🏠 Home
+                  Home
                 </button>
 
                 <button
@@ -695,7 +695,7 @@ export default function App() {
                       : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
                   }`}
                 >
-                  📊 ડેશબોર્ડ
+                  ડેશબોર્ડ
                 </button>
 
                 <button
@@ -707,7 +707,7 @@ export default function App() {
                   }}
                   className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-700`}
                 >
-                  📝 ટેસ્ટ આપો
+                  ટેસ્ટ આપો
                 </button>
 
                 <button
@@ -719,7 +719,7 @@ export default function App() {
                   }}
                   className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-700`}
                 >
-                  🔖 બુકમાર્ક્સ
+                  બુકમાર્ક્સ
                 </button>
 
                 <button
@@ -731,7 +731,7 @@ export default function App() {
                   }}
                   className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-700`}
                 >
-                  🏆 મેરીટ લીસ્ટ
+                  મેરીટ લીસ્ટ
                 </button>
 
                 <button
@@ -742,7 +742,7 @@ export default function App() {
                       : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400'
                   }`}
                 >
-                  🎂 ઉંમર ગણતરી
+                  ઉંમર ગણતરી
                 </button>
 
                 {user.role === 'admin' && (
@@ -840,7 +840,7 @@ export default function App() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 lg:hidden touch-none"
+                className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs z-50 lg:hidden touch-none"
               />
 
               {/* Drawer Container (Slides from right) */}
@@ -850,262 +850,371 @@ export default function App() {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-                className="fixed right-0 top-0 bottom-0 w-[290px] sm:w-[320px] bg-white dark:bg-[#121824] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l-2 border-blue-600 dark:border-l-slate-800 lg:hidden"
+                className="fixed right-0 top-0 bottom-0 w-[280px] sm:w-[310px] bg-slate-50 dark:bg-[#0d121d] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l border-slate-150 dark:border-slate-850 lg:hidden rounded-l-2xl overflow-hidden"
               >
                 {/* Drawer Header */}
-                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-slate-800 dark:to-slate-900 text-white shrink-0">
-                  <span className="text-base font-black text-white">Menu</span>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-150 dark:border-slate-800/80 bg-white dark:bg-[#111726] shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7.5 h-7.5 rounded-lg bg-blue-600/10 dark:bg-blue-500/10 flex items-center justify-center p-1.5 border border-blue-200/50 dark:border-blue-800/40">
+                      <img src="/logo.svg" alt="OJAS EXAM" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                    </div>
+                    <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-wide">OJAS EXAM</span>
+                  </div>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-150 cursor-pointer"
                     aria-label="Close menu"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-4.5 w-4.5" />
                   </button>
                 </div>
 
                 {/* Drawer Menu Body */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                <div className="flex-1 overflow-y-auto px-3 py-3.5 space-y-4">
                   {!user ? (
                     /* Content Categories for Guest Users */
-                    <div className="space-y-1.5">
-                      
-                      <button
-                        onClick={() => {
-                          navigateToHome();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'home' 
-                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>🏠 Home</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 pb-1.5">મુખ્ય વિભાગો</div>
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => {
+                              navigateToHome();
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'home' 
+                                ? 'text-blue-600 bg-blue-50/80 dark:bg-blue-950/30 dark:text-blue-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'home'
+                                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Home className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">મુખ્ય પૃષ્ઠ (Home)</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'home' ? 'text-blue-500 dark:text-blue-400' : ''
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
 
-                      <button
-                        onClick={() => {
-                          navigateToCategory('job');
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'blog' && selectedBlogCategory === 'job' 
-                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>💼 નવી ભરતીઓ</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                      <div>
+                         <div className="space-y-1">
+                          <button
+                            onClick={() => {
+                              navigateToCategory('job');
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'blog' && selectedBlogCategory === 'job' 
+                                ? 'text-blue-600 bg-blue-50/80 dark:bg-blue-950/30 dark:text-blue-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'job'
+                                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Briefcase className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">નવી ભરતીઓ</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'job' ? 'text-blue-500 dark:text-blue-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToCategory('answer_key');
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
-                            ? 'text-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 dark:text-emerald-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>🔑 આન્સર કી</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToCategory('answer_key');
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
+                                ? 'text-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/20 dark:text-emerald-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'answer_key'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Key className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">આન્સર કી</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'answer_key' ? 'text-emerald-500 dark:text-emerald-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToCategory('result');
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'blog' && selectedBlogCategory === 'result' 
-                            ? 'text-amber-600 bg-amber-50/70 dark:bg-amber-950/30 dark:text-amber-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>🏆 રિઝલ્ટ</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToCategory('result');
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'blog' && selectedBlogCategory === 'result' 
+                                ? 'text-amber-600 bg-amber-50/80 dark:bg-amber-950/20 dark:text-amber-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'result'
+                                ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Trophy className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">રિઝલ્ટ</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'result' ? 'text-amber-500 dark:text-amber-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToCategory('news');
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'blog' && selectedBlogCategory === 'news' 
-                            ? 'text-sky-600 bg-sky-50/70 dark:bg-sky-950/30 dark:text-sky-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>📰 સમાચાર (Education News)</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToCategory('news');
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'blog' && selectedBlogCategory === 'news' 
+                                ? 'text-sky-600 bg-sky-50/80 dark:bg-sky-950/20 dark:text-sky-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'news'
+                                ? 'bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Newspaper className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">શૈક્ષણિક સમાચાર</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'blog' && selectedBlogCategory === 'news' ? 'text-sky-500 dark:text-sky-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          handleGoToMockTests();
-                        }}
-                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
-                      >
-                        <span>📝 ઓનલાઇન મોક ટેસ્ટ</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              handleGoToMockTests();
+                            }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40 transition-all duration-150 group cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors duration-150">
+                              <BookOpen className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">ઓનલાઇન મોક ટેસ્ટ</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </button>
+                        </div>
+                      </div>
 
-                      <div className="pt-3 border-t border-gray-100 dark:border-slate-800">
+                      <div className="pt-3 mt-1.5 border-t border-slate-150 dark:border-slate-800/85">
                         <button
                           onClick={() => {
                             setAuthMode('login');
                             navigateToSection('auth');
                             setIsMobileMenuOpen(false);
                           }}
-                          className="flex items-center justify-center gap-2.5 w-full py-3 bg-[#00966B] hover:bg-[#00825c] text-white rounded-full text-center text-[15px] font-bold transition-all duration-150 shadow-md cursor-pointer"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white rounded-xl text-center text-sm font-bold transition-all duration-150 shadow-md shadow-emerald-600/10 dark:shadow-none cursor-pointer"
                         >
-                          <LogIn className="h-5 w-5" />
-                          <span>લોગિન / નોંધણી</span>
+                          <LogIn className="h-4 w-4" />
+                          <span>લોગિન / નોંધણી કરો</span>
                         </button>
                       </div>
                     </div>
                   ) : (
                     /* Dashboard & User Section for Logged-In Users */
-                    <div className="space-y-1.5">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => {
+                              navigateToHome();
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'home' 
+                                ? 'text-blue-600 bg-blue-50/80 dark:bg-blue-950/30 dark:text-blue-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'home'
+                                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Home className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">Home</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'home' ? 'text-blue-500 dark:text-blue-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToHome();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'home' 
-                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>🏠 Home</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToSection('dashboard');
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'dashboard' }));
+                              }, 100);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'dashboard' 
+                                ? 'text-blue-600 bg-blue-50/80 dark:bg-blue-950/30 dark:text-blue-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'dashboard'
+                                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Trophy className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">ડેશબોર્ડ</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'dashboard' ? 'text-blue-500 dark:text-blue-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'dashboard' }));
-                          }, 100);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'dashboard' 
-                            ? 'text-blue-600 bg-blue-50/70 dark:bg-blue-950/30 dark:text-blue-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>📊 ડેશબોર્ડ</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToSection('dashboard');
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' }));
+                              }, 100);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40 transition-all duration-150 group cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors duration-150">
+                              <BookOpen className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">મોક ટેસ્ટ આપો</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' }));
-                          }, 100);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
-                      >
-                        <span>📝 મોક ટેસ્ટ આપો</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToSection('dashboard');
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'bookmarks' }));
+                              }, 100);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40 transition-all duration-150 group cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors duration-150">
+                              <Bookmark className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">સેવ કરેલા પ્રશ્નો</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'bookmarks' }));
-                          }, 100);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
-                      >
-                        <span>🔖 સેવ કરેલા પ્રશ્નો</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToSection('dashboard');
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
+                              }, 100);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40 transition-all duration-150 group cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors duration-150">
+                              <Trophy className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">મેરીટ લીસ્ટ</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
-                          }, 100);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
-                      >
-                        <span>🏆 મેરીટ લીસ્ટ</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToSection('age_calculator');
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-150 group cursor-pointer ${
+                              currentSection === 'age_calculator' 
+                                ? 'text-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/30 dark:text-indigo-400' 
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg transition-colors duration-150 ${
+                              currentSection === 'age_calculator'
+                                ? 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                            }`}>
+                              <Clock className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">ઉંમર ગણતરી</span>
+                            <ChevronRight className={`h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5 ${
+                              currentSection === 'age_calculator' ? 'text-indigo-500 dark:text-indigo-400' : ''
+                            }`} />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToSection('age_calculator');
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold transition-all duration-150 ${
-                          currentSection === 'age_calculator' 
-                            ? 'text-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/30 dark:text-indigo-400' 
-                            : 'text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <span>🎂 ઉંમર ગણતરી</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              setShowPaywall(true);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-slate-800/60 transition-all duration-150 group cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-indigo-100/60 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 transition-colors duration-150">
+                              <Sparkles className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">સબસ્ક્રિપ્શન પ્લાન</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-indigo-400 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          setShowPaywall(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50/55 dark:hover:bg-slate-800/60 transition-all duration-150"
-                      >
-                        <span>🎗️ સબસ્ક્રિપ્શન પ્લાન </span>
-                        <span className="text-xs text-indigo-400">➤</span>
-                      </button>
+                          <button
+                            onClick={() => {
+                              navigateToSection('dashboard');
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'change_password' }));
+                              }, 100);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#111726]/60 shadow-xs border border-transparent hover:border-slate-150/40 dark:hover:border-slate-800/40 transition-all duration-150 group cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors duration-150">
+                              <Lock className="h-4 w-4" />
+                            </div>
+                            <span className="flex-1 truncate">પાસવર્ડ બદલો</span>
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600 transition-transform duration-150 group-hover:translate-x-0.5" />
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          navigateToSection('dashboard');
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'change_password' }));
-                          }, 100);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-gray-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all duration-150"
-                      >
-                        <span>🔑 પાસવર્ડ બદલો</span>
-                        <span className="text-xs text-gray-400">➤</span>
-                      </button>
+                          {user.role === 'admin' && (
+                            <button
+                              onClick={() => {
+                                navigateToSection('dashboard');
+                                setTimeout(() => {
+                                  window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'admin' }));
+                                }, 100);
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-50/70 dark:hover:bg-orange-950/20 transition-all duration-150 group cursor-pointer"
+                            >
+                              <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 transition-colors duration-150">
+                                <Settings className="h-4 w-4" />
+                              </div>
+                              <span className="flex-1 truncate">એડમીન પેનલ</span>
+                              <ChevronRight className="h-3.5 w-3.5 text-orange-400 transition-transform duration-150 group-hover:translate-x-0.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
 
-                      {user.role === 'admin' && (
-                        <button
-                          onClick={() => {
-                            navigateToSection('dashboard');
-                            setTimeout(() => {
-                              window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'admin' }));
-                            }, 100);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-left text-[15px] font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-50/60 dark:hover:bg-slate-800/60 transition-all duration-150"
-                        >
-                          <span>🛠️ એડમીન પેનલ</span>
-                          <span className="text-xs text-orange-400">➤</span>
-                        </button>
-                      )}
-
-                      <div className="pt-3 border-t border-gray-150 dark:border-slate-800 space-y-2">
+                      <div className="pt-3 mt-1.5 border-t border-slate-150 dark:border-slate-800/80 space-y-2">
                         <div 
                           onClick={() => {
                             navigateToSection('dashboard');
@@ -1114,14 +1223,14 @@ export default function App() {
                             }, 100);
                             setIsMobileMenuOpen(false);
                           }}
-                          className="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white dark:hover:bg-[#111726]/60 rounded-xl transition-all duration-150 border border-transparent hover:border-slate-150/40 dark:hover:border-slate-850 shadow-xs"
                         >
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold rounded-full flex items-center justify-center text-xs shadow-sm">
-                            {user.name ? user.name[0] : 'ર'}
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black rounded-lg flex items-center justify-center text-xs shadow-md shadow-blue-500/10">
+                            {user.name ? user.name[0] : 'U'}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <span className="font-extrabold text-gray-800 dark:text-slate-200 text-sm block truncate leading-tight">{user.name || 'રમેશભાઈ પટેલ'}</span>
-                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold block uppercase tracking-wider">પ્રોફાઇલ જુઓ</span>
+                            <span className="font-extrabold text-slate-800 dark:text-slate-100 text-xs block truncate leading-tight">{user.name || 'વપરાશકર્તા'}</span>
+                            <span className="text-[9.5px] text-blue-600 dark:text-blue-400 font-extrabold block uppercase tracking-wider mt-0.5">પ્રોફાઇલ જુઓ</span>
                           </div>
                         </div>
                         <button
@@ -1129,9 +1238,9 @@ export default function App() {
                             handleLogout();
                             setIsMobileMenuOpen(false);
                           }}
-                          className="flex items-center justify-center gap-2.5 w-full py-3 bg-rose-50 hover:bg-rose-100/85 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 rounded-full text-center text-[15px] font-bold transition-all duration-150 border border-red-100 dark:border-red-900/40 shadow-sm cursor-pointer"
+                          className="flex items-center justify-center gap-2 w-full py-2 bg-rose-50 hover:bg-rose-100/80 active:scale-98 dark:bg-rose-950/10 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-xl text-center text-sm font-bold transition-all duration-150 border border-rose-100 dark:border-rose-950/20 cursor-pointer"
                         >
-                          <LogOut className="h-5 w-5" />
+                          <LogOut className="h-3.5 w-3.5" />
                           <span>લોગઆઉટ</span>
                         </button>
                       </div>

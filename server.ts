@@ -4645,9 +4645,9 @@ function generateSeoTags(post: any | null, req: express.Request) {
     const plainContent = (post.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
     const descText = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
 
-    const fullUrl = `${protocol}://${hostHeader}${req.originalUrl}`;
     const category = post.category || 'job';
     const cleanSlug = post.slug || String(post.id);
+    const fullUrl = `${protocol}://${hostHeader}/${category}/${cleanSlug}/`;
     const ampUrl = `${protocol}://${hostHeader}/${category}/${cleanSlug}/amp/`;
 
     let imageUrl = post.thumbnail || 'https://i.ibb.co/Jw5T1sWB/1784729117633.png';

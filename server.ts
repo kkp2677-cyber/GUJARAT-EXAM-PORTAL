@@ -809,13 +809,181 @@ const generateSitemapXml = async (req: express.Request, res: express.Response) =
   }
 };
 
-app.get('/sitemap.xml', generateSitemapXml);
-app.get('/sitemap_index.xml', generateSitemapXml);
+const generateNewsSitemapXml = async (req: express.Request, res: express.Response) => {
+  try {
+    const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
+    const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
+      ? sitemapBaseUrl.trim().replace(/\/$/, '') 
+      : `${protocol}://${hostHeader}`;
 
-// Redirect /sitemap to /sitemap.xml
-app.get('/sitemap', (req, res) => {
-  res.redirect(301, '/sitemap.xml');
-});
+    const allPosts = await queryWithRetry(() => 
+      db.select().from(posts).orderBy(desc(posts.id))
+    );
+
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    let recentNews = allPosts.filter(p => {
+      const pDate = p.date ? new Date(p.date) : (p.createdAt ? new Date(p.createdAt) : new Date(0));
+      return pDate >= twoDaysAgo;
+    });
+
+    if (recentNews.length === 0) {
+      recentNews = allPosts.slice(0, 30);
+    }
+
+    const escapeXml = (str: any): string => {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
+
+    for (const p of recentNews) {
+      const targetSlug = p.slug && p.slug.trim() !== '' ? p.slug.trim() : String(p.id);
+      const postCategory = p.category || 'job';
+      const encodedSlug = targetSlug.split('/').map(seg => encodeURIComponent(seg)).join('/');
+      const postUrl = `${baseUrl}/${postCategory}/${encodedSlug}/`;
+      
+      let pubIsoDate = new Date().toISOString();
+      if (p.date || p.createdAt) {
+        try {
+          const dObj = new Date(p.date || p.createdAt);
+          if (!isNaN(dObj.getTime())) pubIsoDate = dObj.toISOString();
+        } catch (e) {}
+      }
+
+      xml += `
+  <url>
+    <loc>${escapeXml(postUrl)}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>OJAS EXAM</news:name>
+        <news:language>gu</news:language>
+      </news:publication>
+      <news:publication_date>${pubIsoDate}</news:publication_date>
+      <news:title>${escapeXml(p.title)}</news:title>
+    </news:news>`;
+
+      if (p.thumbnail && p.thumbnail.trim() !== '') {
+        let imageUrl = p.thumbnail.trim();
+        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+        }
+        xml += `
+    <image:image>
+      <image:loc>${escapeXml(imageUrl)}</image:loc>
+      <image:title>${escapeXml(p.title)}</image:title>
+    </image:image>`;
+      }
+
+      xml += `
+  </url>`;
+    }
+
+    xml += `\n</urlset>`;
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.status(200).send(xml);
+  } catch (err: any) {
+    console.error('News sitemap error:', err);
+    res.status(500).send(`Error generating news sitemap: ${err.message}`);
+  }
+};
+
+const generateRssXml = async (req: express.Request, res: express.Response) => {
+  try {
+    const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
+    const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
+      ? sitemapBaseUrl.trim().replace(/\/$/, '') 
+      : `${protocol}://${hostHeader}`;
+
+    const allPosts = await queryWithRetry(() => 
+      db.select().from(posts).orderBy(desc(posts.id))
+    );
+    const recentPosts = allPosts.slice(0, 50);
+
+    const escapeXml = (str: any): string => {
+      if (!str) return '';
+      return String(str)
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>OJAS EXAM - Job Alerts, Answer Keys &amp; Results</title>
+  <link>${escapeXml(baseUrl)}/</link>
+  <description>ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ માટે ફ્રી Online Mock Test, Job Alerts, Answer Key અને Result.</description>
+  <language>gu</language>
+  <atom:link href="${escapeXml(baseUrl)}/rss.xml" rel="self" type="application/rss+xml" />`;
+
+    for (const p of recentPosts) {
+      const targetSlug = p.slug && p.slug.trim() !== '' ? p.slug.trim() : String(p.id);
+      const postCategory = p.category || 'job';
+      const encodedSlug = targetSlug.split('/').map(seg => encodeURIComponent(seg)).join('/');
+      const postUrl = `${baseUrl}/${postCategory}/${encodedSlug}/`;
+      
+      let pubDateStr = new Date().toUTCString();
+      if (p.date || p.createdAt) {
+        try {
+          const dObj = new Date(p.date || p.createdAt);
+          if (!isNaN(dObj.getTime())) pubDateStr = dObj.toUTCString();
+        } catch (e) {}
+      }
+
+      const plainContent = (p.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      const descText = p.metaDesc || (plainContent.substring(0, 200) + (plainContent.length > 200 ? '...' : ''));
+
+      xml += `
+  <item>
+    <title>${escapeXml(p.title)}</title>
+    <link>${escapeXml(postUrl)}</link>
+    <guid isPermaLink="true">${escapeXml(postUrl)}</guid>
+    <pubDate>${pubDateStr}</pubDate>
+    <description>${escapeXml(descText)}</description>
+    <category>${escapeXml(p.category || 'Job')}</category>
+  </item>`;
+    }
+
+    xml += `
+</channel>
+</rss>`;
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.status(200).send(xml);
+  } catch (err: any) {
+    res.status(500).send(`Error generating RSS feed: ${err.message}`);
+  }
+};
+
+// XML Sitemap, News Sitemap, RSS Feeds & Robots.txt
+const sitemapRoutes = ['/sitemap.xml', '/sitemap.XML', '/sitemap_index.xml', '/sitemap_index.XML', '/sitemap'];
+sitemapRoutes.forEach((route) => app.get(route, generateSitemapXml));
+
+const newsSitemapRoutes = ['/news-sitemap.xml', '/news-sitemap.XML', '/news-sitemap'];
+newsSitemapRoutes.forEach((route) => app.get(route, generateNewsSitemapXml));
+
+const rssFeedRoutes = ['/rss.xml', '/rss.XML', '/rss', '/feed.xml', '/feed.XML', '/feed'];
+rssFeedRoutes.forEach((route) => app.get(route, generateRssXml));
 
 // Dynamic robots.txt Generator
 app.get('/robots.txt', async (req, res) => {
@@ -827,9 +995,12 @@ app.get('/robots.txt', async (req, res) => {
 
     const robotsTxt = `User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
 
-# Sitemap URL
+# Sitemap URLs
 Sitemap: ${baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/news-sitemap.xml
 `;
     res.header('Content-Type', 'text/plain');
     res.send(robotsTxt);
@@ -879,972 +1050,14 @@ app.get('/api/posts/slug/:slug', async (req, res) => {
   }
 });
 
-// Helper to convert rich text content to AMP-compliant HTML
-function convertHtmlToAmp(content: string): string {
-  if (!content) return '';
-  
-  // Replace standard img with amp-img
-  let ampContent = content.replace(/<img([^>]+)>/gi, (match, attrs) => {
-    const srcMatch = attrs.match(/src=["']([^"']+)["']/i);
-    const src = srcMatch ? srcMatch[1] : '';
-    
-    const altMatch = attrs.match(/alt=["']([^"']+)["']/i);
-    const alt = altMatch ? altMatch[1] : 'Image';
-    
-    const widthMatch = attrs.match(/width=["']([^"']+)["']/i);
-    const heightMatch = attrs.match(/height=["']([^"']+)["']/i);
-    
-    let width = widthMatch ? widthMatch[1] : '800';
-    let height = heightMatch ? heightMatch[1] : '450';
-    
-    width = width.replace('px', '').trim();
-    height = height.replace('px', '').trim();
-    
-    if (!width || isNaN(Number(width))) width = '800';
-    if (!height || isNaN(Number(height))) height = '450';
-    
-    return `<amp-img src="${src}" alt="${alt}" width="${width}" height="${height}" layout="responsive"></amp-img>`;
-  });
 
-  // Remove standard script tags to satisfy AMP validation
-  ampContent = ampContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-  
-  return ampContent;
-}
 
-// Render dynamic advertisement content to be fully AMP-compliant
-function renderAmpAd(htmlCode: string, slotId: string): string {
-  if (!htmlCode || htmlCode.trim() === '') {
-    return '';
-  }
 
-  // 1. If it contains Google AdSense, parse parameters and convert to <amp-ad>
-  if (htmlCode.includes('adsbygoogle') || htmlCode.includes('data-ad-client')) {
-    const clientMatch = htmlCode.match(/data-ad-client=["']([^"']+)["']/i);
-    const slotMatch = htmlCode.match(/data-ad-slot=["']([^"']+)["']/i);
-    
-    if (clientMatch && slotMatch) {
-      const client = clientMatch[1];
-      const slot = slotMatch[1];
-      return `
-        <div class="amp-ad-container">
-          <span class="ad-label">જાહેરાત</span>
-          <amp-ad width="100vw" height="320"
-               type="adsense"
-               data-ad-client="${client}"
-               data-ad-slot="${slot}"
-               data-auto-format="rspv"
-               data-full-width="">
-            <div overflow=""></div>
-          </amp-ad>
-        </div>
-      `;
-    }
-  }
 
-  // 2. If it has raw HTML with an image or anchor, convert standard image tags to amp-img
-  if (htmlCode.includes('<img') || htmlCode.includes('<a')) {
-    let sanitized = htmlCode.replace(/<img([^>]+)>/gi, (match, attrs) => {
-      const srcMatch = attrs.match(/src=["']([^"']+)["']/i);
-      const src = srcMatch ? srcMatch[1] : '';
-      const altMatch = attrs.match(/alt=["']([^"']+)["']/i);
-      const alt = altMatch ? altMatch[1] : 'Advertisement';
-      const widthMatch = attrs.match(/width=["']([^"']+)["']/i);
-      const heightMatch = attrs.match(/height=["']([^"']+)["']/i);
-      
-      let width = widthMatch ? widthMatch[1].replace('px', '').trim() : '320';
-      let height = heightMatch ? heightMatch[1].replace('px', '').trim() : '100';
-      
-      if (!width || isNaN(Number(width))) width = '320';
-      if (!height || isNaN(Number(height))) height = '100';
-      
-      return `<amp-img src="${src}" alt="${alt}" width="${width}" height="${height}" layout="responsive"></amp-img>`;
-    });
-
-    sanitized = sanitized.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-
-    return `
-      <div class="amp-ad-container">
-        <span class="ad-label">જાહેરાત</span>
-        ${sanitized}
-      </div>
-    `;
-  }
-
-  return '';
-}
-
-// Serve AMP Page for Single Blog Posts with automatic high-performance caching
-app.get('/:category/:slug/amp/?', async (req, res, next) => {
+// 301 Redirect for legacy AMP URLs to canonical post URLs
+app.get("/:category/:slug/amp/?", (req, res) => {
   const { category, slug } = req.params;
-  const categoriesList = ['job', 'answer_key', 'result', 'selection_list', 'news'];
-  
-  if (!categoriesList.includes(category)) {
-    return next();
-  }
-  
-  const cacheKey = 'amp_html_' + req.originalUrl;
-  const cachedAmpHtml = htmlCache.get<string>(cacheKey);
-  if (cachedAmpHtml) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('X-Prerender-Cache', 'HIT');
-    return res.send(cachedAmpHtml);
-  }
-  
-  try {
-    let post: any = null;
-    if (!isNaN(Number(slug))) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(slug))));
-      post = postsArr[0];
-    } else {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, slug)));
-      post = postsArr[0];
-    }
-    
-    if (!post) {
-      // Post not found, redirect to the standard non-amp URL
-      const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
-      const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-      return res.redirect(301, `${protocol}://${hostHeader}/${category}/${slug}/`);
-    }
-    
-    // Fetch live Ad slots from settings
-    const adsPostBelowHeader = await getSetting('ADS_POST_BELOW_HEADER') || '';
-    const adsPostBelowThumb = await getSetting('ADS_POST_BELOW_THUMB') || '';
-    const adsPostAboveRelated = await getSetting('ADS_POST_ABOVE_RELATED') || '';
-    
-    // Process content to be AMP-compliant
-    const ampContent = convertHtmlToAmp(post.content || '');
-    
-    // Fetch last 7 related posts (excluding current post)
-    let relatedPostsList = await queryWithRetry(() => 
-      db.select()
-        .from(posts)
-        .where(and(eq(posts.category, post.category), ne(posts.id, post.id)))
-        .orderBy(desc(posts.id))
-        .limit(7)
-    );
-
-    if (relatedPostsList.length < 7) {
-      const excludeIds = [post.id, ...relatedPostsList.map(p => p.id)];
-      const extraPosts = await queryWithRetry(() =>
-        db.select()
-          .from(posts)
-          .where(ne(posts.id, post.id))
-          .orderBy(desc(posts.id))
-          .limit(10)
-      );
-      
-      for (const ep of extraPosts) {
-        if (!excludeIds.includes(ep.id) && relatedPostsList.length < 7) {
-          relatedPostsList.push(ep);
-        }
-      }
-    }
-    
-    // SEO Data
-    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const canonicalUrl = `${protocol}://${hostHeader}/${category}/${post.slug || post.id}/`;
-    
-    const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
-    const titleText = rawTitle.includes('OJAS EXAM') ? rawTitle : `${rawTitle} - OJAS Exam`;
-    const plainContent = (post.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-    const descText = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
-    
-    let imageUrl = post.thumbnail || 'https://i.ibb.co/Jw5T1sWB/1784729117633.png';
-    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-      if (!imageUrl.startsWith('/')) imageUrl = '/' + imageUrl;
-      imageUrl = `${protocol}://${hostHeader}${imageUrl}`;
-    }
-    
-    const escTitle = titleText.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const escDesc = descText.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toISOString() : new Date().toISOString();
-    
-    // Gujarati labels
-    const getCategoryLabel = (cat: string) => {
-      switch (cat) {
-        case 'job': return 'નવી ભરતીઓ';
-        case 'answer_key': return 'આન્સર કી';
-        case 'result': return 'રિઝલ્ટ';
-        case 'selection_list': return 'સિલેક્શન લિસ્ટ';
-        case 'news': return 'સમાચાર';
-        default: return 'માહિતી બોર્ડ';
-      }
-    };
-    const categoryNameGujarati = getCategoryLabel(category);
-    
-
-// last update function 
-// ૧. તારીખ અને સમય બંનેને ફોર્મેટ કરતું ફંક્શન
-const formatGujaratiDateTime = (dateString) => {
-  if (!dateString) return '';
-  const d = new Date(dateString);
-  if (isNaN(d.getTime())) return '';
-
-  // તારીખ (ઉદા. 31/7/2026)
-  const datePart = d.toLocaleDateString('gu-IN'); 
-  
-  // સમય (ઉદા. 02:45 PM)
-  const timePart = d.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' });
-
-  return `${datePart} ${timePart}`;
-};
-
-// ૨. તમારા વેરિયેબલ
-const updatedTimeGuj = formatGujaratiDateTime(post?.updatedAt);
-const publishedTimeGuj = formatGujaratiDateTime(post?.createdAt || post?.date);
-
-
-
-    
-    
-    const jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": titleText,
-      "description": descText,
-      "image": imageUrl,
-      "url": canonicalUrl,
-      "datePublished": publishedTime,
-      "dateModified": post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedTime,
-      "author": {
-        "@type": "Organization",
-        "name": "OJAS EXAM",
-        "url": "https://www.ojasexam.in/"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "OJAS EXAM",
-        "logo": {
-          "@type": "ImageObject",
-          "url": `${protocol}://${hostHeader}/logo.svg`
-        }
-      }
-    };
-    
-    const ampHtml = `<!doctype html>
-<html amp lang="gu">
-  <head>
-    <meta charset="utf-8">
-    <title>${escTitle}</title>
-    <link rel="canonical" href="${canonicalUrl}">
-    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
-    
-    <!-- AMP Scripts -->
-    <script async src="https://cdn.ampproject.org/v0.js"></script>
-    <script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
-    <script async custom-element="amp-sidebar" src="https://cdn.ampproject.org/v0/amp-sidebar-0.1.js"></script>
-    
-    <!-- Custom meta tags for Google SEO -->
-    <meta name="description" content="${escDesc}" />
-    <meta name="author" content="OJAS EXAM" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="icon" type="image/svg+xml" href="${protocol}://${hostHeader}/logo.svg">
-    
-    <!-- Open Graph -->
-    <meta property="og:type" content="article" />
-    <meta property="og:title" content="${escTitle}" />
-    <meta property="og:description" content="${escDesc}" />
-    <meta property="og:image" content="${imageUrl}" />
-    <meta property="og:url" content="${canonicalUrl}" />
-    
-    <!-- Article Info -->
-    <meta property="article:published_time" content="${publishedTime}" />
-    <meta property="article:section" content="${category}" />
-    
-    <!-- JSON-LD Structured Data for Google Search -->
-    <script type="application/ld+json">
-      ${JSON.stringify(jsonLd)}
-    </script>
-
-    <!-- AMP Boilerplate -->
-    <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style>
-    <noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
-    
-    <!-- AMP custom styles -->
-    <style amp-custom>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        line-height: 1.6;
-        color: #1f2937;
-        background-color: #f9fafb;
-        margin: 0;
-        padding: 0;
-      }
-      .navbar {
-        background-color: #059669;
-        color: white;
-        padding: 8px 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .navbar-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-      }
-      .navbar-brand {
-        display: flex;
-        align-items: center;
-        color: white;
-        text-decoration: none;
-        font-weight: bold;
-        font-size: 20px;
-      }
-      .navbar-logo {
-        margin-right: 8px;
-        vertical-align: middle;
-      }
-      .hamburger-button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        width: 38px;
-        height: 38px;
-        justify-content: center;
-        align-items: center;
-        border-radius: 6px;
-        transition: background-color 0.2s;
-      }
-      .hamburger-button:hover, .hamburger-button:active {
-        background-color: rgba(255,255,255,0.15);
-      }
-      .hamburger-bar {
-        display: block;
-        width: 20px;
-        height: 2px;
-        background-color: white;
-        border-radius: 2px;
-      }
-      
-      /* Professional Sidebar Styles */
-      amp-sidebar {
-        box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
-        border-left: 1px solid #e5e7eb;
-      }
-      .sidebar-title-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #f3f4f6;
-        padding-bottom: 16px;
-        margin-bottom: 24px;
-      }
-      .sidebar-brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-      }
-      .sidebar-title {
-        font-weight: 800;
-        font-size: 20px;
-        color: #059669;
-        letter-spacing: -0.025em;
-      }
-      .sidebar-close {
-        background: #f3f4f6;
-        border: none;
-        font-size: 22px;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #4b5563;
-        border-radius: 50%;
-        transition: all 0.2s;
-      }
-      .sidebar-close:hover, .sidebar-close:active {
-        background-color: #e5e7eb;
-        color: #111827;
-      }
-      .sidebar-nav {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .sidebar-section-title {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: #9ca3af;
-        margin-top: 16px;
-        margin-bottom: 8px;
-        letter-spacing: 0.05em;
-      }
-      .sidebar-item {
-        color: #374151;
-        text-decoration: none;
-        font-size: 15px;
-        font-weight: 600;
-        padding: 12px 16px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        transition: all 0.2s ease-in-out;
-        border: 1px solid transparent;
-        background-color: #f9fafb;
-      }
-      .sidebar-item-bullet {
-        color: #059669;
-        font-size: 12px;
-        opacity: 0.5;
-        transition: transform 0.2s;
-      }
-      .sidebar-item:hover, .sidebar-item:active {
-        background-color: #f0fdf4;
-        color: #047857;
-        border-color: #bbf7d0;
-      }
-      .sidebar-item:hover .sidebar-item-bullet {
-        opacity: 1;
-        transform: translateX(3px);
-      }
-      .sidebar-cta {
-        margin-top: 32px;
-        padding: 16px;
-        text-align: center;
-      }
-      .sidebar-cta-text {
-        font-size: 13px;
-        color: #166534;
-        margin-bottom: 12px;
-        display: block;
-        font-weight: 500;
-      }
-      .sidebar-cta-button {
-        background-color: #059669;
-        color: white;
-        text-decoration: none;
-        padding: 10px 16px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 14px;
-        display: block;
-        box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
-        transition: background-color 0.2s;
-      }
-      .sidebar-cta-button:hover, .sidebar-cta-button:active {
-        background-color: #047857;
-      }
-      .sidebar-footer {
-        margin-top: 40px;
-        text-align: center;
-        font-size: 12px;
-        color: #9ca3af;
-        border-top: 1px solid #f3f4f6;
-        padding-top: 16px;
-      }
-      .container {
-        max-width: 800px;
-        margin: 16px auto;
-        padding: 16px;
-        background-color: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        border-radius: 8px;
-        border: 1px solid #f3f4f6;
-      }
-      .breadcrumb {
-        font-size: 14px;
-        color: #6b7280;
-        margin-bottom: 12px;
-      }
-      .breadcrumb a {
-        color: #059669;
-        text-decoration: none;
-      }
-      .post-title {
-        font-size: 24px;
-        line-height: 1.3;
-        font-weight: 800;
-        color: #111827;
-        margin: 8px 0 16px 0;
-      }
-      .post-meta {
-        font-size: 14px;
-        color: #6b7280;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #f3f4f6;
-        padding-bottom: 12px;
-      }
-      .post-meta-item {
-        margin-right: 16px;
-        display: inline-block;
-      }
-      .category-badge {
-        background-color: #ecfdf5;
-        color: #047857;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-weight: 600;
-        font-size: 12px;
-        text-transform: uppercase;
-      }
-      .featured-image {
-        margin-bottom: 24px;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      .post-content {
-        font-size: 17px;
-        line-height: 1.8;
-        color: #374151;
-      }
-      .post-content a {
-        color: #059669;
-        text-decoration: underline;
-        font-weight: bold;
-      }
-      .post-content h1 {
-        font-size: 22px;
-        font-weight: bold;
-        color: #111827;
-        margin-top: 24px;
-        margin-bottom: 12px;
-      }
-      .post-content h2 {
-        font-size: 20px;
-        font-weight: bold;
-        color: #1f2937;
-        margin-top: 20px;
-        margin-bottom: 10px;
-      }
-      .post-content h3 {
-        font-size: 18px;
-        font-weight: bold;
-        color: #374151;
-        margin-top: 16px;
-        margin-bottom: 8px;
-      }
-      .post-content p {
-        margin-bottom: 16px;
-      }
-      .post-content ul, .post-content ol {
-        margin-bottom: 16px;
-        padding-left: 24px;
-      }
-      .post-content li {
-        margin-bottom: 4px;
-      }
-      .post-content blockquote {
-        border-left: 4px solid #059669;
-        padding-left: 16px;
-        font-style: italic;
-        color: #047857;
-        background-color: #ecfdf5;
-        padding-top: 8px;
-        padding-bottom: 8px;
-        margin: 16px 0;
-      }
-      .post-content table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
-        font-size: 15px;
-      }
-      .post-content th, .post-content td {
-        border: 1px solid #e5e7eb;
-        padding: 8px 12px;
-        text-align: left;
-      }
-      .post-content th {
-        background-color: #f9fafb;
-        font-weight: bold;
-      }
-      
-      /* AMP Ad Layout & Styling */
-      .amp-ad-container {
-        margin: 20px auto;
-        padding: 8px;
-        background-color: #f3f4f6;
-        border: 1px dashed #d1d5db;
-        border-radius: 6px;
-        text-align: center;
-        max-width: 100%;
-        overflow: hidden;
-      }
-      .ad-label {
-        display: block;
-        font-size: 10px;
-        color: #9ca3af;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-        letter-spacing: 0.05em;
-      }
-      .ad-placeholder-box {
-        padding: 24px 12px;
-        background-color: #ffffff;
-        border: 1px solid #e5e7eb;
-        color: #9ca3af;
-        font-size: 13px;
-        border-radius: 4px;
-      }
-      
-      .footer {
-        text-align: center;
-        padding: 32px 16px;
-        color: #ffffff;
-        font-size: 14px;
-        background-color: #000000;
-        margin-top: 32px;
-        border-top: 1px solid #e5e7eb;
-      }
-      .footer-nav {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 12px 20px;
-        margin-bottom: 20px;
-        padding: 0;
-        list-style: none;
-      }
-      .footer-nav-item {
-        font-size: 13px;
-        font-weight: 500;
-        white-space: nowrap;
-        color: #ffffff;
-      }
-      .footer-nav-link {
-        color: #ffffff;
-        text-decoration: none;
-        transition: color 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .footer-nav-link:hover, .footer-nav-link:active {
-        color: #059669;
-      }
-      .footer-contact {
-        margin-top: 12px;
-        margin-bottom: 20px;
-        font-size: 13px;
-        color: #ffffff;
-      }
-      .footer-contact-link {
-        color: #059669;
-        text-decoration: none;
-        font-weight: 600;
-      }
-      .footer-copyright {
-        font-size: 13px;
-        color: #9c3b1f; /* Let's keep it a professional subtle color */
-        color: #9ca3af;
-        margin: 0;
-      }
-      .footer-link {
-        color: #059669;
-        text-decoration: none;
-        font-weight: 600;
-      }
-      .btn-desktop {
-        display: inline-block;
-        background-color: #059669;
-        color: white;
-        text-decoration: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-weight: bold;
-        font-size: 14px;
-        margin-top: 16px;
-        text-align: center;
-      }
-      
-      /* Related Posts CSS styles */
-      .related-posts-section {
-        margin-top: 32px;
-        padding-top: 24px;
-        border-top: 2px solid #f3f4f6;
-      }
-      .related-posts-title {
-        font-size: 18px;
-        font-weight: bold;
-        color: #111827;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .related-posts-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .related-posts-item {
-        padding: 12px 0;
-        border-bottom: 1px solid #f3f4f6;
-      }
-      .related-posts-item:last-child {
-        border-bottom: none;
-      }
-      .related-posts-link {
-        color: #1f2937;
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 15px;
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        transition: color 0.2s;
-      }
-      .related-posts-link:hover, .related-posts-link:active {
-        color: #059669;
-      }
-      .related-posts-bullet {
-        color: #059669;
-        font-size: 14px;
-        margin-top: 2px;
-        flex-shrink: 0;
-      }
-      
-      /* Share Container & Buttons styling */
-      .share-container {
-        margin: 24px 0;
-        padding: 16px;
-        background-color: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        font-family: sans-serif;
-      }
-      .share-title {
-        font-size: 15px;
-        font-weight: 700;
-        color: #374151;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .share-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-      .share-btn {
-        flex: 1;
-        min-width: 120px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 16px;
-        color: white;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: bold;
-        border-radius: 6px;
-        text-align: center;
-        transition: opacity 0.2s;
-      }
-      .share-btn:hover, .share-btn:active {
-        opacity: 0.9;
-      }
-      .share-whatsapp {
-        background-color: #25D366;
-      }
-      .share-telegram {
-        background-color: #0088cc;
-      }
-      .share-facebook {
-        background-color: #1877F2;
-      }
-      .share-twitter {
-        background-color: #1a1a1a;
-      }
-    </style>
-    <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
-  </head>
-  
-  <body>
-   <amp-analytics type="googleanalytics">
-  <script type="application/json">
-  {
-    "vars": {
-      "gtag_id": "G-LXYDWTPRGS",
-      "config": {
-        "G-LXYDWTPRGS": {
-          "groups": "default"
-        }
-      }
-    }
-  }
-  </script>
-</amp-analytics>
-    <amp-sidebar id="sidebar1" layout="nodisplay" side="right" style="width: 280px; background-color: #ffffff; padding: 20px;">
-      <div class="sidebar-title-container">
-        <a href="${protocol}://${hostHeader}/" class="sidebar-brand-link">
-          <amp-img src="${protocol}://${hostHeader}/logo.svg" alt="OJAS EXAM" width="28" height="28" style="margin-right: 8px;"></amp-img>
-          <span class="sidebar-title">OJAS EXAM</span>
-        </a>
-        <button on="tap:sidebar1.close" class="sidebar-close" aria-label="Close menu">&times;</button>
-      </div>
-        <nav class="sidebar-nav">
-        <a href="${protocol}://${hostHeader}/job/" class="sidebar-item">
-          <span>નવી ભરતી</span>
-          <span class="sidebar-item-bullet">➤</span>
-        </a>
-        <a href="${protocol}://${hostHeader}/result/" class="sidebar-item">
-          <span>રિઝલ્ટ</span>
-          <span class="sidebar-item-bullet">➤</span>
-        </a>
-        <a href="${protocol}://${hostHeader}/answer_key/" class="sidebar-item">
-          <span>આન્સર કી</span>
-          <span class="sidebar-item-bullet">➤</span>
-        </a>
-        <a href="${protocol}://${hostHeader}/news/" class="sidebar-item">
-          <span>સમાચાર</span>
-          <span class="sidebar-item-bullet">➤</span>
-        </a>
-        <a href="${protocol}://${hostHeader}/auth" class="sidebar-item">
-          <span>Online Mock Tests</span>
-          <span class="sidebar-item-bullet">➤</span>
-        </a>
-      </nav>
-
-      <div class="sidebar-cta">
-        <a href="${canonicalUrl}" class="sidebar-cta-button">Visit Non AMP Site</a>
-      </div>
-
-      <div class="sidebar-footer">
-        <p>&copy; ${new Date().getFullYear()} OJAS EXAM</p>
-      </div>
-    </amp-sidebar>
-
-    <header class="navbar">
-      <div class="navbar-top">
-        <a href="${protocol}://${hostHeader}/" class="navbar-brand">
-          <amp-img src="${protocol}://${hostHeader}/logo.svg" alt="OJAS EXAM" width="32" height="32" class="navbar-logo"></amp-img>
-          <span>OJAS EXAM</span>
-        </a>
-        <button on="tap:sidebar1.toggle" class="hamburger-button" aria-label="Menu">
-          <span class="hamburger-bar"></span>
-          <span class="hamburger-bar"></span>
-          <span class="hamburger-bar"></span>
-        </button>
-      </div>
-      
-      </header>
-    <!-- Ad Slot: Below Header -->
-    ${renderAmpAd(adsPostBelowHeader, 'below-header')}
-    
-    <main class="container">
-      <div class="breadcrumb">
-        <a href="${protocol}://${hostHeader}/">Home</a> &raquo; 
-        <a href="${protocol}://${hostHeader}/${post.category || 'job'}/">${categoryNameGujarati}</a>
-      </div>
-      
-      <h1 class="post-title">${escTitle}</h1>
-      
-      <div style="margin-top: 24px; padding: 12px 16px; background-color: #f9fafb; border-radius: 0px; font-size: 14px; color: #4b5563; font-family: sans-serif;">
-       By : Ojas Exam | Published on : ${publishedTimeGuj}
-      </div>
-     <div style="margin-top: 5px; padding: 12px 16px; background-color: #ffffff; border-radius: 0px; font-size: 14px; color: #4b5563; font-family: sans-serif;">
-     ${escDesc}</div>
-      ${imageUrl ? `
-      <div class="featured-image">
-        <amp-img src="${imageUrl}" alt="${escTitle}" width="800" height="450" layout="responsive"></amp-img>
-      </div>` : ''}
-      
-      <!-- Ad Slot: Below Thumbnail -->
-      ${renderAmpAd(adsPostBelowThumb, 'below-thumb')}
-      
-      <article class="post-content">
-        ${ampContent}
-      </article>
-          
-      <!-- Share Buttons Block -->
-      <div class="share-container">
-        <div class="share-title">📢 Share This Article :</div>
-        <div class="share-buttons">
-          <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(titleText + '\n\n' + canonicalUrl)}" class="share-btn share-whatsapp" target="_blank" rel="noopener">
-            WhatsApp
-          </a>
-          <a href="https://t.me/share/url?url=${encodeURIComponent(canonicalUrl)}&text=${encodeURIComponent(titleText)}" class="share-btn share-telegram" target="_blank" rel="noopener">
-            Telegram
-          </a>
-          <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalUrl)}" class="share-btn share-facebook" target="_blank" rel="noopener">
-            Facebook
-          </a>
-          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(titleText)}&url=${encodeURIComponent(canonicalUrl)}" class="share-btn share-twitter" target="_blank" rel="noopener">
-            Twitter (X)
-          </a>
-        </div>
-      </div>
-      <!-- AMP LAST UPDATE -->
-<div style="margin-top: 24px; padding: 12px 16px; background-color: #f9fafb; border-radius: 0px; font-size: 14px; color: #4b5563; font-family: sans-serif;">
-        <strong>Last updated:</strong> ${updatedTimeGuj || publishedTimeGuj}
-      </div>       
-      <!-- Ad Slot: Above Related (Below Content) -->
-      ${renderAmpAd(adsPostAboveRelated, 'above-related')}
-      
-      <!-- Related Posts Section -->
-      ${relatedPostsList.length > 0 ? `
-      <div class="related-posts-section">
-        <h2 class="related-posts-title">સબંધિત પોસ્ટ્સ :</h2>
-        <ul class="related-posts-list">
-          ${relatedPostsList.map(rp => {
-            const rpCategory = rp.category || 'job';
-            const rpSlug = rp.slug || String(rp.id);
-            const rpUrl = `${protocol}://${hostHeader}/${rpCategory}/${rpSlug}/amp/`;
-            return `
-              <li class="related-posts-item">
-                <a href="${rpUrl}" class="related-posts-link">
-                  <span class="related-posts-bullet">➤</span>
-                  <span>${rp.title}</span>
-                </a>
-              </li>
-            `;
-          }).join('')}
-        </ul>
-      </div>
-      ` : ''}
-    </main>
-    
-    <footer class="footer">
-      <ul class="footer-nav">
-        <li class="footer-nav-item">
-          <a href="${protocol}://${hostHeader}/about/" class="footer-nav-link">અમારા વિશે</a>
-        </li>
-        <li class="footer-nav-item">
-          <a href="${protocol}://${hostHeader}/privacy/" class="footer-nav-link">પ્રાઇવસી પોલિસી</a>
-        </li>
-        <li class="footer-nav-item">
-          <a href="${protocol}://${hostHeader}/terms/" class="footer-nav-link">નિયમો અને શરતો</a>
-        </li>
-        <li class="footer-nav-item">
-          <a href="${protocol}://${hostHeader}/disclaimer/" class="footer-nav-link">ડિસ્ક્લેમર</a>
-        </li>
-        <li class="footer-nav-item">
-          <a href="${protocol}://${hostHeader}/refund/" class="footer-nav-link">રીફંડ પોલિસી</a>
-        </li>
-      </ul>
-      <div class="footer-contact">
-        Contact us : <a href="mailto:info@ojasexam.in" class="footer-contact-link">info@ojasexam.in</a>
-      </div>
-      <p class="footer-copyright">&copy; ${new Date().getFullYear()} <a href="${protocol}://${hostHeader}/" class="footer-link">OJAS EXAM</a>. All rights reserved.</p>
-    </footer>
-  </body>
-</html>`;
-    
-    htmlCache.set(cacheKey, ampHtml);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('X-Prerender-Cache', 'MISS');
-    return res.send(ampHtml);
-    
-  } catch (err: any) {
-    console.error('AMP rendering error:', err);
-    next(err);
-  }
+  return res.redirect(301, `/${category}/${slug}/`);
 });
 
 function sanitizeSlug(inputSlug: string | undefined | null, fallbackTitle?: string): string {
@@ -2181,46 +1394,6 @@ app.get('/api/exams/:id', async (req, res) => {
 
 
 // --- Admin User Management ---
-app.post('/api/admin/db-utility/run-sql', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
-  try {
-    const { sqlStatement } = req.body;
-    if (!sqlStatement) return res.status(400).json({ error: 'SQL કમાન્ડ જરૂરી છે.' });
-    
-    // WARNING: This is extremely dangerous. Only for admin in admin panel.
-    const result = await db.execute(sql.raw(sqlStatement));
-    res.json({ success: true, rows: result.rows });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/admin/db-utility/status', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
-  try {
-    // Just a simple check
-    await db.execute(sql`SELECT 1`);
-    res.json({ connected: true });
-  } catch (err: any) {
-    res.json({ connected: false, error: err.message });
-  }
-});
-
-app.get('/api/admin/db-utility/info', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
-  try {
-    const dbNameRes = await db.execute(sql`SELECT current_database()`);
-    const tablesRes = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
-    const columnsRes = await db.execute(sql`SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'`);
-    
-    const dbName = dbNameRes.rows[0].current_database;
-    const tables = tablesRes.rows.map((t: any) => ({
-      name: t.table_name,
-      columns: columnsRes.rows.filter((c: any) => c.table_name === t.table_name).map((c: any) => c.column_name)
-    }));
-    
-    res.json({ dbName, tables });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 app.get('/api/admin/users', requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -4638,6 +3811,7 @@ async function getPostFromRequest(req: express.Request) {
 function generateSeoTags(post: any | null, req: express.Request) {
   const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
   const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+  const siteUrl = `${protocol}://${hostHeader}`;
 
   if (post) {
     const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
@@ -4647,42 +3821,82 @@ function generateSeoTags(post: any | null, req: express.Request) {
 
     const category = post.category || 'job';
     const cleanSlug = post.slug || String(post.id);
-    const fullUrl = `${protocol}://${hostHeader}/${category}/${cleanSlug}/`;
-    const ampUrl = `${protocol}://${hostHeader}/${category}/${cleanSlug}/amp/`;
+    const fullUrl = `${siteUrl}/${category}/${cleanSlug}/`;
 
     let imageUrl = post.thumbnail || 'https://i.ibb.co/Jw5T1sWB/1784729117633.png';
     if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
       if (!imageUrl.startsWith('/')) imageUrl = '/' + imageUrl;
-      imageUrl = `${protocol}://${hostHeader}${imageUrl}`;
+      imageUrl = `${siteUrl}${imageUrl}`;
     }
 
     const escTitle = titleText.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const escDesc = descText.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toISOString() : new Date().toISOString();
+    const modifiedTime = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedTime;
     const categoryName = post.category || 'General';
 
-    const jsonLd = {
+    const categoryNamesGu: Record<string, string> = {
+      job: 'નવી સરકારી ભરતી (Job Alerts)',
+      answer_key: 'આન્સર કી (Answer Keys)',
+      result: 'પરિણામ (Results)',
+      selection_list: 'પસંદગી યાદી (Selection List)',
+      news: 'સરકારી ન્યૂઝ (News)'
+    };
+    const catLabel = categoryNamesGu[category] || categoryName;
+
+    const graphJsonLd = {
       "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": titleText,
-      "description": descText,
-      "image": imageUrl,
-      "url": fullUrl,
-      "datePublished": publishedTime,
-      "dateModified": post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedTime,
-      "author": {
-        "@type": "Organization",
-        "name": "OJAS EXAM",
-        "url": "https://www.ojasexam.in/"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "OJAS EXAM",
-        "logo": {
-          "@type": "ImageObject",
-          "url": `${protocol}://${hostHeader}/logo.svg`
+      "@graph": [
+        {
+          "@type": "NewsArticle",
+          "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": fullUrl
+          },
+          "headline": titleText,
+          "description": descText,
+          "image": [imageUrl],
+          "datePublished": publishedTime,
+          "dateModified": modifiedTime,
+          "author": {
+            "@type": "Organization",
+            "name": "OJAS EXAM",
+            "url": `${siteUrl}/`
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "OJAS EXAM",
+            "url": `${siteUrl}/`,
+            "logo": {
+              "@type": "ImageObject",
+              "url": `${siteUrl}/logo.svg`
+            }
+          }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "મુખ્ય પૃષ્ઠ",
+              "item": `${siteUrl}/`
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": catLabel,
+              "item": `${siteUrl}/${category}/`
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": titleText,
+              "item": fullUrl
+            }
+          ]
         }
-      }
+      ]
     };
 
     return `
@@ -4690,19 +3904,20 @@ function generateSeoTags(post: any | null, req: express.Request) {
     <title>${escTitle}</title>
     <meta name="description" content="${escDesc}" />
     <meta name="author" content="OJAS EXAM" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="${fullUrl}" />
-    <link rel="amphtml" href="${ampUrl}" />
 
-    <!-- Open Graph / WhatsApp / Facebook -->
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="article" />
     <meta property="og:title" content="${escTitle}" />
     <meta property="og:description" content="${escDesc}" />
     <meta property="og:image" content="${imageUrl}" />
     <meta property="og:url" content="${fullUrl}" />
+    <meta property="og:site_name" content="OJAS EXAM" />
 
     <!-- Article Info -->
     <meta property="article:published_time" content="${publishedTime}" />
+    <meta property="article:modified_time" content="${modifiedTime}" />
     <meta property="article:section" content="${categoryName}" />
 
     <!-- Twitter Cards -->
@@ -4712,34 +3927,155 @@ function generateSeoTags(post: any | null, req: express.Request) {
     <meta name="twitter:image" content="${imageUrl}" />
 
     <!-- JSON-LD Structured Data for Google SEO -->
-    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+    <script type="application/ld+json">${JSON.stringify(graphJsonLd)}</script>
 `;
   }
 
-  const websiteJsonLd = {
+  // Check Category Route
+  const reqPath = req.path.toLowerCase().replace(/\/$/, '');
+  const pathParts = reqPath.split('/').filter(Boolean);
+  const firstSeg = pathParts[0] || '';
+
+  const categoryMeta: Record<string, { title: string; desc: string; label: string }> = {
+    job: {
+      title: 'નવી સરકારી ભરતી 2026 માહિતિ અને ન્યૂઝ (Latest OJAS Job Alerts) - OJAS EXAM',
+      desc: 'ગુજરાત સરકારની નવી સરકારી ભરતીઓ (GPSC, Class 3, GSSSB, OJAS Bharti 2026) ની તાજી અપડેટ્સ, ઓનલાઇન ફોર્મ અને નોટિફિકેશન મેળવો.',
+      label: 'નવી સરકારી ભરતી (Job Alerts)'
+    },
+    answer_key: {
+      title: 'સરકારી પરીક્ષા પ્રોવિઝનલ અને ફાઇનલ આન્સર કી (OJAS Answer Key) - OJAS EXAM',
+      desc: 'GPSC, GSSSB, Police Bharti, TET/TAT અને વિવિધ સ્પર્ધાત્મક પરીક્ષાઓની અધિકૃત Answer Key અને પેપર સોલ્યુશન ડાઉનલોડ કરો.',
+      label: 'આન્સર કી (Answer Keys)'
+    },
+    result: {
+      title: 'સ્પર્ધાત્મક પરીક્ષા પરિણામો અને કટ ઓફ માર્ક્સ (OJAS Results 2026) - OJAS EXAM',
+      desc: 'ગુજરાતની તમામ ભરતી પરીક્ષાઓના લેટેસ્ટ પરિણામો, મેરિટ લિસ્ટ અને કટ-ઓફ માર્ક્સ જુઓ ફક્ત OJAS EXAM પર.',
+      label: 'પરિણામ (Results)'
+    },
+    selection_list: {
+      title: 'પસંદગી અને પ્રતિક્ષા યાદી (Selection & Waiting List) - OJAS EXAM',
+      desc: 'ગુજરાત સરકારની વિવિધ જગ્યાઓ માટે જાહેર થયેલ ફાઇનલ સિલેક્શન લિસ્ટ, વેટિંગ લિસ્ટ અને ડોક્યુમેન્ટ વેરિફિકેશન યાદી.',
+      label: 'પસંદગી યાદી (Selection List)'
+    },
+    news: {
+      title: 'તાજા સરકારી ભરતી સમાચાર અને પરિપત્રો (Sarkari Bharti News) - OJAS EXAM',
+      desc: 'સ્પર્ધાત્મક પરીક્ષાઓ, વયમર્યાદા છૂટછાટ, કેબિનેટ નિર્ણયો અને ભરતી બોર્ડના અગત્યના સમાચાર અને પ્રેસ નોટિસ.',
+      label: 'સરકારી ન્યૂઝ (News)'
+    }
+  };
+
+  if (categoryMeta[firstSeg]) {
+    const catData = categoryMeta[firstSeg];
+    const catUrl = `${siteUrl}/${firstSeg}/`;
+    const escTitle = catData.title.replace(/"/g, '&quot;');
+    const escDesc = catData.desc.replace(/"/g, '&quot;');
+
+    const catJsonLd = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "CollectionPage",
+          "name": catData.title,
+          "description": catData.desc,
+          "url": catUrl
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "મુખ્ય પૃષ્ઠ",
+              "item": `${siteUrl}/`
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": catData.label,
+              "item": catUrl
+            }
+          ]
+        }
+      ]
+    };
+
+    return `
+    <!-- Category Page Meta Tags -->
+    <title>${escTitle}</title>
+    <meta name="description" content="${escDesc}" />
+    <meta name="author" content="OJAS EXAM" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="${catUrl}" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OJAS EXAM" />
+    <meta property="og:title" content="${escTitle}" />
+    <meta property="og:description" content="${escDesc}" />
+    <meta property="og:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+    <meta property="og:url" content="${catUrl}" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escTitle}" />
+    <meta name="twitter:description" content="${escDesc}" />
+    <meta name="twitter:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
+
+    <script type="application/ld+json">${JSON.stringify(catJsonLd)}</script>
+`;
+  }
+
+  // Default Home Page & Other Pages Meta Tags
+  const currentCanonical = req.path === '/' || !req.path ? `${siteUrl}/` : `${siteUrl}${req.path}`;
+  const defaultTitle = 'OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results';
+  const defaultDesc = 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર.';
+
+  const homeGraphJsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "OJAS EXAM",
-    "url": `${protocol}://${hostHeader}/`,
-    "description": "ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ માટે ફ્રી Online Mock Test, Job Alerts, Answer Key અને Result."
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "OJAS EXAM",
+        "url": `${siteUrl}/`,
+        "description": defaultDesc,
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": `${siteUrl}/?s={search_term_string}`,
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "OJAS EXAM",
+        "url": `${siteUrl}/`,
+        "logo": `${siteUrl}/logo.svg`,
+        "sameAs": [
+          "https://www.facebook.com/",
+          "https://t.me/"
+        ]
+      }
+    ]
   };
 
   return `
     <!-- Default Social Media Meta Tags -->
-    <title>OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results</title>
-    <meta name="description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+    <title>${defaultTitle}</title>
+    <meta name="description" content="${defaultDesc}" />
     <meta name="author" content="OJAS EXAM" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="${currentCanonical}" />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="OJAS EXAM" />
-    <meta property="og:title" content="OjasExam.in | Online Exam Mock Test, OJAS Job Alerts & Results" />
-    <meta property="og:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+    <meta property="og:title" content="${defaultTitle}" />
+    <meta property="og:description" content="${defaultDesc}" />
     <meta property="og:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
-    <meta property="og:url" content="https://www.ojasexam.in/" />
+    <meta property="og:url" content="${currentCanonical}" />
+
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="OjasExam.in | Online Exam Mock Test, OJAS Job Alerts & Results" />
-    <meta name="twitter:description" content="ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર." />
+    <meta name="twitter:title" content="${defaultTitle}" />
+    <meta name="twitter:description" content="${defaultDesc}" />
     <meta name="twitter:image" content="https://i.ibb.co/Jw5T1sWB/1784729117633.png" />
-    <script type="application/ld+json">${JSON.stringify(websiteJsonLd)}</script>
+
+    <script type="application/ld+json">${JSON.stringify(homeGraphJsonLd)}</script>
 `;
 }
 
@@ -4819,12 +4155,14 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     });
     
     app.use(async (req, res, next) => {
+      const pathLower = req.path.toLowerCase().replace(/\/$/, '');
       const isCodeOrAsset =
         req.path.startsWith('/api/') ||
         req.path.startsWith('/@') ||
         req.path.startsWith('/src/') ||
         req.path.startsWith('/node_modules/') ||
-        /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
+        /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path) ||
+        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
 
       const isHtmlRequest =
         req.method === 'GET' &&
@@ -4861,8 +4199,13 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
 
     // Handle HTML Prerendering BEFORE express.static so /index.html is never served raw
     app.use(async (req, res, next) => {
+      const pathLower = req.path.toLowerCase().replace(/\/$/, '');
       const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
-      const isApiOrSpecial = req.path.startsWith('/api/') || req.path.endsWith('.xml') || req.path === '/robots.txt';
+      const isApiOrSpecial =
+        req.path.startsWith('/api/') ||
+        req.path.toLowerCase().endsWith('.xml') ||
+        req.path.toLowerCase().endsWith('.txt') ||
+        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
 
       if (isApiOrSpecial || isStaticAsset) {
         return next();

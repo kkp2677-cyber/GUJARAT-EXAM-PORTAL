@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, Database, DollarSign, Megaphone, ExternalLink, Flame } from 'lucide-react';
+import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, DollarSign, Megaphone, ExternalLink, Flame } from 'lucide-react';
 import { User, BlogPost, Exam, Question, PushNotification, ExamCalendarEvent, NewsTickerItem } from '../types';
 import ClassicEditor from './ClassicEditor';
 import { safeFormatDate } from '../utils/date';
@@ -19,7 +19,7 @@ export const MOCK_TEST_SUBJECTS = [
 
 export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'cms' | 'add-exam' | 'notifications' | 'calendar' | 'news-ticker' | 'monetization' | 'db-utility' | 'otp-integration' | 'payment-integration' | 'seo-settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'cms' | 'add-exam' | 'notifications' | 'calendar' | 'news-ticker' | 'monetization' | 'otp-integration' | 'payment-integration' | 'seo-settings'>('users');
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState('');
   const [smsGatewayType, setSmsGatewayType] = useState('disabled');
@@ -108,14 +108,7 @@ export default function AdminPanel() {
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  // States for DB Utility
-  const [sqlCommand, setSqlCommand] = useState('');
-  const [sqlResult, setSqlResult] = useState<any>(null);
-  const [dbStatus, setDbStatus] = useState<{connected: boolean, error?: string} | null>(null);
-  const [dbInfo, setDbInfo] = useState<any>(null);
-  const [selectedBackupTables, setSelectedBackupTables] = useState<string[]>([
-    'users', 'exams', 'exam_results', 'posts', 'notifications', 'calendar_events', 'bookmarks', 'settings', 'push_subscriptions', 'leaderboard_summary', 'wishlist'
-  ]);
+
 
   // States for CMS
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -480,50 +473,7 @@ export default function AdminPanel() {
   };
 
 
-  useEffect(() => {
-    if (activeTab === 'db-utility') {
-      fetchDbStatus();
-    }
-  }, [activeTab]);
 
-  const fetchDbStatus = async () => {
-    try {
-      const res = await fetch('/api/admin/db-utility/status', {
-        headers: { 'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}` }
-      });
-      const data = await res.json();
-      setDbStatus(data);
-      
-      if (data.connected) {
-        const resInfo = await fetch('/api/admin/db-utility/info', {
-          headers: { 'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}` }
-        });
-        const dataInfo = await resInfo.json();
-        setDbInfo(dataInfo);
-      }
-    } catch (e: any) {
-      setDbStatus({ connected: false, error: e.message });
-    }
-  };
-
-  const handleRunSql = async () => {
-    try {
-      const res = await fetch('/api/admin/db-utility/run-sql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}`
-        },
-        body: JSON.stringify({ sqlStatement: sqlCommand })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSqlResult(data.rows);
-      showToast('SQL કમાન્ડ સફળતાપૂર્વક ચાલ્યો!');
-    } catch (e: any) {
-      showToast(e.message, 'error');
-    }
-  };
 
   const fetchSettings = async () => {
     try {
@@ -809,40 +759,7 @@ export default function AdminPanel() {
     }, 'ગૂગલ એનાલિટિક્સ અને કસ્ટમ કોડ સફળતાપૂર્વક અપડેટ થયા.');
   };
 
-  const handleExportDatabase = async (specificTables?: string[]) => {
-    setIsExporting(true);
-    try {
-      const tablesToExport = specificTables || selectedBackupTables;
-      if (tablesToExport.length === 0) {
-        throw new Error('કૃપા કરીને એક્સપોર્ટ કરવા માટે ઓછામાં ઓછું એક ટેબલ પસંદ કરો.');
-      }
 
-      const res = await fetch(`/api/admin/export-database?tables=${tablesToExport.join(',')}`, {
-        headers: {
-          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('exam_user') || '{}')?.token}`
-        }
-      });
-      if (!res.ok) throw new Error('ડેટાબેઝ એક્સપોર્ટ કરવામાં નિષ્ફળતા.');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-
-      const filename = tablesToExport.length === 1
-        ? `${tablesToExport[0]}_backup_${new Date().toISOString().split('T')[0]}.json`
-        : `database_backup_${new Date().toISOString().split('T')[0]}.json`;
-
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      showToast('ડેટાબેઝ સફળતાપૂર્વક એક્સપોર્ટ થયો!');
-    } catch (err: any) {
-      showToast(err.message, 'error');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleUpdateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1409,14 +1326,7 @@ export default function AdminPanel() {
         >
           <DollarSign className="h-4 w-4 text-emerald-600" /> Monetization
         </button>
-        <button
-          onClick={() => setActiveTab('db-utility')}
-          className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
-            activeTab === 'db-utility' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
-          }`}
-        >
-          <Database className="h-4 w-4" /> DB Utility
-        </button>
+
         <button
           onClick={() => setActiveTab('otp-integration')}
           className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
@@ -3295,176 +3205,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* TAB 6: DB UTILITY */}
-        {activeTab === 'db-utility' && (
-          <div className="space-y-6 animate-fade-in">
-            <h3 className="text-xl font-bold text-gray-900 font-sans border-b border-gray-100 pb-3 flex items-center gap-2">
-              <Database className="h-5 w-5 text-indigo-600" /> ડેટાબેઝ યુટિલિટી
-            </h3>
-            
-            {/* Database Status */}
-            <div className={`p-4 border rounded-xl ${dbStatus?.connected ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
-              <h4 className="font-bold mb-1">ડેટાબેઝ સ્ટેટ્સ</h4>
-              <p>{dbStatus?.connected ? '✅ ડેટાબેઝ કનેક્ટેડ છે.' : `❌ એરર: ${dbStatus?.error || 'કનેક્શન નિષ્ફળ'}`}</p>
-              
-              {dbStatus?.connected && dbInfo && (
-                <div className="mt-4 pt-4 border-t border-emerald-200">
-                  <p><strong>ડેટાબેઝ નામ :</strong> {dbInfo.dbName}</p>
-                  <div className="mt-2 space-y-3">
-                    {dbInfo.tables.map((table: any) => (
-                      <div key={table.name} className="bg-emerald-100/50 p-3 rounded-lg">
-                        <p><strong>ટેબલનું નામ :</strong> {table.name}</p>
-                        <p className="font-semibold mt-1">ટેબલના ફિલ્ડ</p>
-                        {table.columns.map((col: string, idx: number) => (
-                          <p key={col} className="text-sm">({idx + 1}) {col}</p>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* SQL Command Runner */}
-            <div className="space-y-2">
-              <h4 className="font-bold text-gray-800">SQL કમાન્ડ ચલાવો</h4>
-              <textarea 
-                className="w-full h-32 p-3 border rounded-xl font-mono text-sm" 
-                placeholder="SELECT * FROM users LIMIT 10;"
-                value={sqlCommand}
-                onChange={(e) => setSqlCommand(e.target.value)}
-              ></textarea>
-              <button 
-                onClick={handleRunSql}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all cursor-pointer"
-              >
-                કમાન્ડ ચલાવો
-              </button>
-            </div>
-
-            {sqlResult && (
-              <div className="mt-4 p-4 border rounded-xl bg-gray-50 overflow-auto">
-                <h4 className="font-bold mb-2">પરિણામ:</h4>
-                <pre className="text-xs font-mono">{JSON.stringify(sqlResult, null, 2)}</pre>
-              </div>
-            )}
-
-            {/* Database Export Section */}
-            <div className="bg-slate-50/50 p-6 rounded-2xl border-0 md:border border-gray-150 space-y-6 mt-6 animate-fade-in">
-              <div className="border-b pb-3">
-                <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <Database className="h-4 w-4 text-emerald-600" /> ડેટાબેઝ બેકઅપ અને એક્સપોર્ટ (Database Backup & Export)
-                </h4>
-                <p className="text-xs text-gray-500 mt-1">આ એપ્લિકેશનના તમામ ટેબલ્સ (યુઝર્સ, પરીક્ષાઓ, પરિણામો, પોસ્ટ્સ, કેલેન્ડર વગેરે) નો ડેટા JSON ફોર્મેટમાં ડાઉનલોડ કરો.</p>
-              </div>
-
-              {/* Table-wise Selection and Download Area */}
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-gray-200">
-                  <div>
-                    <h5 className="font-bold text-sm text-gray-800">ટેબલ વાઈજ બેકઅપ (Table-wise Export)</h5>
-                    <p className="text-xs text-gray-400 mt-0.5">તમે જે ટેબલ્સ એક્સપોર્ટ કરવા માંગો છો તે સિલેક્ટ કરો અથવા તેને સિંગલ ક્લિકથી ડાઉનલોડ કરો.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBackupTables([
-                        'users', 'exams', 'exam_results', 'posts', 'notifications', 'calendar_events', 'bookmarks', 'settings', 'push_subscriptions', 'leaderboard_summary', 'wishlist'
-                      ])}
-                      className="px-2.5 py-1 text-xs border border-gray-200 rounded hover:bg-slate-50 font-bold text-indigo-600 cursor-pointer"
-                    >
-                      બધા સિલેક્ટ કરો
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBackupTables([])}
-                      className="px-2.5 py-1 text-xs border border-gray-200 rounded hover:bg-slate-50 font-bold text-rose-600 cursor-pointer"
-                    >
-                      ક્લિયર કરો
-                    </button>
-                  </div>
-                </div>
-
-                {/* Grid list of tables */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { id: 'users', label: 'વપરાશકર્તાઓ (users)', desc: 'તમામ રજીસ્ટર્ડ યુઝર પ્રોફાઇલ વિગતો (પાસવર્ડ સિવાય)' },
-                    { id: 'exams', label: 'પરીક્ષાઓ (exams)', desc: 'તમામ મોક ટેસ્ટ અને ભરતી પરીક્ષાઓની યાદી' },
-                    { id: 'exam_results', label: 'પરીક્ષાના પરિણામો (exam_results)', desc: 'યુઝર્સ દ્વારા આપવામાં આવેલ ટેસ્ટ્સના સ્કોર અને પરિણામો' },
-                    { id: 'posts', label: 'બ્લોગ અને નોકરી પોસ્ટ્સ (posts)', desc: 'CMS અંતર્ગત પબ્લિશ થયેલ તમામ ન્યૂઝ અને આર્ટીકલ્સ' },
-                    { id: 'notifications', label: 'સિસ્ટમ નોટિફિકેશન (notifications)', desc: 'સિસ્ટમ દ્વારા મોકલાયેલ મહત્વના નોટિફિકેશન્સ' },
-                    { id: 'calendar_events', label: 'કેલેન્ડર ઇવેન્ટ્સ (calendar_events)', desc: 'પરીક્ષાઓના સમયપત્રક અને અન્ય તારીખો' },
-                    { id: 'bookmarks', label: 'બુકમાર્ક્સ (bookmarks)', desc: 'યુઝર્સ દ્વારા સેવ કરેલા પ્રશ્નો કે પોસ્ટ્સ' },
-                    { id: 'settings', label: 'સિસ્ટમ સેટિંગ્સ (settings)', desc: 'એપના કી-વેલ્યુ સેટિંગ્સ અને એપીઆઈ કોન્ફિગ્યુરેશન' },
-                    { id: 'push_subscriptions', label: 'પુશ સબ્સ્ક્રિપ્શન્સ (push_subscriptions)', desc: 'બ્રાઉઝર પુશ નોટિફિકેશન કનેક્શન સબસ્ક્રાઈબર્સ' },
-                    { id: 'leaderboard_summary', label: 'લીડરબોર્ડ સમરી (leaderboard_summary)', desc: 'લીડરબોર્ડનું કેશ્ડ ઓપ્ટિમાઇઝ્ડ રેન્કિંગ ડેટા' },
-                    { id: 'wishlist', label: 'વિશલિસ્ટ (wishlist)', desc: 'યુઝર્સ દ્વારા રસ ધરાવતી અને સેવ કરેલ પરીક્ષાઓ' }
-                  ].map((tbl) => {
-                    const isChecked = selectedBackupTables.includes(tbl.id);
-                    return (
-                      <div key={tbl.id} className="py-2 px-3.5 bg-white border border-gray-150 rounded-xl hover:shadow-sm transition-all flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          id={`chk-tbl-${tbl.id}`}
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedBackupTables([...selectedBackupTables, tbl.id]);
-                            } else {
-                              setSelectedBackupTables(selectedBackupTables.filter(t => t !== tbl.id));
-                            }
-                          }}
-                          className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <label htmlFor={`chk-tbl-${tbl.id}`} className="font-extrabold text-[14px] md:text-[15px] text-slate-800 cursor-pointer flex items-center gap-1.5 hover:text-indigo-600">
-                            {tbl.label}
-                          </label>
-                          <p className="text-[12px] md:text-[12.5px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{tbl.desc}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleExportDatabase([tbl.id])}
-                          title="આ ટેબલ સિંગલ ડાઉનલોડ કરો"
-                          className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer self-center"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="block text-xs font-bold text-slate-700">પસંદ કરેલા ટેબલ્સનું બેકઅપ ({selectedBackupTables.length} ટેબલ પસંદ કર્યા છે)</span>
-                    <p className="text-xs text-slate-400">ઉપરના લિસ્ટમાંથી તમે જે ટેબલ સિલેક્ટ કર્યા હશે તેનું સિંગલ કમ્બાઇન્ડ બેકઅપ ફાઇલ ડાઉનલોડ થશે.</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => handleExportDatabase()}
-                      disabled={isExporting || selectedBackupTables.length === 0}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Download className="h-4 w-4" /> {isExporting ? 'એક્સપોર્ટ થઈ રહ્યું છે...' : 'પસંદ કરેલ ટેબલ એક્સપોર્ટ કરો'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleExportDatabase([
-                        'users', 'exams', 'exam_results', 'posts', 'notifications', 'calendar_events', 'bookmarks', 'settings', 'push_subscriptions', 'leaderboard_summary', 'wishlist'
-                      ])}
-                      disabled={isExporting}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white font-bold rounded-xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Database className="h-4 w-4" /> બધા ટેબલ એક્સપોર્ટ કરો (.JSON)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* TAB 7: OTP INTEGRATION */}
         {activeTab === 'otp-integration' && (
@@ -3684,14 +3425,40 @@ export default function AdminPanel() {
                     </h4>
                     <p className="text-xs text-gray-500 mt-1">ગૂગલ અને અન્ય સર્ચ એન્જિનમાં પોસ્ટ અને છબીઓને ઇન્ડેક્સ કરવા માટે સાઇટમેપ સેટ કરો.</p>
                   </div>
-                  <a
-                    href="/sitemap.xml"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg border border-orange-200/50 self-start md:self-center transition-all shadow-xs cursor-pointer"
-                  >
-                    <Eye className="h-3 w-3" /> સાઇટમેપ ફાઇલ જુઓ (View Sitemap)
-                  </a>
+                  <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+                    <a
+                      href="/sitemap.xml"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2.5 py-1.5 rounded-lg border border-orange-200/50 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Eye className="h-3 w-3" /> sitemap.xml
+                    </a>
+                    <a
+                      href="/news-sitemap.xml"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-200/50 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Eye className="h-3 w-3" /> news-sitemap.xml
+                    </a>
+                    <a
+                      href="/rss.xml"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg border border-amber-200/50 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Eye className="h-3 w-3" /> rss.xml
+                    </a>
+                    <a
+                      href="/robots.txt"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg border border-blue-200/50 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Eye className="h-3 w-3" /> robots.txt
+                    </a>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

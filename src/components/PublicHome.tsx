@@ -46,7 +46,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
     fetchWithCache<BlogPost[]>('/api/posts')
       .then(data => {
         // filter out drafts, sort so pinned is at the top
-        const publicPosts = data.filter((p: any) => p.status !== 'draft');
+        const publicPosts = (data || []).filter((p: any) => p.status !== 'draft');
         const sorted = [...publicPosts].sort((a: any, b: any) => {
           if (a.isPinned && !b.isPinned) return -1;
           if (!a.isPinned && b.isPinned) return 1;
@@ -58,18 +58,18 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
         setLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching posts:', err);
+        console.warn('Silent note: Failed to fetch posts:', err);
         setLoading(false);
       });
 
     // Fetch exams
     fetchWithCache<Exam[]>('/api/exams')
       .then(data => {
-        setExams(data);
+        setExams(data || []);
         setExamsLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching exams:', err);
+        console.warn('Silent note: Failed to fetch exams:', err);
         setExamsLoading(false);
       });
 
@@ -80,7 +80,7 @@ export default function PublicHome({ onStartExamRequest, onViewCategory, user, o
         setCalendarLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching calendar events:', err);
+        console.warn('Silent note: Failed to fetch calendar events:', err);
         setCalendarLoading(false);
       });
 

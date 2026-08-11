@@ -237,7 +237,12 @@ export default function App() {
   // URL router state-synchronizer
   const handleUrlRouting = async () => {
     const path = window.location.pathname;
-    if (path === '/sitemap.xml' || path === '/sitemap_index.xml' || path === '/sitemap' || path === '/robots.txt') {
+    const pathLower = path.toLowerCase().replace(/\/$/, '');
+    if (
+      pathLower.endsWith('.xml') ||
+      pathLower.endsWith('.txt') ||
+      ['/sitemap', '/sitemap_index', '/news-sitemap', '/rss', '/feed', '/robots.txt'].includes(pathLower)
+    ) {
       return;
     }
     const segments = path.split('/').filter(Boolean);
@@ -838,7 +843,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.15 }}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs z-50 lg:hidden touch-none"
               />
@@ -849,8 +854,8 @@ export default function App() {
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-                className="fixed right-0 top-0 bottom-0 w-[280px] sm:w-[310px] bg-slate-50 dark:bg-[#0d121d] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l border-slate-150 dark:border-slate-850 lg:hidden rounded-l-2xl overflow-hidden"
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="fixed right-0 top-0 bottom-0 w-[280px] sm:w-[310px] bg-slate-50 dark:bg-[#0d121d] shadow-2xl z-50 flex flex-col h-screen h-[100dvh] border-l border-slate-150 dark:border-slate-850 lg:hidden overflow-hidden"
               >
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-150 dark:border-slate-800/80 bg-white dark:bg-[#111726] shrink-0">
@@ -1497,6 +1502,9 @@ export default function App() {
               <button onClick={() => handleNavigateToStaticPage('terms')} className="text-left hover:text-white transition-colors cursor-pointer">📜 નિયમો અને શરતો</button>
               <button onClick={() => handleNavigateToStaticPage('disclaimer')} className="text-left hover:text-white transition-colors cursor-pointer">⚠️ ડિસ્ક્લેમર </button>
               <button onClick={() => handleNavigateToStaticPage('refund')} className="text-left hover:text-white transition-colors cursor-pointer">🔄 રીફંડ પોલિસી</button>
+              <a href="/rss.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">📡 RSS Feed (rss.xml)</a>
+              <a href="/news-sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">📰 Google News Sitemap</a>
+              <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">🗺️ XML Sitemap</a>
             </div>
           </div>
           <div className="space-y-4">

@@ -3964,7 +3964,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
     }
   };
 
-  if (categoryMeta[firstSeg]) {
+  if (pathParts.length === 1 && categoryMeta[firstSeg]) {
     const catData = categoryMeta[firstSeg];
     const catUrl = `${siteUrl}/${firstSeg}/`;
     const escTitle = catData.title.replace(/"/g, '&quot;');

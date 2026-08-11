@@ -37,10 +37,11 @@ export default function App() {
 
   useEffect(() => {
     if (activeBlogPost) {
-      document.title = `${activeBlogPost.metaTitle || activeBlogPost.title} | OJAS Exam`;
+      const rawTitle = activeBlogPost.metaTitle || activeBlogPost.title;
+      document.title = rawTitle.includes('OJAS EXAM') ? rawTitle : `${rawTitle} - OJAS Exam`;
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) metaDesc.setAttribute('content', activeBlogPost.metaDesc || '');
-    } else {
+    } else if (window.location.pathname === '/' && currentSection === 'home') {
       document.title = 'OJAS EXAM | Online Exam Mock Test, OJAS Job Alerts & Results';
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) metaDesc.setAttribute('content', 'ગુજરાતની તમામ સ્પર્ધાત્મક પરીક્ષાઓ (GPSC, Class 3, TET/TAT, Police Bharti) માટે ફ્રી Online Mock Test આપો, ન્યૂઝ Job Notifications મેળવો, Answer Key અને Result જુઓ ફક્ત OJAS EXAM પર.');
@@ -611,160 +612,66 @@ export default function App() {
 
           {/* Navigation Links - Desktop */}
           <nav className="hidden lg:flex items-center gap-4 xl:gap-5">
-            {!user ? (
-              <>
-                <button
-                  onClick={() => navigateToHome()}
-                  className={`font-black text-[15px] xl:text-[16.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1.5 shadow-sm border ${
-                    currentSection === 'home' 
-                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600'
-                  }`}
-                >
-                  🏠 Home
-                </button>
+            <button
+              onClick={() => navigateToHome()}
+              className={`font-black text-[15px] xl:text-[16.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1.5 shadow-sm border ${
+                currentSection === 'home' 
+                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600'
+              }`}
+            >
+              🏠 Home
+            </button>
 
-                {/* Content Categorized Update Pages */}
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-                
-                <button
-                  onClick={() => navigateToCategory('job')}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                    currentSection === 'blog' && selectedBlogCategory === 'job' 
-                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-blue-50/30 dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400'
-                  }`}
-                >
-                  💼 નવી ભરતીઓ
-                </button>
-                <button
-                  onClick={() => navigateToCategory('answer_key')}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                    currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
-                      ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/90 dark:bg-slate-800 border-emerald-200 dark:border-emerald-700 shadow-md shadow-emerald-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-emerald-50/30 dark:hover:bg-slate-700 hover:border-emerald-200 dark:hover:border-emerald-700 hover:text-emerald-600 dark:hover:text-emerald-400'
-                  }`}
-                >
-                  🔑 આન્સર કી
-                </button>
-                <button
-                  onClick={() => navigateToCategory('result')}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                    currentSection === 'blog' && selectedBlogCategory === 'result' 
-                      ? 'text-amber-700 dark:text-amber-300 bg-amber-50/90 dark:bg-slate-800 border-amber-200 dark:border-amber-700 shadow-md shadow-amber-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-amber-50/30 dark:hover:bg-slate-700 hover:border-amber-200 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400'
-                  }`}
-                >
-                  🏆 રિઝલ્ટ
-                </button>
-                <button
-                  onClick={() => navigateToCategory('news')}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                    currentSection === 'blog' && selectedBlogCategory === 'news' 
-                      ? 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-slate-800 border-sky-200 dark:border-sky-700 shadow-md shadow-sky-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-sky-50/30 dark:hover:bg-slate-700 hover:border-sky-200 dark:hover:border-sky-700 hover:text-sky-600 dark:hover:text-sky-400'
-                  }`}
-                >
-                  📰 સમાચાર
-                </button>
-                <button
-                  onClick={handleGoToMockTests}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-indigo-50/30 dark:hover:bg-slate-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400`}
-                >
-                  📝 મોક ટેસ્ટ
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigateToHome()}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] flex items-center gap-1 shadow-sm border ${
-                    currentSection === 'home' 
-                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-blue-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300'
-                  }`}
-                >
-                  Home
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateToSection('dashboard');
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'dashboard' }));
-                    }, 100);
-                  }}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                    currentSection === 'dashboard' 
-                      ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                  }`}
-                >
-                  ડેશબોર્ડ
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateToSection('dashboard');
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'mock_tests' }));
-                    }, 100);
-                  }}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-700`}
-                >
-                  ટેસ્ટ આપો
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateToSection('dashboard');
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'bookmarks' }));
-                    }, 100);
-                  }}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-700`}
-                >
-                  બુકમાર્ક્સ
-                </button>
-
-                <button
-                  onClick={() => {
-                    navigateToSection('dashboard');
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'merit_list' }));
-                    }, 100);
-                  }}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-700`}
-                >
-                  મેરીટ લીસ્ટ
-                </button>
-
-                <button
-                  onClick={() => navigateToSection('age_calculator')}
-                  className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
-                    currentSection === 'age_calculator' 
-                      ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-slate-800 border-indigo-200 dark:border-indigo-700 shadow-indigo-500/5' 
-                      : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400'
-                  }`}
-                >
-                  ઉંમર ગણતરી
-                </button>
-
-                {user.role === 'admin' && (
-                  <button
-                    onClick={() => {
-                      navigateToSection('dashboard');
-                      setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('change-dashboard-tab', { detail: 'admin' }));
-                      }, 100);
-                    }}
-                    className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-3.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-700`}
-                  >
-                    🛠️ એડમીન
-                  </button>
-                )}
-              </>
-            )}
+            {/* Content Categorized Update Pages */}
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+            
+            <button
+              onClick={() => navigateToCategory('job')}
+              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                currentSection === 'blog' && selectedBlogCategory === 'job' 
+                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50/90 dark:bg-slate-800 border-blue-200 dark:border-blue-700 shadow-md shadow-blue-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-blue-50/30 dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400'
+              }`}
+            >
+              💼 નવી ભરતીઓ
+            </button>
+            <button
+              onClick={() => navigateToCategory('answer_key')}
+              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                currentSection === 'blog' && selectedBlogCategory === 'answer_key' 
+                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/90 dark:bg-slate-800 border-emerald-200 dark:border-emerald-700 shadow-md shadow-emerald-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-emerald-50/30 dark:hover:bg-slate-700 hover:border-emerald-200 dark:hover:border-emerald-700 hover:text-emerald-600 dark:hover:text-emerald-400'
+              }`}
+            >
+              🔑 આન્સર કી
+            </button>
+            <button
+              onClick={() => navigateToCategory('result')}
+              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                currentSection === 'blog' && selectedBlogCategory === 'result' 
+                  ? 'text-amber-700 dark:text-amber-300 bg-amber-50/90 dark:bg-slate-800 border-amber-200 dark:border-amber-700 shadow-md shadow-amber-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-amber-50/30 dark:hover:bg-slate-700 hover:border-amber-200 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400'
+              }`}
+            >
+              🏆 રિઝલ્ટ
+            </button>
+            <button
+              onClick={() => navigateToCategory('news')}
+              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 ${
+                currentSection === 'blog' && selectedBlogCategory === 'news' 
+                  ? 'text-sky-700 dark:text-sky-300 bg-sky-50/90 dark:bg-slate-800 border-sky-200 dark:border-sky-700 shadow-md shadow-sky-500/5' 
+                  : 'text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-sky-50/30 dark:hover:bg-slate-700 hover:border-sky-200 dark:hover:border-sky-700 hover:text-sky-600 dark:hover:text-sky-400'
+              }`}
+            >
+              📰 સમાચાર
+            </button>
+            <button
+              onClick={handleGoToMockTests}
+              className={`font-black text-[14px] xl:text-[15.5px] py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.03] border flex items-center gap-1 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-indigo-50/30 dark:hover:bg-slate-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400`}
+            >
+              📝 મોક ટેસ્ટ
+            </button>
           </nav>
 
           {/* Right Action buttons */}

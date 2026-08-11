@@ -4100,7 +4100,7 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
   }
 
   // Pre-render post body inside <div id="root"></div> for Google / Bing Search crawlers
-  if (post && processedHtml.includes('<div id="root"></div>')) {
+  if (post) {
     const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
     const escTitle = rawTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toLocaleDateString('gu-IN') : '';
@@ -4120,7 +4120,15 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
       <div style="font-size:1rem;line-height:1.7;color:#374151;">${post.content || ''}</div>
     </article></div>`;
 
-    processedHtml = processedHtml.replace('<div id="root"></div>', prerenderBody);
+    if (processedHtml.includes('<div id="root"></div>')) {
+      processedHtml = processedHtml.replace('<div id="root"></div>', prerenderBody);
+    }
+
+    const jsonPost = JSON.stringify(post).replace(/</g, '\\u003c').replace(/-->/g, '--\\>');
+    const initialPostScript = `<script id="initial-post-data">window.__INITIAL_POST__ = ${jsonPost};</script>`;
+    if (processedHtml.includes('</head>')) {
+      processedHtml = processedHtml.replace('</head>', `${initialPostScript}\n</head>`);
+    }
   }
 
   const googleAnalyticsId = await getSetting('GOOGLE_ANALYTICS_ID') || '';

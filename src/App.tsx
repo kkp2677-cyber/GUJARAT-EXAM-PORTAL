@@ -17,17 +17,126 @@ const ExamInstructionsModal = lazy(() => import('./components/ExamInstructionsMo
 const StaticPage = lazy(() => import('./components/StaticPage'));
 import { navigateToHome, navigateToCategory, navigateToSection, navigateToPost } from './utils/navigation';
 
+const getInitialRouteState = () => {
+  if (typeof window === 'undefined') {
+    return {
+      section: 'home' as const,
+      category: 'job' as const,
+      post: null,
+      staticKey: 'about' as const
+    };
+  }
+
+  const initialPost = (window as any).__INITIAL_POST__ || null;
+  const path = window.location.pathname;
+  const segments = path.split('/').filter(Boolean);
+  const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
+  const staticPages = ['about', 'privacy', 'terms', 'disclaimer', 'refund'];
+
+  if (initialPost) {
+    const postCat = validCategories.includes(initialPost.category) ? initialPost.category : 'job';
+    return {
+      section: 'blog' as const,
+      category: postCat as any,
+      post: initialPost as BlogPost,
+      staticKey: 'about' as const
+    };
+  }
+
+  if (segments.length === 2 && validCategories.includes(segments[0])) {
+    return {
+      section: 'blog' as const,
+      category: segments[0] as any,
+      post: null,
+      staticKey: 'about' as const
+    };
+  }
+
+  if (path.startsWith('/post/')) {
+    return {
+      section: 'blog' as const,
+      category: 'job' as const,
+      post: null,
+      staticKey: 'about' as const
+    };
+  }
+
+  if (path.startsWith('/blog/')) {
+    const cat = path.substring(6).replace(/\/$/, '');
+    if (validCategories.includes(cat)) {
+      return {
+        section: 'blog' as const,
+        category: cat as any,
+        post: null,
+        staticKey: 'about' as const
+      };
+    }
+  }
+
+  if (segments.length === 1) {
+    if (validCategories.includes(segments[0])) {
+      return {
+        section: 'blog' as const,
+        category: segments[0] as any,
+        post: null,
+        staticKey: 'about' as const
+      };
+    }
+    if (staticPages.includes(segments[0])) {
+      return {
+        section: 'static_page' as const,
+        category: 'job' as const,
+        post: null,
+        staticKey: segments[0] as any
+      };
+    }
+    if (segments[0] === 'age-calculator' || segments[0] === 'age_calculator') {
+      return {
+        section: 'age_calculator' as const,
+        category: 'job' as const,
+        post: null,
+        staticKey: 'about' as const
+      };
+    }
+    if (segments[0] === 'auth' || segments[0] === 'login') {
+      return {
+        section: 'auth' as const,
+        category: 'job' as const,
+        post: null,
+        staticKey: 'about' as const
+      };
+    }
+    if (segments[0] === 'leaderboard') {
+      return {
+        section: 'leaderboard' as const,
+        category: 'job' as const,
+        post: null,
+        staticKey: 'about' as const
+      };
+    }
+  }
+
+  return {
+    section: 'home' as const,
+    category: 'job' as const,
+    post: null,
+    staticKey: 'about' as const
+  };
+};
+
 export default function App() {
+  const initialRoute = getInitialRouteState();
+
   const [user, setUser] = useState<User | null>(null);
-  const [currentSection, setCurrentSection] = useState<'home' | 'leaderboard' | 'dashboard' | 'admin' | 'auth' | 'blog' | 'age_calculator' | 'static_page'>('home');
-  const [activeStaticPageKey, setActiveStaticPageKey] = useState<'about' | 'privacy' | 'terms' | 'disclaimer' | 'refund'>('about');
-  const [selectedBlogCategory, setSelectedBlogCategory] = useState<'job' | 'answer_key' | 'result' | 'selection_list' | 'news'>('job');
+  const [currentSection, setCurrentSection] = useState<'home' | 'leaderboard' | 'dashboard' | 'admin' | 'auth' | 'blog' | 'age_calculator' | 'static_page'>(initialRoute.section);
+  const [activeStaticPageKey, setActiveStaticPageKey] = useState<'about' | 'privacy' | 'terms' | 'disclaimer' | 'refund'>(initialRoute.staticKey);
+  const [selectedBlogCategory, setSelectedBlogCategory] = useState<'job' | 'answer_key' | 'result' | 'selection_list' | 'news'>(initialRoute.category);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
   const [examToConfirm, setExamToConfirm] = useState<Exam | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [examResultView, setExamResultView] = useState(false);
-  const [activeBlogPost, setActiveBlogPost] = useState<BlogPost | null>(null);
+  const [activeBlogPost, setActiveBlogPost] = useState<BlogPost | null>(initialRoute.post);
   const [loadingPost, setLoadingPost] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [subStatus, setSubStatus] = useState<any>(null);
@@ -253,6 +362,11 @@ export default function App() {
       const category = segments[0];
       const slug = decodeURIComponent(segments[1]);
       if (slug) {
+        if (activeBlogPost && (activeBlogPost.slug === slug || String(activeBlogPost.id) === slug)) {
+          setSelectedBlogCategory(category as any);
+          setCurrentSection('blog');
+          return;
+        }
         setLoadingPost(true);
         setCurrentSection('blog');
         try {
@@ -262,6 +376,7 @@ export default function App() {
             setActiveBlogPost(postData);
             setSelectedBlogCategory(category as any);
             setCurrentSection('blog');
+            (window as any).__INITIAL_POST__ = postData;
           } else {
             console.error('Failed to load post by slug:', slug);
             setActiveBlogPost(null);
@@ -1402,31 +1517,38 @@ export default function App() {
             </div>
           </div>
           <div className="space-y-4">
-            <h4 className="text-white text-sm font-bold tracking-wide uppercase">મહત્વપૂર્ણ નીતિઓ</h4>
+            <h4 className="text-white text-sm font-bold tracking-wide uppercase">મહત્વપૂર્ણ લિંક્સ</h4>
             <div className="flex flex-col gap-2 text-sm text-slate-400 text-left">
               <button onClick={() => handleNavigateToStaticPage('about')} className="text-left hover:text-white transition-colors cursor-pointer">ℹ️ અમારા વિશે </button>
               <button onClick={() => handleNavigateToStaticPage('privacy')} className="text-left hover:text-white transition-colors cursor-pointer">🛡️ પ્રાઇવસી પોલિસી</button>
               <button onClick={() => handleNavigateToStaticPage('terms')} className="text-left hover:text-white transition-colors cursor-pointer">📜 નિયમો અને શરતો</button>
               <button onClick={() => handleNavigateToStaticPage('disclaimer')} className="text-left hover:text-white transition-colors cursor-pointer">⚠️ ડિસ્ક્લેમર </button>
               <button onClick={() => handleNavigateToStaticPage('refund')} className="text-left hover:text-white transition-colors cursor-pointer">🔄 રીફંડ પોલિસી</button>
-              <a href="/rss.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">📡 RSS Feed (rss.xml)</a>
-              <a href="/news-sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">📰 Google News Sitemap</a>
-              <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">🗺️ XML Sitemap</a>
+              <a href="/rss.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">📡 RSS</a>
+              <a href="/news-sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">📰 Google News</a>
+              <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-left hover:text-white transition-colors cursor-pointer">🗺️ Sitemap</a>
             </div>
           </div>
           <div className="space-y-4">
             <h4 className="text-white text-sm font-bold tracking-wide uppercase">મહત્વપૂર્ણ સંપર્ક</h4>
             <div className="text-sm text-slate-400 space-y-2">
-              <div className="flex items-center gap-2">
-                <Mail size={14} />
-                <span>info@ojasexam.in</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Mail size={14} />
+                  <span>Support@ojasexam.in</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone size={14} />
+                  <span>+91 9925922729</span>
+                </div>
               </div>
               <hr className="border-slate-700 my-2" />
-              <p>© 2026 OJAS Exam. All Rights Reserved.</p>
             </div>
           </div>
         </div>
-
+        <p className="text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-800/60">
+          © 2026 OJAS Exam. All Rights Reserved. | Developed By : <a href="https://www.instagram.com/itz_kk_chaudhari" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">KKCHAUDHARI</a>
+        </p>
       {/* Paywall Modal */}
       {showPaywall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">

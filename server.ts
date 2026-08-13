@@ -3808,10 +3808,29 @@ async function getPostFromRequest(req: express.Request) {
   }
 }
 
-function generateSeoTags(post: any | null, req: express.Request) {
+async function generateSeoTags(post: any | null, req: express.Request) {
+  const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
   const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
   const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-  const siteUrl = `${protocol}://${hostHeader}`;
+  const siteUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
+    ? sitemapBaseUrl.trim().replace(/\/$/, '') 
+    : `${protocol}://${hostHeader}`;
+
+  const reqPath = req.path.toLowerCase().replace(/\/$/, '');
+  const pathParts = req.path.split('/').filter(Boolean);
+  const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
+
+  // Handle missing post on an article route -> Soft 404 Prevention
+  if (!post && pathParts.length >= 2 && validCategories.includes(pathParts[0].toLowerCase())) {
+    const fallbackCanonical = `${siteUrl}${req.path}`;
+    return `
+    <!-- 404 / Missing Article Meta Tags -->
+    <title>પોસ્ટ મળી નથી | OJAS EXAM</title>
+    <meta name="description" content="માંગવામાં આવેલી પોસ્ટ ઉપલબ્ધ નથી અથવા કાઢી નાખવામાં આવી છે." />
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href="${fallbackCanonical}" />
+`;
+  }
 
   if (post) {
     const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
@@ -3820,8 +3839,9 @@ function generateSeoTags(post: any | null, req: express.Request) {
     const descText = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
 
     const category = post.category || 'job';
-    const cleanSlug = post.slug || String(post.id);
-    const fullUrl = `${siteUrl}/${category}/${cleanSlug}/`;
+    const targetSlug = post.slug || String(post.id);
+    const encodedSlug = targetSlug.split('/').map(seg => encodeURIComponent(seg)).join('/');
+    const fullUrl = `${siteUrl}/${category}/${encodedSlug}/`;
 
     let imageUrl = post.thumbnail || 'https://i.ibb.co/Jw5T1sWB/1784729117633.png';
     if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
@@ -3858,6 +3878,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
           "image": [imageUrl],
           "datePublished": publishedTime,
           "dateModified": modifiedTime,
+          "isAccessibleForFree": "True",
           "author": {
             "@type": "Organization",
             "name": "OJAS EXAM",
@@ -3932,9 +3953,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
   }
 
   // Check Category Route
-  const reqPath = req.path.toLowerCase().replace(/\/$/, '');
-  const pathParts = reqPath.split('/').filter(Boolean);
-  const firstSeg = pathParts[0] || '';
+  const firstSeg = pathParts[0] ? pathParts[0].toLowerCase() : '';
 
   const categoryMeta: Record<string, { title: string; desc: string; label: string }> = {
     job: {
@@ -4081,7 +4100,7 @@ function generateSeoTags(post: any | null, req: express.Request) {
 
 async function injectSeoAndAnalytics(html: string, req: express.Request) {
   const post = await getPostFromRequest(req);
-  const seoTags = generateSeoTags(post, req);
+  const seoTags = await generateSeoTags(post, req);
 
   let processedHtml = html;
 

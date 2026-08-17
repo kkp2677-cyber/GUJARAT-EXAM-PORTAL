@@ -4171,11 +4171,301 @@ async function generateSeoTags(post: any | null, req: express.Request) {
 `;
 }
 
-async function injectSeoAndAnalytics(html: string, req: express.Request) {
-  const post = await getPostFromRequest(req);
+// --- DYNAMIC RENDERING (BOT SSR vs USER CSR) ---
+
+function isBotRequest(req: express.Request): { isBot: boolean; botName: string } {
+  const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+  
+  // Also check query param ?bot=1 or ?ssr=1 or ?_escaped_fragment_= for easy manual testing / verification
+  if (req.query.bot === '1' || req.query.ssr === '1' || req.query._escaped_fragment_ !== undefined) {
+    return { isBot: true, botName: 'ManualTestBot' };
+  }
+
+  const botPatterns: { name: string; regex: RegExp }[] = [
+    { name: 'Googlebot', regex: /googlebot|google-inspectiontool|google-read-aloud|mediapartners-google|adsbot-google/i },
+    { name: 'Bingbot', regex: /bingbot|bingpreview|msnbot/i },
+    { name: 'WhatsApp', regex: /whatsapp/i },
+    { name: 'TelegramBot', regex: /telegrambot/i },
+    { name: 'FacebookBot', regex: /facebookexternalhit|facebot|facebookcatalog/i },
+    { name: 'TwitterBot', regex: /twitterbot/i },
+    { name: 'LinkedInBot', regex: /linkedinbot/i },
+    { name: 'PinterestBot', regex: /pinterest|pinterestbot/i },
+    { name: 'SlackBot', regex: /slackbot/i },
+    { name: 'DiscordBot', regex: /discordbot/i },
+    { name: 'AppleBot', regex: /applebot/i },
+    { name: 'YahooBot', regex: /slurp/i },
+    { name: 'DuckDuckBot', regex: /duckduckbot/i },
+    { name: 'BaiduSpider', regex: /baiduspider/i },
+    { name: 'YandexBot', regex: /yandexbot|yandex/i },
+    { name: 'SogouBot', regex: /sogouspider|sogou/i },
+    { name: 'SeoCrawler', regex: /screaming frog|ahrefsbot|semrushbot|dotbot|rogerbot|seznambot/i },
+    { name: 'GenericBot', regex: /bot|crawler|spider|headlesschrome|phantomjs/i },
+  ];
+
+  for (const bp of botPatterns) {
+    if (bp.regex.test(userAgent)) {
+      return { isBot: true, botName: bp.name };
+    }
+  }
+
+  return { isBot: false, botName: '' };
+}
+
+// Generates Server-Side Rendered (SSR) Full Semantic HTML for Search Bots & Social Crawlers
+async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: any | null): Promise<string> {
+  const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
+  const siteUrl = getBaseUrl(req, sitemapBaseUrl);
   const seoTags = await generateSeoTags(post, req);
 
-  let processedHtml = html;
+  let bodyContent = '';
+
+  if (post) {
+    // 1. Single Post SSR for Bots
+    const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
+    const escTitle = rawTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toLocaleDateString('gu-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+    const isoPublishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toISOString() : new Date().toISOString();
+    const updatedTime = post.updatedAt ? new Date(post.updatedAt).toLocaleDateString('gu-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : publishedTime;
+    const category = post.category || 'job';
+
+    const categoryNamesGu: Record<string, string> = {
+      job: 'નવી સરકારી ભરતી',
+      answer_key: 'આન્સર કી',
+      result: 'પરિણામ',
+      selection_list: 'પસંદગી યાદી',
+      news: 'સરકારી ન્યૂઝ'
+    };
+    const catLabel = categoryNamesGu[category] || category;
+
+    let imageUrl = post.thumbnail || '';
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      if (!imageUrl.startsWith('/')) imageUrl = '/' + imageUrl;
+      imageUrl = `${siteUrl}${imageUrl}`;
+    }
+
+    // Fetch up to 3 related posts for internal linking
+    let relatedPostsHtml = '';
+    try {
+      const allPosts = await queryWithRetry(() => db.select().from(posts));
+      const related = allPosts
+        .filter((p: any) => p.category === category && p.id !== post.id)
+        .slice(0, 3);
+
+      if (related.length > 0) {
+        relatedPostsHtml = `
+          <aside class="ssr-related-section" style="margin-top:2.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;">
+            <h3 style="font-size:1.25rem;font-weight:700;color:#111827;margin-bottom:1rem;">સંબંધિત અન્ય મહત્વપૂર્ણ અપડેટ્સ (${catLabel})</h3>
+            <ul style="list-style:disc;padding-left:1.5rem;line-height:1.8;">
+              ${related.map((rp: any) => {
+                const rpSlug = rp.slug && rp.slug.trim() !== '' ? rp.slug.trim() : String(rp.id);
+                const rpUrl = `${siteUrl}/${rp.category || 'job'}/${encodeURIComponent(rpSlug)}/`;
+                return `<li style="margin-bottom:0.5rem;"><a href="${rpUrl}" style="color:#2563eb;text-decoration:none;font-weight:600;">${rp.title}</a></li>`;
+              }).join('')}
+            </ul>
+          </aside>
+        `;
+      }
+    } catch (e) {
+      console.warn('[SSR Bot Related Posts Error]', e);
+    }
+
+    bodyContent = `
+      <div id="root">
+        <header class="ssr-site-header" style="background:#1e40af;color:#fff;padding:1rem;margin-bottom:1.5rem;">
+          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;">OJAS EXAM</a>
+            <nav style="display:flex;gap:1rem;margin-top:0.5rem;flex-wrap:wrap;font-size:0.9rem;">
+              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;">મુખ્ય પૃષ્ઠ</a>
+              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;">નવી ભરતી</a>
+              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;">આન્સર કી</a>
+              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;">પરિણામ</a>
+              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;">પસંદગી યાદી</a>
+              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;">ન્યૂઝ</a>
+            </nav>
+          </div>
+        </header>
+
+        <main style="max-width:900px;margin:0 auto;padding:0 1rem 3rem;">
+          <!-- Semantic Breadcrumbs for Search Engines -->
+          <nav aria-label="breadcrumb" style="font-size:0.875rem;color:#4b5563;margin-bottom:1rem;">
+            <a href="${siteUrl}/" style="color:#2563eb;text-decoration:none;">મુખ્ય પૃષ્ઠ</a> &gt; 
+            <a href="${siteUrl}/${category}/" style="color:#2563eb;text-decoration:none;">${catLabel}</a> &gt; 
+            <span style="color:#6b7280;">${escTitle}</span>
+          </nav>
+
+          <article class="ssr-article-card" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:0.75rem;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <header>
+              <span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.75rem;font-weight:700;padding:0.25rem 0.75rem;border-radius:9999px;margin-bottom:0.75rem;text-transform:uppercase;">
+                ${catLabel}
+              </span>
+              <h1 style="font-size:1.875rem;font-weight:800;line-height:1.3;color:#111827;margin-bottom:0.75rem;">
+                ${escTitle}
+              </h1>
+              <div style="font-size:0.875rem;color:#6b7280;margin-bottom:1.5rem;border-bottom:1px solid #f3f4f6;padding-bottom:0.75rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
+                <span><strong>લેખક:</strong> OJAS EXAM ટીમ</span>
+                <span><strong>તારીખ:</strong> <time dateTime="${isoPublishedTime}">${publishedTime}</time></span>
+                ${updatedTime !== publishedTime ? `<span><strong>છેલ્લું અપડેટ:</strong> ${updatedTime}</span>` : ''}
+              </div>
+            </header>
+
+            ${imageUrl ? `
+              <figure style="margin:0 0 1.5rem 0;">
+                <img src="${imageUrl}" alt="${escTitle}" style="max-width:100%;height:auto;border-radius:0.5rem;border:1px solid #e5e7eb;" />
+              </figure>
+            ` : ''}
+
+            <!-- Main Post Body (Tables, Links, Headings, Lists) -->
+            <div class="ssr-post-body" style="font-size:1.05rem;line-height:1.8;color:#1f2937;">
+              ${post.content || ''}
+            </div>
+
+            ${post.tags ? `
+              <div style="margin-top:2rem;padding-top:1rem;border-top:1px dashed #e5e7eb;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                <span style="font-size:0.875rem;font-weight:700;color:#4b5563;">ટેગ્સ:</span>
+                ${String(post.tags).split(',').map((t: string) => `<span style="background:#f3f4f6;color:#374151;font-size:0.8rem;padding:0.2rem 0.6rem;border-radius:0.25rem;">#${t.trim()}</span>`).join(' ')}
+              </div>
+            ` : ''}
+
+            ${relatedPostsHtml}
+          </article>
+        </main>
+
+        <footer style="background:#111827;color:#9ca3af;padding:2rem 1rem;text-align:center;font-size:0.875rem;margin-top:3rem;">
+          <div style="max-width:900px;margin:0 auto;">
+            <p style="color:#ffffff;font-weight:700;margin-bottom:0.5rem;">OJAS EXAM - ગુજરાત સરકારી ભરતી અને સ્પર્ધાત્મક પરીક્ષા પોર્ટલ</p>
+            <p style="margin-bottom:1rem;">સર્વાધિકાર સુરક્ષિત &copy; ${new Date().getFullYear()} OJAS EXAM.</p>
+            <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;">
+              <a href="${siteUrl}/about" style="color:#9ca3af;text-decoration:none;">અમારા વિશે</a>
+              <a href="${siteUrl}/privacy" style="color:#9ca3af;text-decoration:none;">પ્રાઈવસી પોલિસી</a>
+              <a href="${siteUrl}/terms" style="color:#9ca3af;text-decoration:none;">નિયમો અને શરતો</a>
+              <a href="${siteUrl}/disclaimer" style="color:#9ca3af;text-decoration:none;">ડિસ્ક્લેમર</a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    `;
+  } else {
+    // 2. Category / Home Page SSR Listing for Search Crawlers
+    const pathParts = req.path.split('/').filter(Boolean);
+    const category = pathParts[0] ? pathParts[0].toLowerCase() : '';
+    const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
+    const categoryNamesGu: Record<string, string> = {
+      job: 'નવી સરકારી ભરતી 2026',
+      answer_key: 'સરકારી પરીક્ષા આન્સર કી',
+      result: 'સ્પર્ધાત્મક પરીક્ષા પરિણામો',
+      selection_list: 'પસંદગી અને પ્રતિક્ષા યાદી',
+      news: 'સરકારી ભરતી સમાચાર અને પરિપત્રો'
+    };
+
+    const isCategory = validCategories.includes(category);
+    const headingTitle = isCategory ? (categoryNamesGu[category] || 'સરકારી પરીક્ષા અપડેટ્સ') : 'OJAS EXAM - ગુજરાત સ્પર્ધાત્મક પરીક્ષા પોર્ટલ';
+
+    let postsListingHtml = '';
+    try {
+      const allPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)));
+      const filtered = isCategory ? allPosts.filter((p: any) => p.category === category) : allPosts;
+      const recentPosts = filtered.slice(0, 20);
+
+      postsListingHtml = `
+        <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;">
+          ${recentPosts.map((p: any) => {
+            const pSlug = p.slug && p.slug.trim() !== '' ? p.slug.trim() : String(p.id);
+            const pCat = p.category || 'job';
+            const pUrl = `${siteUrl}/${pCat}/${encodeURIComponent(pSlug)}/`;
+            const pDate = p.date || p.createdAt ? new Date(p.date || p.createdAt).toLocaleDateString('gu-IN') : '';
+            const plainContent = (p.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 160);
+            return `
+              <article style="background:#fff;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1.25rem;box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+                <span style="font-size:0.75rem;font-weight:700;color:#1e40af;background:#dbeafe;padding:0.2rem 0.5rem;border-radius:0.25rem;text-transform:uppercase;">${categoryNamesGu[pCat] || pCat}</span>
+                <h2 style="font-size:1.25rem;font-weight:700;margin:0.5rem 0;line-height:1.4;">
+                  <a href="${pUrl}" style="color:#111827;text-decoration:none;">${p.title}</a>
+                </h2>
+                <p style="font-size:0.875rem;color:#4b5563;line-height:1.6;margin-bottom:0.75rem;">${plainContent}...</p>
+                <div style="font-size:0.8rem;color:#9ca3af;display:flex;justify-content:space-between;align-items:center;">
+                  <span>તારીખ: ${pDate}</span>
+                  <a href="${pUrl}" style="color:#2563eb;font-weight:600;text-decoration:none;">વધુ વાંચો &rarr;</a>
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } catch (e) {
+      console.warn('[SSR Bot Category Listing Error]', e);
+    }
+
+    bodyContent = `
+      <div id="root">
+        <header class="ssr-site-header" style="background:#1e40af;color:#fff;padding:1rem;margin-bottom:1.5rem;">
+          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;">OJAS EXAM</a>
+            <nav style="display:flex;gap:1rem;margin-top:0.5rem;flex-wrap:wrap;font-size:0.9rem;">
+              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;">મુખ્ય પૃષ્ઠ</a>
+              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;">નવી ભરતી</a>
+              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;">આન્સર કી</a>
+              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;">પરિણામ</a>
+              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;">પસંદગી યાદી</a>
+              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;">ન્યૂઝ</a>
+            </nav>
+          </div>
+        </header>
+
+        <main style="max-width:900px;margin:0 auto;padding:0 1rem 3rem;">
+          <h1 style="font-size:1.75rem;font-weight:800;color:#111827;margin-bottom:1.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:0.5rem;">
+            ${headingTitle}
+          </h1>
+          ${postsListingHtml}
+        </main>
+      </div>
+    `;
+  }
+
+  // Inject Bot SSR Styles & SEO Meta
+  const ssrStyles = `
+    <style id="ssr-bot-styles">
+      body { margin:0; font-family: 'Noto Sans Gujarati', system-ui, -apple-system, sans-serif; background:#f9fafb; color:#111827; }
+      .ssr-post-body table { width:100%; border-collapse:collapse; margin:1.25rem 0; border:1px solid #d1d5db; }
+      .ssr-post-body th, .ssr-post-body td { border:1px solid #d1d5db; padding:0.6rem 0.8rem; text-align:left; font-size:0.95rem; }
+      .ssr-post-body th { background:#f3f4f6; font-weight:700; }
+      .ssr-post-body h2 { font-size:1.4rem; font-weight:700; margin-top:1.5rem; margin-bottom:0.75rem; color:#1f2937; }
+      .ssr-post-body h3 { font-size:1.2rem; font-weight:700; margin-top:1.25rem; margin-bottom:0.5rem; color:#374151; }
+      .ssr-post-body a { color:#2563eb; text-decoration:underline; font-weight:600; }
+      .ssr-post-body ul, .ssr-post-body ol { padding-left:1.5rem; margin:1rem 0; }
+      .ssr-post-body li { margin-bottom:0.4rem; }
+    </style>
+  `;
+
+  let processedHtml = rawHtml;
+
+  // Replace SEO Block
+  if (processedHtml.includes('<!-- SEO_META_TAGS_BLOCK_START -->')) {
+    processedHtml = processedHtml.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/gi, `${seoTags}\n${ssrStyles}`);
+  } else if (processedHtml.includes('id="seo-meta-tag-placeholder"')) {
+    processedHtml = processedHtml
+      .replace(/<title>[\s\S]*?<\/title>/gi, '')
+      .replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '')
+      .replace(/<meta id=["']?seo-meta-tag-placeholder["']?\s*\/?>/gi, `${seoTags}\n${ssrStyles}`);
+  } else {
+    processedHtml = processedHtml.replace('<head>', `<head>\n${seoTags}\n${ssrStyles}`);
+  }
+
+  // Replace <div id="root"></div> with Server-Side Rendered Body
+  if (processedHtml.includes('<div id="root"></div>')) {
+    processedHtml = processedHtml.replace('<div id="root"></div>', bodyContent);
+  } else if (processedHtml.includes('<div id="root">')) {
+    processedHtml = processedHtml.replace(/<div id="root">[\s\S]*?<\/div>/i, bodyContent);
+  }
+
+  // Remove heavy client JS scripts for search engine crawlers so they index raw semantic HTML instantly
+  processedHtml = processedHtml.replace(/<script\s+type="module"[\s\S]*?<\/script>/gi, '');
+
+  return processedHtml;
+}
+
+// Generates Fast Client-Side Rendered (CSR) HTML for Regular Human Users
+async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: any | null): Promise<string> {
+  const seoTags = await generateSeoTags(post, req);
+  let processedHtml = rawHtml;
 
   if (processedHtml.includes('<!-- SEO_META_TAGS_BLOCK_START -->')) {
     processedHtml = processedHtml.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/gi, seoTags);
@@ -4191,31 +4481,8 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     processedHtml = processedHtml.replace('<head>', `<head>\n${seoTags}`);
   }
 
-  // Pre-render post body inside <div id="root"></div> for Google / Bing Search crawlers
+  // Keep <div id="root"></div> completely clean for seamless client-side React mounting
   if (post) {
-    const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
-    const escTitle = rawTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toLocaleDateString('gu-IN') : '';
-    const categoryName = post.category || 'General';
-    const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-    const siteUrl = getBaseUrl(req, sitemapBaseUrl);
-    let imageUrl = post.thumbnail || '';
-    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-      if (!imageUrl.startsWith('/')) imageUrl = '/' + imageUrl;
-      imageUrl = `${siteUrl}${imageUrl}`;
-    }
-
-    const prerenderBody = `<div id="root"><article class="prerendered-article-content" style="max-width:800px;margin:2rem auto;padding:1rem;font-family:sans-serif;">
-      <h1 style="font-size:1.75rem;font-weight:700;margin-bottom:0.75rem;color:#111827;">${escTitle}</h1>
-      <p style="font-size:0.875rem;color:#6b7280;margin-bottom:1.25rem;">તારીખ: ${publishedTime} | શ્રેણી: ${categoryName}</p>
-      ${imageUrl ? `<img src="${imageUrl}" alt="${escTitle}" style="max-width:100%;height:auto;border-radius:0.5rem;margin-bottom:1.5rem;" />` : ''}
-      <div style="font-size:1rem;line-height:1.7;color:#374151;">${post.content || ''}</div>
-    </article></div>`;
-
-    if (processedHtml.includes('<div id="root"></div>')) {
-      processedHtml = processedHtml.replace('<div id="root"></div>', prerenderBody);
-    }
-
     const jsonPost = JSON.stringify(post).replace(/</g, '\\u003c').replace(/-->/g, '--\\>');
     const initialPostScript = `<script id="initial-post-data">window.__INITIAL_POST__ = ${jsonPost};</script>`;
     if (processedHtml.includes('</head>')) {
@@ -4223,6 +4490,7 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     }
   }
 
+  // Analytics & Custom Head Code
   const googleAnalyticsId = await getSetting('GOOGLE_ANALYTICS_ID') || '';
   const customHeadCode = await getSetting('CUSTOM_HEAD_CODE') || '';
 
@@ -4273,20 +4541,37 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
         return vite.middlewares(req, res, next);
       }
 
-      const cacheKey = 'prerender_html_' + req.originalUrl;
+      const botInfo = isBotRequest(req);
+      const cacheKey = botInfo.isBot
+        ? `ssr_bot_${botInfo.botName}_${req.originalUrl}`
+        : `csr_user_${req.originalUrl}`;
+
       const cachedHtml = htmlCache.get<string>(cacheKey);
       if (cachedHtml) {
-        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
+        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
         res.setHeader('X-Prerender-Cache', 'HIT');
         return res.send(cachedHtml);
       }
 
       try {
         let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
-        html = await vite.transformIndexHtml(req.url, html);
-        html = await injectSeoAndAnalytics(html, req);
+        const post = await getPostFromRequest(req);
+
+        if (botInfo.isBot) {
+          // Serve Full Server-Side Rendered HTML for Bots & Crawlers
+          html = await generateBotSsrHtml(html, req, post);
+        } else {
+          // Serve Fast Client-Side Rendered HTML for Regular Users
+          html = await vite.transformIndexHtml(req.url, html);
+          html = await injectUserCsrHtml(html, req, post);
+        }
+
         htmlCache.set(cacheKey, html);
-        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
+        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
         res.setHeader('X-Prerender-Cache', 'MISS');
         res.send(html);
       } catch (e) {
@@ -4311,10 +4596,16 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
         return next();
       }
 
-      const cacheKey = 'prerender_html_' + req.originalUrl;
+      const botInfo = isBotRequest(req);
+      const cacheKey = botInfo.isBot
+        ? `ssr_bot_${botInfo.botName}_${req.originalUrl}`
+        : `csr_user_${req.originalUrl}`;
+
       const cachedHtml = htmlCache.get<string>(cacheKey);
       if (cachedHtml) {
-        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
+        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
         res.setHeader('X-Prerender-Cache', 'HIT');
         return res.send(cachedHtml);
       }
@@ -4339,7 +4630,7 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
 
         if (!html) {
           html = `<!doctype html>
-<html lang="en">
+<html lang="gu">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -4347,8 +4638,8 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     <link rel="manifest" href="/manifest.json" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#10b981" />
-    <!-- SEO Meta Tags Placeholder -->
-    <meta id="seo-meta-tag-placeholder" />
+    <!-- SEO_META_TAGS_BLOCK_START -->
+    <!-- SEO_META_TAGS_BLOCK_END -->
   </head>
   <body>
     <div id="root"></div>
@@ -4357,9 +4648,20 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
 </html>`;
         }
 
-        html = await injectSeoAndAnalytics(html, req);
+        const post = await getPostFromRequest(req);
+
+        if (botInfo.isBot) {
+          // Serve Full Server-Side Rendered HTML for Bots & Crawlers
+          html = await generateBotSsrHtml(html, req, post);
+        } else {
+          // Serve Fast Client-Side Rendered HTML for Regular Users
+          html = await injectUserCsrHtml(html, req, post);
+        }
+
         htmlCache.set(cacheKey, html);
-        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
+        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
         res.setHeader('X-Prerender-Cache', 'MISS');
         res.send(html);
       } catch (err: any) {

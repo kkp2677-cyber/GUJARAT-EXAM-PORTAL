@@ -123,9 +123,12 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
     const metaDescription = post.metaDesc || (plainContent.substring(0, 155).trim() + (plainContent.length > 155 ? '...' : ''));
     const postImage = post.thumbnail || 'https://i.ibb.co/Jw5T1sWB/1784729117633.png';
     const absoluteImage = postImage.startsWith('http') ? postImage : `${window.location.origin}${postImage.startsWith('/') ? '' : '/'}${postImage}`;
-    const pageUrl = window.location.href;
-    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date!).toISOString() : new Date().toISOString();
+    const postCategory = post.category || 'job';
     const categoryName = post.category || 'General';
+    const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toISOString() : new Date().toISOString();
+    const postSlug = post.slug && post.slug.trim() !== '' ? post.slug.trim() : String(post.id);
+    const encodedSlug = postSlug.split('/').map(seg => encodeURIComponent(seg)).join('/');
+    const canonicalPageUrl = `${window.location.origin}/${postCategory}/${encodedSlug}/`;
 
     document.title = pageTitle;
 
@@ -153,15 +156,15 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
     // Standard Meta Tags
     setMeta('meta[name="description"]', 'content', metaDescription);
     setMeta('meta[name="author"]', 'content', 'OJAS EXAM');
-    setMeta('meta[name="robots"]', 'content', 'index, follow');
-    setLink('canonical', pageUrl);
+    setMeta('meta[name="robots"]', 'content', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+    setLink('canonical', canonicalPageUrl);
 
     // Open Graph / WhatsApp / Facebook Meta Tags
     setMeta('meta[property="og:type"]', 'content', 'article');
     setMeta('meta[property="og:title"]', 'content', pageTitle);
     setMeta('meta[property="og:description"]', 'content', metaDescription);
     setMeta('meta[property="og:image"]', 'content', absoluteImage);
-    setMeta('meta[property="og:url"]', 'content', pageUrl);
+    setMeta('meta[property="og:url"]', 'content', canonicalPageUrl);
 
     // Article Info
     setMeta('meta[property="article:published_time"]', 'content', publishedTime);
@@ -325,22 +328,32 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
         ? post.content.replace(/<[^>]*>/g, '').slice(0, 165).trim() + '...'
         : post.title;
 
+    const postCat = post.category || 'job';
+    const pSlug = post.slug && post.slug.trim() !== '' ? post.slug.trim() : String(post.id);
+    const encSlug = pSlug.split('/').map(seg => encodeURIComponent(seg)).join('/');
+    const postCanonical = `${window.location.origin}/${postCat}/${encSlug}/`;
+
     const schema = {
       "@context": "https://schema.org",
-      "@type": "Article",
+      "@type": "NewsArticle",
       "headline": post.title,
       "description": description,
       "image": [imageUrl],
       "datePublished": dateStr,
       "dateModified": dateStr,
-      "author": {
-        "@type": "Organization",
-        "name": "OJAS Exam",
-        "url": window.location.origin
-      },
+      "inLanguage": "gu",
+      "isAccessibleForFree": true,
+      "author": [
+        {
+          "@type": "Organization",
+          "name": "OJAS Exam",
+          "url": window.location.origin
+        }
+      ],
       "publisher": {
         "@type": "Organization",
         "name": "OJAS Exam",
+        "url": window.location.origin,
         "logo": {
           "@type": "ImageObject",
           "url": `${window.location.origin}/logo.svg`
@@ -348,7 +361,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
       },
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": window.location.href
+        "@id": postCanonical
       }
     };
     return JSON.stringify(schema);

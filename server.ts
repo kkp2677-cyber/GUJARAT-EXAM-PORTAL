@@ -15,8 +15,21 @@ import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
 import { getOrCreateUser } from './src/db/users.ts';
 
 export const app = express();
+app.set('trust proxy', true);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+export function getBaseUrl(req: express.Request, configuredBaseUrl?: string | null): string {
+  if (configuredBaseUrl && configuredBaseUrl.trim() !== '') {
+    return configuredBaseUrl.trim().replace(/\/+$/, '');
+  }
+  const xfp = req.headers['x-forwarded-proto'];
+  const protoHeader = xfp ? String(xfp).split(',')[0].trim().toLowerCase() : '';
+  const isHttps = req.secure || protoHeader === 'https' || req.get('x-forwarded-ssl') === 'on' || req.protocol === 'https';
+  const protocol = isHttps ? 'https' : (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  const host = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
+  return `${protocol}://${host}`.replace(/\/+$/, '');
+}
 
 const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default
 const htmlCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1 hour TTL for Dynamic Prerender HTML cache
@@ -691,6 +704,88 @@ app.get('/api/diagnostics/db', async (req, res) => {
   }
 });
 
+async function getPostFromRequest(req: express.Request) {
+  let slugOrId = '';
+  const pathSegments = req.path.split('/').filter(Boolean);
+
+  if (req.query.post) slugOrId = String(req.query.post).trim();
+  else if (req.query.slug) slugOrId = String(req.query.slug).trim();
+  else if (req.query.p) slugOrId = String(req.query.p).trim();
+
+  if (!slugOrId && pathSegments.length > 0) {
+    if (pathSegments[0] === 'post' && pathSegments[1]) {
+      slugOrId = pathSegments[1].replace(/\/$/, '');
+    } else if (pathSegments.length >= 2) {
+      slugOrId = pathSegments[pathSegments.length - 1].replace(/\/$/, '');
+    } else if (pathSegments.length === 1) {
+      const single = pathSegments[0].replace(/\/$/, '');
+      const reserved = ['blog', 'admin', 'auth', 'dashboard', 'leaderboard', 'about', 'privacy', 'terms', 'disclaimer', 'refund', 'login', 'register', 'sitemap', 'sitemap.xml', 'robots.txt', 'api', 'assets'];
+      if (!reserved.includes(single.toLowerCase())) {
+        slugOrId = single;
+      }
+    }
+  }
+
+  if (!slugOrId) return null;
+
+  const rawSlug = slugOrId.trim();
+  let decodedSlug = rawSlug;
+  try {
+    decodedSlug = decodeURIComponent(rawSlug).trim();
+  } catch (e) {
+    // Keep raw
+  }
+  let encodedSlug = rawSlug;
+  try {
+    encodedSlug = encodeURIComponent(decodedSlug).trim();
+  } catch (e) {
+    // Keep raw
+  }
+
+  try {
+    let post: any = null;
+
+    // 1. Try ID if numeric
+    if (!isNaN(Number(decodedSlug))) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(decodedSlug))));
+      post = postsArr[0];
+    }
+
+    // 2. Try decoded slug
+    if (!post && decodedSlug) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, decodedSlug)));
+      post = postsArr[0];
+    }
+
+    // 3. Try raw slug
+    if (!post && rawSlug && rawSlug !== decodedSlug) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, rawSlug)));
+      post = postsArr[0];
+    }
+
+    // 4. Try encoded slug
+    if (!post && encodedSlug && encodedSlug !== decodedSlug && encodedSlug !== rawSlug) {
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, encodedSlug)));
+      post = postsArr[0];
+    }
+
+    // 5. Try case-insensitive search if still not found
+    if (!post && decodedSlug) {
+      const allPosts = await queryWithRetry(() => db.select().from(posts));
+      post = allPosts.find((p: any) => p.slug && (
+        p.slug.toLowerCase() === decodedSlug.toLowerCase() ||
+        p.slug.toLowerCase() === rawSlug.toLowerCase() ||
+        encodeURIComponent(p.slug).toLowerCase() === rawSlug.toLowerCase()
+      ));
+    }
+
+    return post;
+  } catch (err) {
+    console.error('[SEO Helper] Error fetching post:', err);
+    return null;
+  }
+}
+
 // Dynamic XML Sitemap Generator (with external Image Thumbnail indexing support)
 const generateSitemapXml = async (req: express.Request, res: express.Response) => {
   try {
@@ -700,14 +795,7 @@ const generateSitemapXml = async (req: express.Request, res: express.Response) =
     const sitemapPriorityStr = (await getSetting('SITEMAP_PRIORITY') || '0.8').trim();
     const sitemapIncludeImagesStr = await getSetting('SITEMAP_INCLUDE_IMAGES') || 'true';
 
-    // Protocol and Host detection behind proxies (Cloud Run)
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'gujarat-exam-portal.com';
-
-    // Fallback base URL is the current request's domain
-    const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
-      ? sitemapBaseUrl.trim().replace(/\/$/, '') 
-      : `${protocol}://${hostHeader}`;
+    const baseUrl = getBaseUrl(req, sitemapBaseUrl);
     const postsLimit = parseInt(sitemapPostsLimitStr, 10) || 50000;
     const includeImages = sitemapIncludeImagesStr === 'true';
 
@@ -812,24 +900,20 @@ const generateSitemapXml = async (req: express.Request, res: express.Response) =
 const generateNewsSitemapXml = async (req: express.Request, res: express.Response) => {
   try {
     const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
-    const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
-      ? sitemapBaseUrl.trim().replace(/\/$/, '') 
-      : `${protocol}://${hostHeader}`;
+    const baseUrl = getBaseUrl(req, sitemapBaseUrl);
 
     const allPosts = await queryWithRetry(() => 
       db.select().from(posts).orderBy(desc(posts.id))
     );
 
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    let recentNews = allPosts.filter(p => {
-      const pDate = p.date ? new Date(p.date) : (p.createdAt ? new Date(p.createdAt) : new Date(0));
+    let recentNews = allPosts.filter((p: any) => {
+      const pDate = p.date ? new Date(p.date) : (p.updatedAt ? new Date(p.updatedAt) : new Date(0));
       return pDate >= twoDaysAgo;
     });
 
     if (recentNews.length === 0) {
-      recentNews = allPosts.slice(0, 30);
+      recentNews = allPosts.slice(0, 15);
     }
 
     const escapeXml = (str: any): string => {
@@ -855,9 +939,10 @@ const generateNewsSitemapXml = async (req: express.Request, res: express.Respons
       const postUrl = `${baseUrl}/${postCategory}/${encodedSlug}/`;
       
       let pubIsoDate = new Date().toISOString();
-      if (p.date || p.createdAt) {
+      const rawDate = p.date || p.updatedAt;
+      if (rawDate) {
         try {
-          const dObj = new Date(p.date || p.createdAt);
+          const dObj = new Date(rawDate);
           if (!isNaN(dObj.getTime())) pubIsoDate = dObj.toISOString();
         } catch (e) {}
       }
@@ -904,11 +989,7 @@ const generateNewsSitemapXml = async (req: express.Request, res: express.Respons
 const generateRssXml = async (req: express.Request, res: express.Response) => {
   try {
     const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
-    const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
-      ? sitemapBaseUrl.trim().replace(/\/$/, '') 
-      : `${protocol}://${hostHeader}`;
+    const baseUrl = getBaseUrl(req, sitemapBaseUrl);
 
     const allPosts = await queryWithRetry(() => 
       db.select().from(posts).orderBy(desc(posts.id))
@@ -942,9 +1023,10 @@ const generateRssXml = async (req: express.Request, res: express.Response) => {
       const postUrl = `${baseUrl}/${postCategory}/${encodedSlug}/`;
       
       let pubDateStr = new Date().toUTCString();
-      if (p.date || p.createdAt) {
+      const rawDate = p.date || p.updatedAt;
+      if (rawDate) {
         try {
-          const dObj = new Date(p.date || p.createdAt);
+          const dObj = new Date(rawDate);
           if (!isNaN(dObj.getTime())) pubDateStr = dObj.toUTCString();
         } catch (e) {}
       }
@@ -989,9 +1071,7 @@ rssFeedRoutes.forEach((route) => app.get(route, generateRssXml));
 app.get('/robots.txt', async (req, res) => {
   try {
     const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-    const baseUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
-      ? sitemapBaseUrl.trim().replace(/\/$/, '') 
-      : `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req, sitemapBaseUrl);
 
     const robotsTxt = `User-agent: *
 Allow: /
@@ -1009,7 +1089,16 @@ Sitemap: ${baseUrl}/news-sitemap.xml
   }
 });
 
-// Blog/CMS Posts
+// Middleware to 301 redirect any URL with ?amp=... query parameter
+app.use((req, res, next) => {
+  if (req.method === 'GET' && req.query.amp !== undefined) {
+    const cleanUrl = req.path;
+    return res.redirect(301, cleanUrl.endsWith('/') ? cleanUrl : cleanUrl + '/');
+  }
+  next();
+});
+
+// Blog/CMS Posts API
 app.get('/api/posts', async (req, res) => {
   const cachedData = cache.get('posts');
   if (cachedData) return res.json(cachedData);
@@ -1026,14 +1115,45 @@ app.get('/api/posts', async (req, res) => {
 
 app.get('/api/posts/slug/:slug', async (req, res) => {
   try {
-    const { slug } = req.params;
+    const rawSlug = req.params.slug;
+    let decodedSlug = rawSlug;
+    try {
+      decodedSlug = decodeURIComponent(rawSlug).trim();
+    } catch (e) {}
+    let encodedSlug = rawSlug;
+    try {
+      encodedSlug = encodeURIComponent(decodedSlug).trim();
+    } catch (e) {}
+
     let post = null;
-    if (!isNaN(Number(slug))) {
-       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(slug))));
+    // 1. Numeric ID
+    if (!isNaN(Number(decodedSlug))) {
+       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(decodedSlug))));
        post = postsArr[0];
-    } else {
-       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, slug)));
+    }
+    // 2. Decoded slug
+    if (!post && decodedSlug) {
+       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, decodedSlug)));
        post = postsArr[0];
+    }
+    // 3. Raw slug
+    if (!post && rawSlug && rawSlug !== decodedSlug) {
+       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, rawSlug)));
+       post = postsArr[0];
+    }
+    // 4. Encoded slug
+    if (!post && encodedSlug && encodedSlug !== decodedSlug && encodedSlug !== rawSlug) {
+       const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, encodedSlug)));
+       post = postsArr[0];
+    }
+    // 5. Case-insensitive fallback
+    if (!post && decodedSlug) {
+      const allPosts = await queryWithRetry(() => db.select().from(posts));
+      post = allPosts.find((p: any) => p.slug && (
+        p.slug.toLowerCase() === decodedSlug.toLowerCase() ||
+        p.slug.toLowerCase() === rawSlug.toLowerCase() ||
+        encodeURIComponent(p.slug).toLowerCase() === rawSlug.toLowerCase()
+      ));
     }
     
     if (!post) {
@@ -1050,14 +1170,56 @@ app.get('/api/posts/slug/:slug', async (req, res) => {
   }
 });
 
-
-
-
-
-// 301 Redirect for legacy AMP URLs to canonical post URLs
-app.get("/:category/:slug/amp/?", (req, res) => {
+// 301 Permanent Redirects for all legacy AMP URLs and legacy /post/ URLs to canonical URLs
+app.get(['/:category/:slug/amp', '/:category/:slug/amp/'], (req, res) => {
   const { category, slug } = req.params;
   return res.redirect(301, `/${category}/${slug}/`);
+});
+
+app.get(['/amp/:category/:slug', '/amp/:category/:slug/'], (req, res) => {
+  const { category, slug } = req.params;
+  return res.redirect(301, `/${category}/${slug}/`);
+});
+
+app.get(['/amp/news/:slug', '/amp/news/:slug/'], (req, res) => {
+  const { slug } = req.params;
+  return res.redirect(301, `/news/${slug}/`);
+});
+
+app.get(['/amp/post/:slug', '/amp/post/:slug/'], async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const post = await getPostFromRequest(req);
+    const cat = post?.category || 'job';
+    const targetSlug = post?.slug || slug;
+    return res.redirect(301, `/${cat}/${targetSlug}/`);
+  } catch (e) {
+    return res.redirect(301, `/job/${slug}/`);
+  }
+});
+
+app.get(['/amp/:slug', '/amp/:slug/'], async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const post = await getPostFromRequest(req);
+    const cat = post?.category || 'job';
+    const targetSlug = post?.slug || slug;
+    return res.redirect(301, `/${cat}/${targetSlug}/`);
+  } catch (e) {
+    return res.redirect(301, `/job/${slug}/`);
+  }
+});
+
+app.get(['/post/:slug', '/post/:slug/'], async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const post = await getPostFromRequest(req);
+    const cat = post?.category || 'job';
+    const targetSlug = post?.slug || slug;
+    return res.redirect(301, `/${cat}/${targetSlug}/`);
+  } catch (e) {
+    return res.redirect(301, `/job/${slug}/`);
+  }
 });
 
 function sanitizeSlug(inputSlug: string | undefined | null, fallbackTitle?: string): string {
@@ -3723,98 +3885,9 @@ app.post('/api/payment/verify', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-async function getPostFromRequest(req: express.Request) {
-  let slugOrId = '';
-  const pathSegments = req.path.split('/').filter(Boolean);
-
-  if (req.query.post) slugOrId = String(req.query.post).trim();
-  else if (req.query.slug) slugOrId = String(req.query.slug).trim();
-  else if (req.query.p) slugOrId = String(req.query.p).trim();
-
-  if (!slugOrId && pathSegments.length > 0) {
-    if (pathSegments[0] === 'post' && pathSegments[1]) {
-      slugOrId = pathSegments[1].replace(/\/$/, '');
-    } else if (pathSegments.length >= 2) {
-      slugOrId = pathSegments[pathSegments.length - 1].replace(/\/$/, '');
-    } else if (pathSegments.length === 1) {
-      const single = pathSegments[0].replace(/\/$/, '');
-      const reserved = ['blog', 'admin', 'auth', 'dashboard', 'leaderboard', 'about', 'privacy', 'terms', 'disclaimer', 'refund', 'login', 'register', 'sitemap', 'sitemap.xml', 'robots.txt', 'api', 'assets'];
-      if (!reserved.includes(single.toLowerCase())) {
-        slugOrId = single;
-      }
-    }
-  }
-
-  if (!slugOrId) return null;
-
-  const rawSlug = slugOrId.trim();
-  let decodedSlug = rawSlug;
-  try {
-    decodedSlug = decodeURIComponent(rawSlug).trim();
-  } catch (e) {
-    // Keep raw
-  }
-  let encodedSlug = rawSlug;
-  try {
-    encodedSlug = encodeURIComponent(decodedSlug).trim();
-  } catch (e) {
-    // Keep raw
-  }
-
-  console.log(`[SEO Helper] Debug: path=${req.path}, decodedSlug=${decodedSlug}, rawSlug=${rawSlug}`);
-
-  try {
-    let post: any = null;
-
-    // 1. Try ID if numeric
-    if (!isNaN(Number(decodedSlug))) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(decodedSlug))));
-      post = postsArr[0];
-    }
-
-    // 2. Try decoded slug
-    if (!post && decodedSlug) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, decodedSlug)));
-      post = postsArr[0];
-    }
-
-    // 3. Try raw slug
-    if (!post && rawSlug && rawSlug !== decodedSlug) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, rawSlug)));
-      post = postsArr[0];
-    }
-
-    // 4. Try encoded slug
-    if (!post && encodedSlug && encodedSlug !== decodedSlug && encodedSlug !== rawSlug) {
-      const postsArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.slug, encodedSlug)));
-      post = postsArr[0];
-    }
-
-    // 5. Try case-insensitive search if still not found
-    if (!post && decodedSlug) {
-      const allPosts = await queryWithRetry(() => db.select().from(posts));
-      post = allPosts.find((p: any) => p.slug && (
-        p.slug.toLowerCase() === decodedSlug.toLowerCase() ||
-        p.slug.toLowerCase() === rawSlug.toLowerCase() ||
-        encodeURIComponent(p.slug).toLowerCase() === rawSlug.toLowerCase()
-      ));
-    }
-
-    console.log(`[SEO Helper] Debug: Found post=${!!post} (Title: ${post?.title || 'N/A'})`);
-    return post;
-  } catch (err) {
-    console.error('[SEO Helper] Error fetching post:', err);
-    return null;
-  }
-}
-
 async function generateSeoTags(post: any | null, req: express.Request) {
   const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-  const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
-  const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-  const siteUrl = sitemapBaseUrl && sitemapBaseUrl.trim() !== '' 
-    ? sitemapBaseUrl.trim().replace(/\/$/, '') 
-    : `${protocol}://${hostHeader}`;
+  const siteUrl = getBaseUrl(req, sitemapBaseUrl);
 
   const reqPath = req.path.toLowerCase().replace(/\/$/, '');
   const pathParts = req.path.split('/').filter(Boolean);
@@ -4124,12 +4197,12 @@ async function injectSeoAndAnalytics(html: string, req: express.Request) {
     const escTitle = rawTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toLocaleDateString('gu-IN') : '';
     const categoryName = post.category || 'General';
-    const hostHeader = req.get('x-forwarded-host') || req.get('host') || 'ojasexam.in';
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
+    const siteUrl = getBaseUrl(req, sitemapBaseUrl);
     let imageUrl = post.thumbnail || '';
     if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
       if (!imageUrl.startsWith('/')) imageUrl = '/' + imageUrl;
-      imageUrl = `${protocol}://${hostHeader}${imageUrl}`;
+      imageUrl = `${siteUrl}${imageUrl}`;
     }
 
     const prerenderBody = `<div id="root"><article class="prerendered-article-content" style="max-width:800px;margin:2rem auto;padding:1rem;font-family:sans-serif;">

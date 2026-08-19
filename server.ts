@@ -8,11 +8,11 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import webpush from 'web-push';
 import NodeCache from 'node-cache';
-import { db, queryWithRetry, getDbConfig } from './src/db/index.ts';
-import { posts, exams, examResults, users, notifications, calendarEvents, bookmarks, settings, pushSubscriptions, leaderboardSummary, wishlist } from './src/db/schema.ts';
+import { db, queryWithRetry, getDbConfig } from './src/db/index.js';
+import { posts, exams, examResults, users, notifications, calendarEvents, bookmarks, settings, pushSubscriptions, leaderboardSummary, wishlist } from './src/db/schema.js';
 import { eq, desc, inArray, and, sql, ne } from 'drizzle-orm';
-import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
-import { getOrCreateUser } from './src/db/users.ts';
+import { requireAuth, AuthRequest } from './src/middleware/auth.js';
+import { getOrCreateUser } from './src/db/users.js';
 
 export const app = express();
 app.set('trust proxy', true);

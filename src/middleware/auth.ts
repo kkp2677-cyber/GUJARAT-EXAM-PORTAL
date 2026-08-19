@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { db, queryWithRetry } from '../db/index.ts';
-import { users } from '../db/schema.ts';
+import { db, queryWithRetry } from '../db/index.js';
+import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gep-super-secret-key-2026';

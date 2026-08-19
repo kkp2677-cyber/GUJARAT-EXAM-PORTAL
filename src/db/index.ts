@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
-import * as schema from './schema.ts';
+import * as schema from './schema.js';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
 dotenv.config({ override: true });

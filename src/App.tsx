@@ -707,9 +707,15 @@ export default function App() {
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
             <img 
-              src="/logo.svg" 
+              src="/logo.png" 
               alt="OJAS Exam" 
-              className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 object-contain group-hover:scale-105 transition-transform" 
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (!img.src.includes('logo-512.png')) {
+                  img.src = '/logo-512.png';
+                }
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 object-contain group-hover:scale-105 transition-transform shrink-0" 
               referrerPolicy="no-referrer"
             />
             <div className="flex flex-col justify-center leading-none">
@@ -882,8 +888,19 @@ export default function App() {
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-150 dark:border-slate-800/80 bg-white dark:bg-[#111726] shrink-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-7.5 h-7.5 rounded-lg bg-blue-600/10 dark:bg-blue-500/10 flex items-center justify-center p-1.5 border border-blue-200/50 dark:border-blue-800/40">
-                      <img src="/logo.svg" alt="OJAS EXAM" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center p-0.5 border border-emerald-500/30">
+                      <img 
+                        src="/logo.png" 
+                        alt="OJAS EXAM" 
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (!img.src.includes('logo.svg')) {
+                            img.src = '/logo.svg';
+                          }
+                        }}
+                        className="w-full h-full object-contain" 
+                        referrerPolicy="no-referrer" 
+                      />
                     </div>
                     <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-wide">OJAS EXAM</span>
                   </div>
@@ -1481,9 +1498,15 @@ export default function App() {
               className="flex items-center gap-2.5 cursor-pointer select-none group"
             >
               <img 
-                src="/logo.svg" 
+                src="/logo-bw.png" 
                 alt="OJAS Exam" 
-                className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform grayscale brightness-125 contrast-125" 
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.src.includes('logo.png')) {
+                    img.src = '/logo.png';
+                  }
+                }}
+                className="w-9 h-9 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform shrink-0" 
                 referrerPolicy="no-referrer"
               />
               <div className="flex flex-col justify-center leading-none">

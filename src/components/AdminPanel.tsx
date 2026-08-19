@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, DollarSign, Megaphone, ExternalLink, Flame } from 'lucide-react';
+import { Users, Settings, CreditCard, FileText, PlusCircle, Check, Trash2, Edit, ShieldAlert, Upload, Eye, ToggleLeft, ToggleRight, AlertCircle, Info, Bell, Send, Calendar, Download, DollarSign, Megaphone, ExternalLink, Flame, Zap, RefreshCw, Server, Database } from 'lucide-react';
 import { User, BlogPost, Exam, Question, PushNotification, ExamCalendarEvent, NewsTickerItem } from '../types';
 import ClassicEditor from './ClassicEditor';
 import { safeFormatDate } from '../utils/date';
@@ -43,6 +43,19 @@ export default function AdminPanel() {
   const [adsSidebarBottom, setAdsSidebarBottom] = useState('');
   const [settingsMsg, setSettingsMsg] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+
+  // In-Memory HTML Cache stats state
+  const [cacheStats, setCacheStats] = useState<{
+    keysCount: number;
+    keys: string[];
+    hits: number;
+    misses: number;
+    hitRatio: string;
+    invalidations: number;
+    lastInvalidationTime: string | null;
+    memoryUsage: string;
+  } | null>(null);
+  const [cacheLoading, setCacheLoading] = useState(false);
 
   // Custom confirmation and toast notification states
   const [confirmModal, setConfirmModal] = useState<{
@@ -316,6 +329,7 @@ export default function AdminPanel() {
     fetchCalendarEvents();
     fetchSettings();
     fetchNewsTickers();
+    fetchCacheStats();
   }, []);
 
   const fetchNewsTickers = async () => {
@@ -757,6 +771,79 @@ export default function AdminPanel() {
       googleAnalyticsId,
       customHeadCode
     }, 'ગૂગલ એનાલિટિક્સ અને કસ્ટમ કોડ સફળતાપૂર્વક અપડેટ થયા.');
+  };
+
+  const fetchCacheStats = async () => {
+    try {
+      setCacheLoading(true);
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      const res = await fetch('/api/admin/cache/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCacheStats(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch cache stats:', err);
+    } finally {
+      setCacheLoading(false);
+    }
+  };
+
+  const handlePurgeAllCache = async () => {
+    try {
+      setCacheLoading(true);
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      const res = await fetch('/api/admin/cache/purge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(data.message || 'સંપૂર્ણ HTML કેશ ક્લિયર થઈ ગઈ!', 'success');
+        fetchCacheStats();
+      } else {
+        throw new Error(data.error || 'કેશ સાફ કરવામાં ખામી આવી.');
+      }
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setCacheLoading(false);
+    }
+  };
+
+  const handlePurgeSingleUrl = async (targetPath: string) => {
+    try {
+      setCacheLoading(true);
+      const stored = localStorage.getItem('exam_user');
+      const token = stored ? JSON.parse(stored).token : '';
+      const res = await fetch('/api/admin/cache/purge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ path: targetPath })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(data.message || 'પેજ કેશ સાફ થઈ ગઈ!', 'success');
+        fetchCacheStats();
+      } else {
+        throw new Error(data.error || 'કેશ સાફ કરવામાં ખામી આવી.');
+      }
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setCacheLoading(false);
+    }
   };
 
 
@@ -1344,7 +1431,10 @@ export default function AdminPanel() {
           <CreditCard className="h-4 w-4" /> Payment Integration
         </button>
         <button
-          onClick={() => setActiveTab('seo-settings')}
+          onClick={() => {
+            setActiveTab('seo-settings');
+            fetchCacheStats();
+          }}
           className={`px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer transition-all ${
             activeTab === 'seo-settings' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-700'
           }`}
@@ -3415,6 +3505,134 @@ export default function AdminPanel() {
                 {settingsMsg}
               </div>
             )}
+
+            {/* In-Memory HTML Cache Management Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-5 md:p-6 shadow-xl border border-indigo-800/40 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-800/60 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-base text-white flex items-center gap-2">
+                      In-Memory HTML કેશ મેનેજર (High-Speed HTML Cache)
+                    </h4>
+                    <p className="text-xs text-indigo-200/80 mt-0.5">
+                      સર્વર-સાઇડ કેશિંગ: પ્રથમ યુઝર પર રેન્ડર થયેલ HTML મેમરીમાં સાચવી સીધું ૯૯,૯૯૯+ મુલાકાતીઓ અને ગૂગલ બોટ્સને ઝીરો-લેટન્સી સાથે પીરસાય છે.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchCacheStats}
+                    disabled={cacheLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-800/60 hover:bg-indigo-700/80 text-white text-xs font-bold rounded-xl border border-indigo-600/40 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${cacheLoading ? 'animate-spin' : ''}`} />
+                    રીફ્રેશ આંકડા
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmModal({
+                        title: 'સંપૂર્ણ HTML કેશ ક્લિયર કરો',
+                        message: 'શું તમે ખરેખર મેમરીમાં સંગ્રહાયેલ તમામ પેજના કેશ ડેટા સાફ કરવા માંગો છો? આનાથી દરેક પેજ નવા ડેટા સાથે ફરીથી તાજું થઈ જશે.',
+                        onConfirm: async () => {
+                          await handlePurgeAllCache();
+                          setConfirmModal(null);
+                        }
+                      });
+                    }}
+                    disabled={cacheLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    કેશ સાફ કરો (Purge All)
+                  </button>
+                </div>
+              </div>
+
+              {/* Cache Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                  <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">કેશ થયેલ પેજીસ</span>
+                  <span className="text-xl font-black text-amber-400 mt-1 block">
+                    {cacheStats ? cacheStats.keysCount : '...'}
+                  </span>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                  <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">કેશ હિટ્સ (Hits)</span>
+                  <span className="text-xl font-black text-emerald-400 mt-1 block">
+                    {cacheStats ? cacheStats.hits : '...'}
+                  </span>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                  <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">કેશ મિસ (Misses)</span>
+                  <span className="text-xl font-black text-slate-300 mt-1 block">
+                    {cacheStats ? cacheStats.misses : '...'}
+                  </span>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                  <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">હિટ રેશિયો (Hit Ratio)</span>
+                  <span className="text-xl font-black text-cyan-400 mt-1 block">
+                    {cacheStats ? cacheStats.hitRatio : '...'}
+                  </span>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                  <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">ઇનવેલિડેશન્સ</span>
+                  <span className="text-xl font-black text-purple-400 mt-1 block">
+                    {cacheStats ? cacheStats.invalidations : '...'}
+                  </span>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                  <span className="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider block">રેમ વપરાશ (RAM)</span>
+                  <span className="text-sm font-black text-emerald-300 mt-1.5 block">
+                    {cacheStats ? cacheStats.memoryUsage : '...'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cache Auto-Invalidation Logic Info & Active Cached URLs List */}
+              <div className="bg-indigo-950/70 border border-indigo-800/40 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between text-xs text-indigo-200">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Database className="h-3.5 w-3.5 text-amber-400" />
+                    <span>સ્વચાલિત કેશ ઇનવેલિડેશન (Auto-Invalidation): <b>સક્રિય છે</b> (પોસ્ટ એડિટ/ડિલીટ કે સેટિંગ બદલાતાં કેશ આપમેળે અપડેટ થાય છે)</span>
+                  </div>
+                  {cacheStats?.lastInvalidationTime && (
+                    <span className="text-[11px] text-indigo-300">
+                      છેલ્લું અપડેટ: {new Date(cacheStats.lastInvalidationTime).toLocaleTimeString('gu-IN')}
+                    </span>
+                  )}
+                </div>
+
+                {cacheStats && cacheStats.keys && cacheStats.keys.length > 0 && (
+                  <div className="pt-2 border-t border-indigo-800/50">
+                    <span className="text-[11px] font-bold text-indigo-200 block mb-1.5">હાલમાં કેશ થયેલ પેજ પાથ (Cached Paths):</span>
+                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                      {cacheStats.keys.map((key) => (
+                        <div
+                          key={key}
+                          className="inline-flex items-center gap-1.5 bg-indigo-900/90 text-indigo-100 text-[11px] font-mono px-2 py-1 rounded-lg border border-indigo-700/60 shadow-xs"
+                        >
+                          <span>{key}</span>
+                          <button
+                            type="button"
+                            title="આ પેજની કેશ ક્લિયર કરો"
+                            onClick={() => handlePurgeSingleUrl(key)}
+                            className="text-rose-400 hover:text-rose-300 cursor-pointer ml-1"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
               {/* XML Sitemap Settings Card */}
               <form onSubmit={handleSaveSitemap} className="bg-slate-50 border-0 md:border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm mt-6">

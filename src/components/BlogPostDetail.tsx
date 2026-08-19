@@ -320,7 +320,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
 
     const imageUrl = post.thumbnail && post.thumbnail.trim() !== ''
       ? (post.thumbnail.startsWith('http') ? post.thumbnail : `${window.location.origin}${post.thumbnail.startsWith('/') ? '' : '/'}${post.thumbnail}`)
-      : `${window.location.origin}/logo.svg`;
+      : `${window.location.origin}/logo.png`;
 
     const description = post.metaDesc && post.metaDesc.trim() !== ''
       ? post.metaDesc
@@ -356,7 +356,7 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
         "url": window.location.origin,
         "logo": {
           "@type": "ImageObject",
-          "url": `${window.location.origin}/logo.svg`
+          "url": `${window.location.origin}/logo.png`
         }
       },
       "mainEntityOfPage": {

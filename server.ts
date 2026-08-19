@@ -19,6 +19,87 @@ app.set('trust proxy', true);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Direct Robust Handlers for Logo Images (PNG and SVG)
+let cachedLogoPng512: Buffer | null = null;
+let cachedLogoPng192: Buffer | null = null;
+
+function getLogoPngBuffer(size: 192 | 512 = 512): Buffer {
+  if (size === 192 && cachedLogoPng192 && cachedLogoPng192.length > 0) return cachedLogoPng192;
+  if (size === 512 && cachedLogoPng512 && cachedLogoPng512.length > 0) return cachedLogoPng512;
+
+  try {
+    const pngPath = path.join(process.cwd(), 'public', size === 192 ? 'logo-192.png' : 'logo.png');
+    if (fs.existsSync(pngPath)) {
+      const buf = fs.readFileSync(pngPath);
+      if (buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+        if (size === 192) cachedLogoPng192 = buf;
+        else cachedLogoPng512 = buf;
+        return buf;
+      }
+    }
+  } catch (e) {
+    // Ignore error and generate from SVG
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Resvg } = require('@resvg/resvg-js');
+    const svgPath = path.join(process.cwd(), 'public', 'logo.svg');
+    let svgContent = '';
+    if (fs.existsSync(svgPath)) {
+      svgContent = fs.readFileSync(svgPath, 'utf-8');
+    }
+    if (!svgContent) {
+      svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%"><rect x="32" y="32" width="448" height="448" rx="120" ry="120" fill="#10b981" /><polygon points="256,168 406,228 256,288 106,228" fill="#059669" opacity="0.4" /><path d="M 180,238 L 180,290 C 180,315 210,330 256,330 C 302,330 332,315 332,290 L 332,238 C 308,255 283,264 256,264 C 229,264 204,255 180,238 Z" fill="#0f172a" /><polygon points="256,150 410,212 256,274 102,212" fill="#334155" /><circle cx="256" cy="212" r="12" fill="#fbbf24" /><path d="M 256,212 Q 212,216 194,250 L 194,310" fill="none" stroke="#fbbf24" stroke-width="10" stroke-linecap="round" /><path d="M 180,310 L 208,310 L 214,354 L 174,354 Z" fill="#fbbf24" /><circle cx="194" cy="312" r="10" fill="#d97706" opacity="0.3" /></svg>`;
+    }
+    const resvg = new Resvg(svgContent, { fitTo: { mode: 'width', value: size } });
+    const rendered = resvg.render().asPng();
+    if (size === 192) cachedLogoPng192 = rendered;
+    else cachedLogoPng512 = rendered;
+    return rendered;
+  } catch (err) {
+    console.error('Error generating logo PNG:', err);
+    return Buffer.alloc(0);
+  }
+}
+
+app.get(['/logo.png', '/logo-512.png'], (req, res) => {
+  const buf = getLogoPngBuffer(512);
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(buf);
+});
+
+app.get('/logo-192.png', (req, res) => {
+  const buf = getLogoPngBuffer(192);
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(buf);
+});
+
+app.get('/logo-bw.png', (req, res) => {
+  const bwPath = path.join(process.cwd(), 'public', 'logo-bw.png');
+  if (fs.existsSync(bwPath)) {
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(bwPath);
+  }
+  const buf = getLogoPngBuffer(512);
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.send(buf);
+});
+
+app.get('/logo.svg', (req, res) => {
+  const svgPath = path.join(process.cwd(), 'public', 'logo.svg');
+  if (fs.existsSync(svgPath)) {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(svgPath);
+  }
+  res.status(404).send('Not found');
+});
+
 export function getBaseUrl(req: express.Request, configuredBaseUrl?: string | null): string {
   if (configuredBaseUrl && configuredBaseUrl.trim() !== '') {
     return configuredBaseUrl.trim().replace(/\/+$/, '');
@@ -31,8 +112,89 @@ export function getBaseUrl(req: express.Request, configuredBaseUrl?: string | nu
   return `${protocol}://${host}`.replace(/\/+$/, '');
 }
 
-const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default
-const htmlCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1 hour TTL for Dynamic Prerender HTML cache
+const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default for API data
+
+export interface CachedPageData {
+  html: string;
+  etag: string;
+  lastModified: string;
+  isoUpdated: string;
+  postId?: number;
+  slug?: string;
+  category?: string;
+  hitCount: number;
+  createdAt: number;
+}
+
+// In-Memory HTML Cache: Static HTML stored in RAM. Survives 99,999+ requests until admin updates/edits content.
+export const htmlCache = new NodeCache({ 
+  stdTTL: 0, // 0 = indefinite in-memory persistence (invalidated on content changes)
+  checkperiod: 600,
+  useClones: false 
+});
+
+export const cacheMetrics = {
+  hits: 0,
+  misses: 0,
+  invalidations: 0,
+  lastInvalidationTime: new Date().toISOString()
+};
+
+export function normalizeCacheKey(reqPath: string): string {
+  if (!reqPath) return '/';
+  const clean = reqPath.split('?')[0].toLowerCase().trim().replace(/\/+$/, '') || '/';
+  return clean;
+}
+
+export function invalidatePostCache(postId?: number, slug?: string, category?: string) {
+  cacheMetrics.invalidations++;
+  cacheMetrics.lastInvalidationTime = new Date().toISOString();
+
+  // 1. Always invalidate root, homepage, category listings, and feeds
+  const staticKeys = [
+    '/', '/home', '/job', '/jobs', '/result', '/results', 
+    '/answer_key', '/answer-keys', '/selection_list', '/selection-lists', 
+    '/news', '/amp', '/exam-calendar', '/all-quizzes'
+  ];
+  for (const k of staticKeys) {
+    htmlCache.del(k);
+  }
+
+  // 2. Invalidate keys matching post ID, slug, or category
+  const allKeys = htmlCache.keys();
+  const pIdStr = postId ? String(postId) : '';
+  const pSlug = slug ? slug.toLowerCase().trim() : '';
+  const pCat = category ? category.toLowerCase().trim() : '';
+
+  let purgedCount = staticKeys.length;
+  for (const key of allKeys) {
+    const lowerKey = key.toLowerCase();
+    const isMatched = 
+      (pIdStr && (lowerKey.includes(`/${pIdStr}`) || lowerKey.includes(`post=${pIdStr}`))) ||
+      (pSlug && lowerKey.includes(pSlug)) ||
+      (pCat && (lowerKey.startsWith(`/${pCat}`) || lowerKey.includes(`/${pCat}/`)));
+
+    if (isMatched) {
+      htmlCache.del(key);
+      purgedCount++;
+    }
+  }
+
+  // Clear posts API cache
+  cache.del('posts');
+  console.log(`[Cache Invalidation] Invalidation triggered for Post [ID: ${postId}, Slug: ${slug}, Category: ${category}]. Purged ${purgedCount} cache keys.`);
+}
+
+export function invalidateAllPageCache() {
+  cacheMetrics.invalidations++;
+  cacheMetrics.lastInvalidationTime = new Date().toISOString();
+  const count = htmlCache.getStats().keys;
+  htmlCache.flushAll();
+  cache.del('posts');
+  cache.del('news_tickers');
+  console.log(`[Cache Invalidation] All ${count} in-memory HTML pages flushed.`);
+}
+
 const PORT = 3000;
 
 // Reusable middleware to authorize admin users
@@ -1253,10 +1415,11 @@ app.post('/api/posts', requireAuth, requireAdmin, async (req: AuthRequest, res) 
     const newPostArr = await queryWithRetry(() => db.insert(posts).values({
       category, title, content, thumbnail, metaTitle, metaDesc, slug: cleanSlug, focusKeyword, tags, date: new Date().toISOString()
     }).returning());
-    cache.del('posts');
-    htmlCache.flushAll();
     
     const post = newPostArr[0];
+    // Invalidate in-memory HTML cache for this new post and listings
+    invalidatePostCache(post.id, post.slug, post.category);
+    
     const safeToISO = (val: any) => {
       if (!val) return null;
       if (val instanceof Date) return val.toISOString();
@@ -1279,6 +1442,10 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
     const { id } = req.params;
     const { category, title, content, thumbnail, metaTitle, metaDesc, slug, focusKeyword, tags } = req.body;
     const cleanSlug = sanitizeSlug(slug, title);
+
+    // Fetch previous post data to ensure old slug and category caches are also invalidated
+    const prevPostArr = await queryWithRetry(() => db.select().from(posts).where(eq(posts.id, Number(id))));
+    const prevPost = prevPostArr[0];
 
     // Check if slug is unique (and not belonging to the current post being updated)
     if (cleanSlug) {
@@ -1310,10 +1477,13 @@ app.put('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest, re
       return res.status(404).json({ error: 'પોસ્ટ મળી નથી.' });
     }
     
-    cache.del('posts');
-    htmlCache.flushAll();
-    
     const post = updatedPostArr[0];
+    // Invalidate cache for new slug and old slug
+    if (prevPost && (prevPost.slug !== post.slug || prevPost.category !== post.category)) {
+      invalidatePostCache(prevPost.id, prevPost.slug, prevPost.category);
+    }
+    invalidatePostCache(post.id, post.slug, post.category);
+    
     const safeToISO = (val: any) => {
       if (!val) return null;
       if (val instanceof Date) return val.toISOString();
@@ -1345,8 +1515,8 @@ app.delete('/api/posts/:id', requireAuth, requireAdmin, async (req: AuthRequest,
       return res.status(404).json({ error: 'પોસ્ટ મળી નથી.' });
     }
     
-    cache.del('posts');
-    htmlCache.flushAll();
+    const deletedPost = deletedArr[0];
+    invalidatePostCache(deletedPost.id, deletedPost.slug, deletedPost.category);
     res.json({ message: 'પોસ્ટ સફળતાપૂર્વક ડિલીટ થઈ!' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -1437,6 +1607,7 @@ app.post('/api/admin/news-tickers', requireAuth, requireAdmin, async (req: AuthR
     await saveNewsTickersToDb(allTickers);
 
     cache.del('news_tickers');
+    invalidateAllPageCache();
     res.json({ message: 'નવી ન્યૂઝ હેડલાઇન ઉમેરાઈ ગઈ!', ticker: newTicker });
   } catch (error: any) {
     console.error('Error creating news ticker:', error);
@@ -1464,6 +1635,7 @@ app.put('/api/admin/news-tickers/:id', requireAuth, requireAdmin, async (req: Au
     await saveNewsTickersToDb(allTickers);
 
     cache.del('news_tickers');
+    invalidateAllPageCache();
     res.json({ message: 'ન્યૂઝ હેડલાઇન અપડેટ થઈ ગઈ!', ticker: allTickers[idx] });
   } catch (error: any) {
     console.error('Error updating news ticker:', error);
@@ -1487,6 +1659,7 @@ app.delete('/api/admin/news-tickers/:id', requireAuth, requireAdmin, async (req:
     await saveNewsTickersToDb(allTickers);
 
     cache.del('news_tickers');
+    invalidateAllPageCache();
     res.json({ message: 'ન્યૂઝ હેડલાઇન સફળતાપૂર્વક ડિલીટ થઈ ગઈ!' });
   } catch (error: any) {
     console.error('Error deleting news ticker:', error);
@@ -3743,10 +3916,63 @@ app.post('/api/admin/settings', requireAuth, async (req: AuthRequest, res) => {
     if (adsPostAboveRelated !== undefined) await saveSetting('ADS_POST_ABOVE_RELATED', adsPostAboveRelated);
     if (adsSidebarBottom !== undefined) await saveSetting('ADS_SIDEBAR_BOTTOM', adsSidebarBottom);
 
+    // Invalidate all cached HTML pages and sitemaps so setting changes take effect immediately
+    invalidateAllPageCache();
+
     res.json({ success: true });
   } catch (err: any) {
     console.error('Error saving settings:', err);
     res.status(500).json({ error: String(err) });
+  }
+});
+
+// Admin Cache Management Endpoints
+app.get('/api/admin/cache/stats', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const keys = htmlCache.keys();
+    const stats = htmlCache.getStats();
+    const totalRequests = cacheMetrics.hits + cacheMetrics.misses;
+    const hitRatio = totalRequests > 0 ? ((cacheMetrics.hits / totalRequests) * 100).toFixed(1) + '%' : '100%';
+    const memoryBytes = process.memoryUsage().heapUsed;
+    const memoryMb = (memoryBytes / (1024 * 1024)).toFixed(2) + ' MB';
+
+    res.json({
+      keysCount: keys.length,
+      keys: keys.slice(0, 50),
+      hits: cacheMetrics.hits,
+      misses: cacheMetrics.misses,
+      hitRatio,
+      invalidations: cacheMetrics.invalidations,
+      lastInvalidationTime: cacheMetrics.lastInvalidationTime,
+      memoryUsage: memoryMb,
+      ksize: stats.ksize,
+      vsize: stats.vsize
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/cache/purge', requireAuth, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { path: targetPath, postId, slug, category } = req.body || {};
+
+    if (postId || slug || category) {
+      invalidatePostCache(postId ? Number(postId) : undefined, slug, category);
+      return res.json({ success: true, message: `પોસ્ટ કેશ સફળતાપૂર્વક સાફ કરવામાં આવી.` });
+    }
+
+    if (targetPath) {
+      const norm = normalizeCacheKey(targetPath);
+      htmlCache.del(norm);
+      return res.json({ success: true, message: `પેજ '${norm}' ની કેશ સફળતાપૂર્વક સાફ કરવામાં આવી.` });
+    }
+
+    // Default: Purge entire HTML cache
+    invalidateAllPageCache();
+    res.json({ success: true, message: 'સંપૂર્ણ HTML / In-Memory કેશ સફળતાપૂર્વક સાફ કરવામાં આવી!' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -3963,7 +4189,7 @@ async function generateSeoTags(post: any | null, req: express.Request) {
             "url": `${siteUrl}/`,
             "logo": {
               "@type": "ImageObject",
-              "url": `${siteUrl}/logo.svg`
+              "url": `${siteUrl}/logo.png`
             }
           }
         },
@@ -4138,7 +4364,7 @@ async function generateSeoTags(post: any | null, req: express.Request) {
         "@type": "Organization",
         "name": "OJAS EXAM",
         "url": `${siteUrl}/`,
-        "logo": `${siteUrl}/logo.svg`,
+        "logo": `${siteUrl}/logo.png`,
         "sameAs": [
           "https://www.facebook.com/",
           "https://t.me/"
@@ -4171,48 +4397,10 @@ async function generateSeoTags(post: any | null, req: express.Request) {
 `;
 }
 
-// --- DYNAMIC RENDERING (BOT SSR vs USER CSR) ---
+// --- UNIFIED HIGH-PERFORMANCE IN-MEMORY HTML GENERATION & CACHING ---
 
-function isBotRequest(req: express.Request): { isBot: boolean; botName: string } {
-  const userAgent = (req.headers['user-agent'] || '').toLowerCase();
-  
-  // Also check query param ?bot=1 or ?ssr=1 or ?_escaped_fragment_= for easy manual testing / verification
-  if (req.query.bot === '1' || req.query.ssr === '1' || req.query._escaped_fragment_ !== undefined) {
-    return { isBot: true, botName: 'ManualTestBot' };
-  }
-
-  const botPatterns: { name: string; regex: RegExp }[] = [
-    { name: 'Googlebot', regex: /googlebot|google-inspectiontool|google-read-aloud|mediapartners-google|adsbot-google/i },
-    { name: 'Bingbot', regex: /bingbot|bingpreview|msnbot/i },
-    { name: 'WhatsApp', regex: /whatsapp/i },
-    { name: 'TelegramBot', regex: /telegrambot/i },
-    { name: 'FacebookBot', regex: /facebookexternalhit|facebot|facebookcatalog/i },
-    { name: 'TwitterBot', regex: /twitterbot/i },
-    { name: 'LinkedInBot', regex: /linkedinbot/i },
-    { name: 'PinterestBot', regex: /pinterest|pinterestbot/i },
-    { name: 'SlackBot', regex: /slackbot/i },
-    { name: 'DiscordBot', regex: /discordbot/i },
-    { name: 'AppleBot', regex: /applebot/i },
-    { name: 'YahooBot', regex: /slurp/i },
-    { name: 'DuckDuckBot', regex: /duckduckbot/i },
-    { name: 'BaiduSpider', regex: /baiduspider/i },
-    { name: 'YandexBot', regex: /yandexbot|yandex/i },
-    { name: 'SogouBot', regex: /sogouspider|sogou/i },
-    { name: 'SeoCrawler', regex: /screaming frog|ahrefsbot|semrushbot|dotbot|rogerbot|seznambot/i },
-    { name: 'GenericBot', regex: /bot|crawler|spider|headlesschrome|phantomjs/i },
-  ];
-
-  for (const bp of botPatterns) {
-    if (bp.regex.test(userAgent)) {
-      return { isBot: true, botName: bp.name };
-    }
-  }
-
-  return { isBot: false, botName: '' };
-}
-
-// Generates Server-Side Rendered (SSR) Full Semantic HTML for Search Bots & Social Crawlers
-async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: any | null): Promise<string> {
+// Generates Unified Server-Side Pre-rendered Semantic HTML with JSON-LD, SEO, and React Hydration
+async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: any | null): Promise<string> {
   const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
   const siteUrl = getBaseUrl(req, sitemapBaseUrl);
   const seoTags = await generateSeoTags(post, req);
@@ -4220,7 +4408,7 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
   let bodyContent = '';
 
   if (post) {
-    // 1. Single Post SSR for Bots
+    // 1. Single Post Semantic SSR HTML (Shared by Bots & Users for instant paint)
     const rawTitle = post.metaTitle || post.title || 'OJAS EXAM';
     const escTitle = rawTitle.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const publishedTime = post.createdAt || post.date ? new Date(post.createdAt || post.date).toLocaleDateString('gu-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
@@ -4243,13 +4431,13 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
       imageUrl = `${siteUrl}${imageUrl}`;
     }
 
-    // Fetch up to 3 related posts for internal linking
+    // Related posts for internal linking
     let relatedPostsHtml = '';
     try {
       const allPosts = await queryWithRetry(() => db.select().from(posts));
       const related = allPosts
         .filter((p: any) => p.category === category && p.id !== post.id)
-        .slice(0, 3);
+        .slice(0, 4);
 
       if (related.length > 0) {
         relatedPostsHtml = `
@@ -4266,27 +4454,30 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
         `;
       }
     } catch (e) {
-      console.warn('[SSR Bot Related Posts Error]', e);
+      console.warn('[Unified SSR Related Posts Error]', e);
     }
 
     bodyContent = `
       <div id="root">
         <header class="ssr-site-header" style="background:#1e40af;color:#fff;padding:1rem;margin-bottom:1.5rem;">
-          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
-            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;">OJAS EXAM</a>
-            <nav style="display:flex;gap:1rem;margin-top:0.5rem;flex-wrap:wrap;font-size:0.9rem;">
-              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;">મુખ્ય પૃષ્ઠ</a>
-              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;">નવી ભરતી</a>
-              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;">આન્સર કી</a>
-              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;">પરિણામ</a>
-              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;">પસંદગી યાદી</a>
-              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;">ન્યૂઝ</a>
+          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:0.5rem;">
+              <img src="${siteUrl}/logo.png" alt="OJAS EXAM" width="32" height="32" style="border-radius:6px;" onerror="this.onerror=null;this.src='${siteUrl}/logo.svg';" />
+              <span>OJAS EXAM</span>
+            </a>
+            <nav style="display:flex;gap:1rem;margin-top:0.25rem;flex-wrap:wrap;font-size:0.9rem;">
+              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">મુખ્ય પૃષ્ઠ</a>
+              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">નવી ભરતી</a>
+              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">આન્સર કી</a>
+              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પરિણામ</a>
+              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પસંદગી યાદી</a>
+              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">ન્યૂઝ</a>
             </nav>
           </div>
         </header>
 
         <main style="max-width:900px;margin:0 auto;padding:0 1rem 3rem;">
-          <!-- Semantic Breadcrumbs for Search Engines -->
+          <!-- Breadcrumbs -->
           <nav aria-label="breadcrumb" style="font-size:0.875rem;color:#4b5563;margin-bottom:1rem;">
             <a href="${siteUrl}/" style="color:#2563eb;text-decoration:none;">મુખ્ય પૃષ્ઠ</a> &gt; 
             <a href="${siteUrl}/${category}/" style="color:#2563eb;text-decoration:none;">${catLabel}</a> &gt; 
@@ -4345,7 +4536,7 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
       </div>
     `;
   } else {
-    // 2. Category / Home Page SSR Listing for Search Crawlers
+    // 2. Category / Home Page SSR Semantic Layout
     const pathParts = req.path.split('/').filter(Boolean);
     const category = pathParts[0] ? pathParts[0].toLowerCase() : '';
     const validCategories = ['job', 'answer_key', 'result', 'selection_list', 'news'];
@@ -4391,21 +4582,24 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
         </div>
       `;
     } catch (e) {
-      console.warn('[SSR Bot Category Listing Error]', e);
+      console.warn('[Unified SSR Category Listing Error]', e);
     }
 
     bodyContent = `
       <div id="root">
         <header class="ssr-site-header" style="background:#1e40af;color:#fff;padding:1rem;margin-bottom:1.5rem;">
-          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
-            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;">OJAS EXAM</a>
-            <nav style="display:flex;gap:1rem;margin-top:0.5rem;flex-wrap:wrap;font-size:0.9rem;">
-              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;">મુખ્ય પૃષ્ઠ</a>
-              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;">નવી ભરતી</a>
-              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;">આન્સર કી</a>
-              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;">પરિણામ</a>
-              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;">પસંદગી યાદી</a>
-              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;">ન્યૂઝ</a>
+          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:0.5rem;">
+              <img src="${siteUrl}/logo.png" alt="OJAS EXAM" width="32" height="32" style="border-radius:6px;" onerror="this.onerror=null;this.src='${siteUrl}/logo.svg';" />
+              <span>OJAS EXAM</span>
+            </a>
+            <nav style="display:flex;gap:1rem;margin-top:0.25rem;flex-wrap:wrap;font-size:0.9rem;">
+              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">મુખ્ય પૃષ્ઠ</a>
+              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">નવી ભરતી</a>
+              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">આન્સર કી</a>
+              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પરિણામ</a>
+              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પસંદગી યાદી</a>
+              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">ન્યૂઝ</a>
             </nav>
           </div>
         </header>
@@ -4420,9 +4614,9 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
     `;
   }
 
-  // Inject Bot SSR Styles & SEO Meta
+  // Inject SSR Styles for instant rendering
   const ssrStyles = `
-    <style id="ssr-bot-styles">
+    <style id="ssr-unified-styles">
       body { margin:0; font-family: 'Noto Sans Gujarati', system-ui, -apple-system, sans-serif; background:#f9fafb; color:#111827; }
       .ssr-post-body table { width:100%; border-collapse:collapse; margin:1.25rem 0; border:1px solid #d1d5db; }
       .ssr-post-body th, .ssr-post-body td { border:1px solid #d1d5db; padding:0.6rem 0.8rem; text-align:left; font-size:0.95rem; }
@@ -4444,44 +4638,22 @@ async function generateBotSsrHtml(rawHtml: string, req: express.Request, post: a
     processedHtml = processedHtml
       .replace(/<title>[\s\S]*?<\/title>/gi, '')
       .replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '')
+      .replace(/<meta\s+name=["']author["'][\s\S]*?>/gi, '')
+      .replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '')
+      .replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '')
       .replace(/<meta id=["']?seo-meta-tag-placeholder["']?\s*\/?>/gi, `${seoTags}\n${ssrStyles}`);
   } else {
     processedHtml = processedHtml.replace('<head>', `<head>\n${seoTags}\n${ssrStyles}`);
   }
 
-  // Replace <div id="root"></div> with Server-Side Rendered Body
+  // Inject Pre-rendered Body inside <div id="root">
   if (processedHtml.includes('<div id="root"></div>')) {
     processedHtml = processedHtml.replace('<div id="root"></div>', bodyContent);
   } else if (processedHtml.includes('<div id="root">')) {
     processedHtml = processedHtml.replace(/<div id="root">[\s\S]*?<\/div>/i, bodyContent);
   }
 
-  // Remove heavy client JS scripts for search engine crawlers so they index raw semantic HTML instantly
-  processedHtml = processedHtml.replace(/<script\s+type="module"[\s\S]*?<\/script>/gi, '');
-
-  return processedHtml;
-}
-
-// Generates Fast Client-Side Rendered (CSR) HTML for Regular Human Users
-async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: any | null): Promise<string> {
-  const seoTags = await generateSeoTags(post, req);
-  let processedHtml = rawHtml;
-
-  if (processedHtml.includes('<!-- SEO_META_TAGS_BLOCK_START -->')) {
-    processedHtml = processedHtml.replace(/<!-- SEO_META_TAGS_BLOCK_START -->[\s\S]*?<!-- SEO_META_TAGS_BLOCK_END -->/gi, seoTags);
-  } else if (processedHtml.includes('id="seo-meta-tag-placeholder"')) {
-    processedHtml = processedHtml
-      .replace(/<title>[\s\S]*?<\/title>/gi, '')
-      .replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '')
-      .replace(/<meta\s+name=["']author["'][\s\S]*?>/gi, '')
-      .replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '')
-      .replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '')
-      .replace(/<meta id=["']?seo-meta-tag-placeholder["']?\s*\/?>/gi, seoTags);
-  } else {
-    processedHtml = processedHtml.replace('<head>', `<head>\n${seoTags}`);
-  }
-
-  // Keep <div id="root"></div> completely clean for seamless client-side React mounting
+  // Inject initial post payload for instant React client hydration
   if (post) {
     const jsonPost = JSON.stringify(post).replace(/</g, '\\u003c').replace(/-->/g, '--\\>');
     const initialPostScript = `<script id="initial-post-data">window.__INITIAL_POST__ = ${jsonPost};</script>`;
@@ -4509,11 +4681,105 @@ async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: an
     headInjections += `\n${customHeadCode}\n`;
   }
 
-  if (headInjections) {
+  if (headInjections && processedHtml.includes('</head>')) {
     processedHtml = processedHtml.replace('</head>', `${headInjections}</head>`);
   }
 
   return processedHtml;
+}
+
+// Master In-Memory Caching and HTML Delivery Middleware
+async function handleCachedHtmlRequest(
+  req: express.Request, 
+  res: express.Response, 
+  next: express.NextFunction, 
+  getTemplateHtml: () => Promise<string>
+) {
+  const normKey = normalizeCacheKey(req.path);
+
+  // 1. In-Memory Static Cache Check (Serves remaining 99,999 users and bots instantly in < 2ms)
+  const cached = htmlCache.get<CachedPageData>(normKey);
+  if (cached) {
+    cacheMetrics.hits++;
+    cached.hitCount++;
+
+    // Conditional HTTP ETag / Last-Modified Check (304 Not Modified)
+    const ifNoneMatch = req.headers['if-none-match'];
+    const ifModifiedSince = req.headers['if-modified-since'];
+
+    if (ifNoneMatch && ifNoneMatch === cached.etag) {
+      res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+      res.setHeader('ETag', cached.etag);
+      res.setHeader('Last-Modified', cached.lastModified);
+      res.setHeader('X-Cache', 'HIT');
+      return res.status(304).end();
+    }
+
+    if (ifModifiedSince) {
+      const clientTime = new Date(ifModifiedSince).getTime();
+      const serverTime = new Date(cached.lastModified).getTime();
+      if (!isNaN(clientTime) && !isNaN(serverTime) && clientTime >= serverTime) {
+        res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+        res.setHeader('ETag', cached.etag);
+        res.setHeader('Last-Modified', cached.lastModified);
+        res.setHeader('X-Cache', 'HIT');
+        return res.status(304).end();
+      }
+    }
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Last-Modified', cached.lastModified);
+    res.setHeader('ETag', cached.etag);
+    res.setHeader('X-Cache', 'HIT');
+    res.setHeader('X-Cache-Hits', String(cached.hitCount));
+    res.setHeader('X-Render-Mode', 'In-Memory-Static-Cache');
+    res.setHeader('X-Content-Updated-At', cached.isoUpdated);
+    return res.send(cached.html);
+  }
+
+  // 2. Cache MISS (First user or bot triggers render and RAM storage)
+  try {
+    cacheMetrics.misses++;
+    const rawTemplate = await getTemplateHtml();
+    const post = await getPostFromRequest(req);
+    const renderedHtml = await generateUnifiedHtml(rawTemplate, req, post);
+
+    // Compute Last-Modified & ETag
+    const postDate = post?.updatedAt || post?.date || post?.createdAt || new Date();
+    const lastModDate = new Date(postDate);
+    const lastModified = isNaN(lastModDate.getTime()) ? new Date().toUTCString() : lastModDate.toUTCString();
+    const isoUpdated = isNaN(lastModDate.getTime()) ? new Date().toISOString() : lastModDate.toISOString();
+    
+    const hash = crypto.createHash('md5').update(renderedHtml).digest('hex').substring(0, 16);
+    const etag = `W/"${renderedHtml.length}-${hash}"`;
+
+    const cacheEntry: CachedPageData = {
+      html: renderedHtml,
+      etag,
+      lastModified,
+      isoUpdated,
+      postId: post?.id,
+      slug: post?.slug,
+      category: post?.category,
+      hitCount: 1,
+      createdAt: Date.now()
+    };
+
+    htmlCache.set(normKey, cacheEntry);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Last-Modified', lastModified);
+    res.setHeader('ETag', etag);
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('X-Render-Mode', 'In-Memory-Prerender-Rendered');
+    res.setHeader('X-Content-Updated-At', isoUpdated);
+    res.send(renderedHtml);
+  } catch (err: any) {
+    console.error('[Unified Render Error] Failed to serve HTML:', err);
+    next(err);
+  }
 }
 
   if (process.env.NODE_ENV !== 'production') {
@@ -4541,48 +4807,15 @@ async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: an
         return vite.middlewares(req, res, next);
       }
 
-      const botInfo = isBotRequest(req);
-      const cacheKey = botInfo.isBot
-        ? `ssr_bot_${botInfo.botName}_${req.originalUrl}`
-        : `csr_user_${req.originalUrl}`;
-
-      const cachedHtml = htmlCache.get<string>(cacheKey);
-      if (cachedHtml) {
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
-        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
-        res.setHeader('X-Prerender-Cache', 'HIT');
-        return res.send(cachedHtml);
-      }
-
-      try {
+      await handleCachedHtmlRequest(req, res, next, async () => {
         let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
-        const post = await getPostFromRequest(req);
-
-        if (botInfo.isBot) {
-          // Serve Full Server-Side Rendered HTML for Bots & Crawlers
-          html = await generateBotSsrHtml(html, req, post);
-        } else {
-          // Serve Fast Client-Side Rendered HTML for Regular Users
-          html = await vite.transformIndexHtml(req.url, html);
-          html = await injectUserCsrHtml(html, req, post);
-        }
-
-        htmlCache.set(cacheKey, html);
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
-        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
-        res.setHeader('X-Prerender-Cache', 'MISS');
-        res.send(html);
-      } catch (e) {
-        vite.ssrFixStacktrace(e as Error);
-        next(e);
-      }
+        return await vite.transformIndexHtml(req.url, html);
+      });
     });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
 
-    // Handle HTML Prerendering BEFORE express.static so /index.html is never served raw
+    // Handle HTML Prerendering BEFORE express.static so /index.html is always server-side cached
     app.use(async (req, res, next) => {
       const pathLower = req.path.toLowerCase().replace(/\/$/, '');
       const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
@@ -4596,21 +4829,7 @@ async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: an
         return next();
       }
 
-      const botInfo = isBotRequest(req);
-      const cacheKey = botInfo.isBot
-        ? `ssr_bot_${botInfo.botName}_${req.originalUrl}`
-        : `csr_user_${req.originalUrl}`;
-
-      const cachedHtml = htmlCache.get<string>(cacheKey);
-      if (cachedHtml) {
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
-        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
-        res.setHeader('X-Prerender-Cache', 'HIT');
-        return res.send(cachedHtml);
-      }
-
-      try {
+      await handleCachedHtmlRequest(req, res, next, async () => {
         const candidatePaths = [
           path.join(distPath, 'index.html'),
           path.join(process.cwd(), 'dist', 'index.html'),
@@ -4634,7 +4853,7 @@ async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: an
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#10b981" />
@@ -4648,26 +4867,8 @@ async function injectUserCsrHtml(rawHtml: string, req: express.Request, post: an
 </html>`;
         }
 
-        const post = await getPostFromRequest(req);
-
-        if (botInfo.isBot) {
-          // Serve Full Server-Side Rendered HTML for Bots & Crawlers
-          html = await generateBotSsrHtml(html, req, post);
-        } else {
-          // Serve Fast Client-Side Rendered HTML for Regular Users
-          html = await injectUserCsrHtml(html, req, post);
-        }
-
-        htmlCache.set(cacheKey, html);
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('X-Render-Mode', botInfo.isBot ? 'SSR-Bot' : 'CSR-User');
-        if (botInfo.isBot) res.setHeader('X-Bot-Name', botInfo.botName);
-        res.setHeader('X-Prerender-Cache', 'MISS');
-        res.send(html);
-      } catch (err: any) {
-        console.error('[Index Serve Error] Failed to serve dynamic index:', err);
-        next();
-      }
+        return html;
+      });
     });
 
     app.use(express.static(distPath, { index: false }));

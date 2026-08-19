@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import express from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
@@ -435,6 +435,18 @@ app.get('/api/settings/sms-status', async (req, res) => {
   }
 });
 
+// Safe password verification supporting bcrypt, plaintext legacy fallback, and error handling
+async function verifyUserPassword(plainPassword: string, storedHashOrPlain: string | null | undefined): Promise<boolean> {
+  if (!storedHashOrPlain || !plainPassword) return false;
+  if (plainPassword === storedHashOrPlain) return true;
+  try {
+    return await bcrypt.compare(plainPassword, storedHashOrPlain);
+  } catch (err) {
+    console.warn('[Password Compare Error]', err);
+    return false;
+  }
+}
+
 app.post('/api/auth/sms/send-otp', async (req, res) => {
   try {
     let { phone, purpose } = req.body;
@@ -448,7 +460,9 @@ app.post('/api/auth/sms/send-otp', async (req, res) => {
     }
     phone = phoneVal.cleaned!;
 
-    const existing = await db.query.users.findFirst({ where: eq(users.phone, phone) });
+    const usersList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
+    const existing = usersList.length > 0 ? usersList[0] : null;
+
     if (purpose === 'login' || purpose === 'forgot') {
       if (!existing) {
         return res.status(400).json({ error: 'આ મોબાઈલ નંબર રજીસ્ટર નથી. કૃપા કરીને પહેલા નવું રજીસ્ટ્રેશન કરો.' });
@@ -563,17 +577,19 @@ app.post('/api/auth/sms/verify-login', async (req, res) => {
       otpStore.delete(phone);
     }
 
-    const user = await db.query.users.findFirst({ where: eq(users.phone, phone) });
-    if (!user) {
+    const usersList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
+    if (usersList.length === 0) {
       return res.status(404).json({ error: 'યુઝર મળ્યો નથી.' });
     }
+    const user = usersList[0];
+
     if (user.isBlocked) {
       return res.status(423).json({ error: 'તમારૂ એકાઉન્ટ એડમિન દ્વારા સસ્પેન્ડ કરવામાં આવ્યું છે.' });
     }
 
     if (user.subscriptionPlan !== 'free' && user.subscriptionExpiry) {
       if (new Date(user.subscriptionExpiry).getTime() <= Date.now()) {
-        await db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id));
+        await queryWithRetry(() => db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id)));
         user.subscriptionPlan = 'free';
         user.subscriptionExpiry = null;
       }
@@ -618,8 +634,8 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     // check existing
-    const existing = await db.query.users.findFirst({ where: eq(users.phone, phone) });
-    if (existing) {
+    const existingList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
+    if (existingList.length > 0) {
       return res.status(400).json({ error: 'આ મોબાઈલ નંબર અગાઉથી રજીસ્ટર્ડ છે. કૃપા કરીને લોગિન કરો.' });
     }
 
@@ -627,13 +643,13 @@ app.post('/api/auth/register', async (req, res) => {
     const uid = 'local_' + phone;
     const userRole = phone === '9725722729' ? 'admin' : 'user';
 
-    const newUser = await db.insert(users).values({
+    const newUser = await queryWithRetry(() => db.insert(users).values({
       uid,
       phone,
       password: hashedPassword,
       name: 'User ' + phone,
       role: userRole
-    }).returning();
+    }).returning());
 
     const token = jwt.sign({ uid, phone, role: userRole }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ ...newUser[0], token });
@@ -656,13 +672,14 @@ app.post('/api/auth/firebase/verify', async (req, res) => {
     }
 
     // Register or login the user with verifiedPhone
-    let user = await db.query.users.findFirst({ where: eq(users.phone, verifiedPhone) });
+    const userList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, verifiedPhone)));
+    let user = userList.length > 0 ? userList[0] : null;
     const userRole = verifiedPhone === '9725722729' ? 'admin' : 'user';
     
     if (!user) {
       // Register new user on the fly
       const finalUid = uid || ('firebase_' + verifiedPhone);
-      const newUser = await db.insert(users).values({
+      const newUser = await queryWithRetry(() => db.insert(users).values({
         uid: finalUid,
         phone: verifiedPhone,
         name: name || 'User ' + verifiedPhone,
@@ -671,14 +688,14 @@ app.post('/api/auth/firebase/verify', async (req, res) => {
         subscriptionPlan: 'free',
         isBlocked: false,
         allowedExams: 3
-      }).returning();
+      }).returning());
       user = newUser[0];
     } else {
       if (user.isBlocked) {
         return res.status(423).json({ error: 'તમારૂ એકાઉન્ટ એડમિન દ્વારા સસ્પેન્ડ કરવામાં આવ્યું છે.' });
       }
       if (user.phone === '9725722729' && user.role !== 'admin') {
-        await db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id));
+        await queryWithRetry(() => db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id)));
         user.role = 'admin';
       }
     }
@@ -699,16 +716,17 @@ app.post('/api/auth/login', async (req, res) => {
     phone = convertGujaratiToEnglish(phone).replace(/\D/g, '').slice(-10);
     password = convertGujaratiToEnglish(password).trim();
     
-    console.log(`[DEBUG] Login attempt. Phone: ${phone}, Type: ${typeof phone}`);
+    console.log(`[DEBUG] Login attempt. Phone: ${phone}`);
 
-    let user = await db.query.users.findFirst({ where: eq(users.phone, phone) });
-    console.log(`[DEBUG] User found: ${!!user}`);
-    if (!user) {
+    const userList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
+    if (userList.length === 0) {
       return res.status(404).json({ error: 'આ મોબાઈલ નંબર રજીસ્ટર નથી. કૃપા કરીને પહેલા નવું રજીસ્ટ્રેશન કરો.' });
     }
     
+    let user = userList[0];
+    
     if (user.phone === '9725722729' && user.role !== 'admin') {
-      await db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id));
+      await queryWithRetry(() => db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id)));
       user.role = 'admin';
     }
     if (user.isBlocked) {
@@ -717,13 +735,13 @@ app.post('/api/auth/login', async (req, res) => {
 
     if (user.subscriptionPlan !== 'free' && user.subscriptionExpiry) {
       if (new Date(user.subscriptionExpiry).getTime() <= Date.now()) {
-        await db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id));
+        await queryWithRetry(() => db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id)));
         user.subscriptionPlan = 'free';
         user.subscriptionExpiry = null;
       }
     }
 
-    let isMatch = await bcrypt.compare(password, user.password || '');
+    const isMatch = await verifyUserPassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'પાસવર્ડ ખોટો છે.' });
     }
@@ -731,7 +749,8 @@ app.post('/api/auth/login', async (req, res) => {
     const token = jwt.sign({ uid: user.uid, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ ...user, token });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[Login Error]', error);
+    res.status(500).json({ error: error.message || 'લોગિન દરમિયાન અનપેક્ષિત ભૂલ આવી.' });
   }
 });
 

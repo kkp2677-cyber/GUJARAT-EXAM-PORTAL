@@ -707,14 +707,8 @@ export default function App() {
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
             <img 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="OJAS Exam" 
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (!img.src.includes('logo-512.png')) {
-                  img.src = '/logo-512.png';
-                }
-              }}
               className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 object-contain group-hover:scale-105 transition-transform shrink-0" 
               referrerPolicy="no-referrer"
             />
@@ -890,14 +884,8 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center p-0.5 border border-emerald-500/30">
                       <img 
-                        src="/logo.png" 
+                        src="/logo.svg" 
                         alt="OJAS EXAM" 
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          if (!img.src.includes('logo.svg')) {
-                            img.src = '/logo.svg';
-                          }
-                        }}
                         className="w-full h-full object-contain" 
                         referrerPolicy="no-referrer" 
                       />
@@ -919,7 +907,7 @@ export default function App() {
                     /* Content Categories for Guest Users */
                     <div className="space-y-3">
                       <div>
-                        <div className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 pb-1.5">મુખ્ય વિભાગો</div>
+                       
                         <div className="space-y-1">
                           <button
                             onClick={() => {
@@ -1497,36 +1485,30 @@ export default function App() {
               onClick={() => navigateToHome()}
               className="flex items-center gap-2.5 cursor-pointer select-none group"
             >
-              <img 
-                src="/logo-bw.png" 
-                alt="OJAS Exam" 
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  if (!img.src.includes('logo.png')) {
-                    img.src = '/logo.png';
-                  }
-                }}
-                className="w-9 h-9 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform shrink-0" 
-                referrerPolicy="no-referrer"
-              />
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center p-1 border border-slate-700 shrink-0">
+                <img 
+                  src="/logo.svg" 
+                  alt="OJAS Exam" 
+                  className="w-full h-full object-contain grayscale brightness-200 group-hover:grayscale-0 group-hover:brightness-100 transition-all" 
+                  referrerPolicy="no-referrer"
+                />
+              </div>
               <div className="flex flex-col justify-center leading-none">
                 <div className="text-lg sm:text-xl font-black tracking-wide font-sans uppercase flex items-center group-hover:opacity-90 transition-opacity">
                   <span className="text-white">OJAS</span>
                   <span className="ml-1 sm:ml-1.5 text-white">E</span>
-                  <span className="text-slate-400">X</span>
+                  <span className="text-[#f26522]">X</span>
                   <span className="text-white">AM</span>
                 </div>
                 <div className="text-[8.5px] sm:text-[9.5px] font-extrabold tracking-wider text-right -mt-0.5 font-sans">
-                  <span className="text-slate-300">ઓજસ</span> <span className="text-slate-400">એક્ઝામ</span>
+                  <span className="text-slate-300">ઓજસ</span> <span className="text-[#f26522]">એક્ઝામ</span>
                 </div>
               </div>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
               ગુજરાતની તમામ સત્તાવાર સ્પર્ધાત્મક પરીક્ષાઓની ઓનલાઇન સચોટ તૈયારી, મોક ટેસ્ટ અને પ્રશ્નોત્તરી માટેનું સત્તાવાર લોકપ્રિય પોર્ટલ.
             </p>
-            <p className="text-slate-400 text-xs leading-relaxed pt-2 border-t border-slate-800/80 font-sans opacity-90">
-              <strong className="text-slate-300">Disclaimer:</strong> This website is not associated, affiliated, or connected with any government organization or department. All information provided here is for general informational purposes only.
-            </p>
+            
           </div>
           <div className="space-y-4">
             <h4 className="text-white text-sm font-bold tracking-wide uppercase">ભરતી અને અપડેટ્સ</h4>
@@ -1569,9 +1551,15 @@ export default function App() {
             </div>
           </div>
         </div>
+        <p className="text-center text-slate-400 text-xs leading-relaxed pt-2 border-t border-slate-800/80 font-sans opacity-90">
+              <strong className="text-slate-300">Disclaimer:</strong> This website is not associated, affiliated, or connected with any government organization or department. All information provided here is for general informational purposes only.
+            </p>
+            <hr className="border-slate-800 my-4" />
         <p className="text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-800/60">
           © 2026 OJAS Exam. All Rights Reserved. | Developed By : <a href="https://www.instagram.com/itz_kk_chaudhari" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">KKCHAUDHARI</a>
         </p>
+      </footer>
+
       {/* Paywall Modal */}
       {showPaywall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
@@ -1734,8 +1722,6 @@ export default function App() {
           }}
         />
       )}
-
-      </footer>
     </div>
   );
 }

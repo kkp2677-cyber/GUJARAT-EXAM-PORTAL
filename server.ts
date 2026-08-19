@@ -1224,22 +1224,24 @@ const generateRssXml = async (req: express.Request, res: express.Response) => {
 };
 
 // XML Sitemap, News Sitemap, RSS Feeds & Robots.txt
-const sitemapRoutes = ['/sitemap.xml', '/sitemap.XML', '/sitemap_index.xml', '/sitemap_index.XML', '/sitemap'];
+const sitemapRoutes = ['/sitemap.xml', '/sitemap.XML', '/Sitemap.xml', '/Sitemap.XML', '/sitemap_index.xml', '/sitemap_index.XML', '/sitemap'];
 sitemapRoutes.forEach((route) => app.get(route, generateSitemapXml));
 
-const newsSitemapRoutes = ['/news-sitemap.xml', '/news-sitemap.XML', '/news-sitemap'];
+const newsSitemapRoutes = ['/news-sitemap.xml', '/news-sitemap.XML', '/news-sitemap', '/News-sitemap.xml'];
 newsSitemapRoutes.forEach((route) => app.get(route, generateNewsSitemapXml));
 
 const rssFeedRoutes = ['/rss.xml', '/rss.XML', '/rss', '/feed.xml', '/feed.XML', '/feed'];
 rssFeedRoutes.forEach((route) => app.get(route, generateRssXml));
 
 // Dynamic robots.txt Generator
-app.get('/robots.txt', async (req, res) => {
-  try {
-    const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
-    const baseUrl = getBaseUrl(req, sitemapBaseUrl);
+const robotsRoutes = ['/robots.txt', '/robot.txt', '/Robots.txt', '/Robot.txt'];
+robotsRoutes.forEach((route) => {
+  app.get(route, async (req, res) => {
+    try {
+      const sitemapBaseUrl = await getSetting('SITEMAP_BASE_URL');
+      const baseUrl = getBaseUrl(req, sitemapBaseUrl);
 
-    const robotsTxt = `User-agent: *
+      const robotsTxt = `User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
@@ -1248,11 +1250,12 @@ Disallow: /api/
 Sitemap: ${baseUrl}/sitemap.xml
 Sitemap: ${baseUrl}/news-sitemap.xml
 `;
-    res.header('Content-Type', 'text/plain');
-    res.send(robotsTxt);
-  } catch (err: any) {
-    res.status(500).send(`Error generating robots.txt: ${err.message}`);
-  }
+      res.header('Content-Type', 'text/plain');
+      res.send(robotsTxt);
+    } catch (err: any) {
+      res.status(500).send(`Error generating robots.txt: ${err.message}`);
+    }
+  });
 });
 
 // Middleware to 301 redirect any URL with ?amp=... query parameter
@@ -4796,7 +4799,7 @@ async function handleCachedHtmlRequest(
         req.path.startsWith('/src/') ||
         req.path.startsWith('/node_modules/') ||
         /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path) ||
-        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt', '/robot.txt'].includes(pathLower);
 
       const isHtmlRequest =
         req.method === 'GET' &&
@@ -4823,7 +4826,7 @@ async function handleCachedHtmlRequest(
         req.path.startsWith('/api/') ||
         req.path.toLowerCase().endsWith('.xml') ||
         req.path.toLowerCase().endsWith('.txt') ||
-        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt', '/robot.txt'].includes(pathLower);
 
       if (isApiOrSpecial || isStaticAsset) {
         return next();

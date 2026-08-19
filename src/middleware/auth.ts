@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { db, queryWithRetry } from '../db/index.ts';
 import { users } from '../db/schema.ts';

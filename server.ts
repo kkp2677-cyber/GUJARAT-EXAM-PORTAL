@@ -5,13 +5,12 @@ import express from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import webpush from 'web-push';
 import NodeCache from 'node-cache';
 import { db, queryWithRetry, getDbConfig } from './src/db/index.ts';
 import { posts, exams, examResults, users, notifications, calendarEvents, bookmarks, settings, pushSubscriptions, leaderboardSummary, wishlist } from './src/db/schema.ts';
 import { eq, desc, inArray, and, sql, ne } from 'drizzle-orm';
-import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
+import { requireAuth, type AuthRequest } from './src/middleware/auth.ts';
 import { getOrCreateUser } from './src/db/users.ts';
 
 export const app = express();
@@ -3608,8 +3607,8 @@ async function runBackgroundInitialization() {
   }
 }
 
-async function startServer() {
-  runBackgroundInitialization();
+// Kick off non-blocking background initialization
+runBackgroundInitialization();
 
 // --- Payment and Subscription Routes ---
 app.get('/api/settings/razorpay-key', async (req, res) => {
@@ -4782,73 +4781,86 @@ async function handleCachedHtmlRequest(
   }
 }
 
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    
-    app.use(async (req, res, next) => {
-      const pathLower = req.path.toLowerCase().replace(/\/$/, '');
-      const isCodeOrAsset =
-        req.path.startsWith('/api/') ||
-        req.path.startsWith('/@') ||
-        req.path.startsWith('/src/') ||
-        req.path.startsWith('/node_modules/') ||
-        /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path) ||
-        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
-      const isHtmlRequest =
-        req.method === 'GET' &&
-        !isCodeOrAsset &&
-        (req.headers.accept?.includes('text/html') || req.path === '/' || !req.path.includes('.'));
-
-      if (!isHtmlRequest) {
-        return vite.middlewares(req, res, next);
-      }
-
-      await handleCachedHtmlRequest(req, res, next, async () => {
-        let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
-        return await vite.transformIndexHtml(req.url, html);
+if (process.env.NODE_ENV !== 'production' && !isVercel) {
+  (async () => {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
       });
-    });
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
+      
+      app.use(async (req, res, next) => {
+        const pathLower = req.path.toLowerCase().replace(/\/$/, '');
+        const isCodeOrAsset =
+          req.path.startsWith('/api/') ||
+          req.path.startsWith('/@') ||
+          req.path.startsWith('/src/') ||
+          req.path.startsWith('/node_modules/') ||
+          /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path) ||
+          ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
 
-    // Handle HTML Prerendering BEFORE express.static so /index.html is always server-side cached
-    app.use(async (req, res, next) => {
-      const pathLower = req.path.toLowerCase().replace(/\/$/, '');
-      const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
-      const isApiOrSpecial =
-        req.path.startsWith('/api/') ||
-        req.path.toLowerCase().endsWith('.xml') ||
-        req.path.toLowerCase().endsWith('.txt') ||
-        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+        const isHtmlRequest =
+          req.method === 'GET' &&
+          !isCodeOrAsset &&
+          (req.headers.accept?.includes('text/html') || req.path === '/' || !req.path.includes('.'));
 
-      if (isApiOrSpecial || isStaticAsset) {
-        return next();
-      }
-
-      await handleCachedHtmlRequest(req, res, next, async () => {
-        const candidatePaths = [
-          path.join(distPath, 'index.html'),
-          path.join(process.cwd(), 'dist', 'index.html'),
-          path.join(process.cwd(), 'index.html'),
-          path.join(__dirname, 'index.html'),
-          path.join(__dirname, 'dist', 'index.html'),
-          path.join(__dirname, '../dist', 'index.html')
-        ];
-
-        let html = '';
-        for (const candidate of candidatePaths) {
-          if (fs.existsSync(candidate)) {
-            html = fs.readFileSync(candidate, 'utf-8');
-            break;
-          }
+        if (!isHtmlRequest) {
+          return vite.middlewares(req, res, next);
         }
 
-        if (!html) {
-          html = `<!doctype html>
+        await handleCachedHtmlRequest(req, res, next, async () => {
+          let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+          return await vite.transformIndexHtml(req.url, html);
+        });
+      });
+
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Development server running on http://localhost:${PORT}`);
+      });
+    } catch (err) {
+      console.error('[Dev Server Error]', err);
+    }
+  })();
+} else {
+  const distPath = path.join(process.cwd(), 'dist');
+
+  // Handle HTML Prerendering BEFORE express.static so /index.html is always server-side cached
+  app.use(async (req, res, next) => {
+    const pathLower = req.path.toLowerCase().replace(/\/$/, '');
+    const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
+    const isApiOrSpecial =
+      req.path.startsWith('/api/') ||
+      req.path.toLowerCase().endsWith('.xml') ||
+      req.path.toLowerCase().endsWith('.txt') ||
+      ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+
+    if (isApiOrSpecial || isStaticAsset) {
+      return next();
+    }
+
+    await handleCachedHtmlRequest(req, res, next, async () => {
+      const candidatePaths = [
+        path.join(distPath, 'index.html'),
+        path.join(process.cwd(), 'dist', 'index.html'),
+        path.join(process.cwd(), 'index.html'),
+        path.join(__dirname, 'index.html'),
+        path.join(__dirname, 'dist', 'index.html'),
+        path.join(__dirname, '../dist', 'index.html')
+      ];
+
+      let html = '';
+      for (const candidate of candidatePaths) {
+        if (fs.existsSync(candidate)) {
+          html = fs.readFileSync(candidate, 'utf-8');
+          break;
+        }
+      }
+
+      if (!html) {
+        html = `<!doctype html>
 <html lang="gu">
   <head>
     <meta charset="UTF-8" />
@@ -4865,18 +4877,25 @@ async function handleCachedHtmlRequest(
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`;
-        }
+      }
 
-        return html;
-      });
+      return html;
     });
+  });
 
+  const publicPath = path.join(process.cwd(), 'public');
+  if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath, { index: false }));
+  }
+
+  if (fs.existsSync(distPath)) {
     app.use(express.static(distPath, { index: false }));
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  // Only bind port when running standalone in container or Node, NOT on serverless Vercel
+  if (!isVercel) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Production server running on http://localhost:${PORT}`);
+    });
+  }
 }
-
-startServer();

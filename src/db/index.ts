@@ -78,7 +78,14 @@ export const getDbConfig = () => {
 
   // Final fallback
   if (!host) {
-    throw new Error('Database connection configuration missing. Please set DATABASE_URL or SQL_HOST in environment variables.');
+    console.warn('[DB Config] Warning: DATABASE_URL or SQL_HOST is not configured in environment variables.');
+    return {
+      connectionString: 'postgres://dummy:dummy@127.0.0.1:5432/dummy_db',
+      ssl: false,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 5000,
+      max: 1
+    };
   }
 
   return {

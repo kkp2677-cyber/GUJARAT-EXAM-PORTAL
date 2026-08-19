@@ -1,16 +1,17 @@
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import express from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import path from 'path';
+import { createServer as createViteServer } from 'vite';
 import webpush from 'web-push';
 import NodeCache from 'node-cache';
 import { db, queryWithRetry, getDbConfig } from './src/db/index.ts';
 import { posts, exams, examResults, users, notifications, calendarEvents, bookmarks, settings, pushSubscriptions, leaderboardSummary, wishlist } from './src/db/schema.ts';
 import { eq, desc, inArray, and, sql, ne } from 'drizzle-orm';
-import { requireAuth, type AuthRequest } from './src/middleware/auth.ts';
+import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
 import { getOrCreateUser } from './src/db/users.ts';
 
 export const app = express();
@@ -435,18 +436,6 @@ app.get('/api/settings/sms-status', async (req, res) => {
   }
 });
 
-// Safe password verification supporting bcrypt, plaintext legacy fallback, and error handling
-async function verifyUserPassword(plainPassword: string, storedHashOrPlain: string | null | undefined): Promise<boolean> {
-  if (!storedHashOrPlain || !plainPassword) return false;
-  if (plainPassword === storedHashOrPlain) return true;
-  try {
-    return await bcrypt.compare(plainPassword, storedHashOrPlain);
-  } catch (err) {
-    console.warn('[Password Compare Error]', err);
-    return false;
-  }
-}
-
 app.post('/api/auth/sms/send-otp', async (req, res) => {
   try {
     let { phone, purpose } = req.body;
@@ -460,9 +449,7 @@ app.post('/api/auth/sms/send-otp', async (req, res) => {
     }
     phone = phoneVal.cleaned!;
 
-    const usersList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
-    const existing = usersList.length > 0 ? usersList[0] : null;
-
+    const existing = await db.query.users.findFirst({ where: eq(users.phone, phone) });
     if (purpose === 'login' || purpose === 'forgot') {
       if (!existing) {
         return res.status(400).json({ error: 'આ મોબાઈલ નંબર રજીસ્ટર નથી. કૃપા કરીને પહેલા નવું રજીસ્ટ્રેશન કરો.' });
@@ -577,19 +564,17 @@ app.post('/api/auth/sms/verify-login', async (req, res) => {
       otpStore.delete(phone);
     }
 
-    const usersList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
-    if (usersList.length === 0) {
+    const user = await db.query.users.findFirst({ where: eq(users.phone, phone) });
+    if (!user) {
       return res.status(404).json({ error: 'યુઝર મળ્યો નથી.' });
     }
-    const user = usersList[0];
-
     if (user.isBlocked) {
       return res.status(423).json({ error: 'તમારૂ એકાઉન્ટ એડમિન દ્વારા સસ્પેન્ડ કરવામાં આવ્યું છે.' });
     }
 
     if (user.subscriptionPlan !== 'free' && user.subscriptionExpiry) {
       if (new Date(user.subscriptionExpiry).getTime() <= Date.now()) {
-        await queryWithRetry(() => db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id)));
+        await db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id));
         user.subscriptionPlan = 'free';
         user.subscriptionExpiry = null;
       }
@@ -634,8 +619,8 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     // check existing
-    const existingList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
-    if (existingList.length > 0) {
+    const existing = await db.query.users.findFirst({ where: eq(users.phone, phone) });
+    if (existing) {
       return res.status(400).json({ error: 'આ મોબાઈલ નંબર અગાઉથી રજીસ્ટર્ડ છે. કૃપા કરીને લોગિન કરો.' });
     }
 
@@ -643,13 +628,13 @@ app.post('/api/auth/register', async (req, res) => {
     const uid = 'local_' + phone;
     const userRole = phone === '9725722729' ? 'admin' : 'user';
 
-    const newUser = await queryWithRetry(() => db.insert(users).values({
+    const newUser = await db.insert(users).values({
       uid,
       phone,
       password: hashedPassword,
       name: 'User ' + phone,
       role: userRole
-    }).returning());
+    }).returning();
 
     const token = jwt.sign({ uid, phone, role: userRole }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ ...newUser[0], token });
@@ -672,14 +657,13 @@ app.post('/api/auth/firebase/verify', async (req, res) => {
     }
 
     // Register or login the user with verifiedPhone
-    const userList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, verifiedPhone)));
-    let user = userList.length > 0 ? userList[0] : null;
+    let user = await db.query.users.findFirst({ where: eq(users.phone, verifiedPhone) });
     const userRole = verifiedPhone === '9725722729' ? 'admin' : 'user';
     
     if (!user) {
       // Register new user on the fly
       const finalUid = uid || ('firebase_' + verifiedPhone);
-      const newUser = await queryWithRetry(() => db.insert(users).values({
+      const newUser = await db.insert(users).values({
         uid: finalUid,
         phone: verifiedPhone,
         name: name || 'User ' + verifiedPhone,
@@ -688,14 +672,14 @@ app.post('/api/auth/firebase/verify', async (req, res) => {
         subscriptionPlan: 'free',
         isBlocked: false,
         allowedExams: 3
-      }).returning());
+      }).returning();
       user = newUser[0];
     } else {
       if (user.isBlocked) {
         return res.status(423).json({ error: 'તમારૂ એકાઉન્ટ એડમિન દ્વારા સસ્પેન્ડ કરવામાં આવ્યું છે.' });
       }
       if (user.phone === '9725722729' && user.role !== 'admin') {
-        await queryWithRetry(() => db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id)));
+        await db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id));
         user.role = 'admin';
       }
     }
@@ -716,17 +700,16 @@ app.post('/api/auth/login', async (req, res) => {
     phone = convertGujaratiToEnglish(phone).replace(/\D/g, '').slice(-10);
     password = convertGujaratiToEnglish(password).trim();
     
-    console.log(`[DEBUG] Login attempt. Phone: ${phone}`);
+    console.log(`[DEBUG] Login attempt. Phone: ${phone}, Type: ${typeof phone}`);
 
-    const userList = await queryWithRetry(() => db.select().from(users).where(eq(users.phone, phone)));
-    if (userList.length === 0) {
+    let user = await db.query.users.findFirst({ where: eq(users.phone, phone) });
+    console.log(`[DEBUG] User found: ${!!user}`);
+    if (!user) {
       return res.status(404).json({ error: 'આ મોબાઈલ નંબર રજીસ્ટર નથી. કૃપા કરીને પહેલા નવું રજીસ્ટ્રેશન કરો.' });
     }
     
-    let user = userList[0];
-    
     if (user.phone === '9725722729' && user.role !== 'admin') {
-      await queryWithRetry(() => db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id)));
+      await db.update(users).set({ role: 'admin' }).where(eq(users.id, user.id));
       user.role = 'admin';
     }
     if (user.isBlocked) {
@@ -735,13 +718,13 @@ app.post('/api/auth/login', async (req, res) => {
 
     if (user.subscriptionPlan !== 'free' && user.subscriptionExpiry) {
       if (new Date(user.subscriptionExpiry).getTime() <= Date.now()) {
-        await queryWithRetry(() => db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id)));
+        await db.update(users).set({ subscriptionPlan: 'free', subscriptionExpiry: null }).where(eq(users.id, user.id));
         user.subscriptionPlan = 'free';
         user.subscriptionExpiry = null;
       }
     }
 
-    const isMatch = await verifyUserPassword(password, user.password);
+    let isMatch = await bcrypt.compare(password, user.password || '');
     if (!isMatch) {
       return res.status(401).json({ error: 'પાસવર્ડ ખોટો છે.' });
     }
@@ -749,8 +732,7 @@ app.post('/api/auth/login', async (req, res) => {
     const token = jwt.sign({ uid: user.uid, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ ...user, token });
   } catch (error: any) {
-    console.error('[Login Error]', error);
-    res.status(500).json({ error: error.message || 'લોગિન દરમિયાન અનપેક્ષિત ભૂલ આવી.' });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -951,12 +933,8 @@ async function getPostFromRequest(req: express.Request) {
 
     // 5. Try case-insensitive search if still not found
     if (!post && decodedSlug) {
-      const allPosts = await queryWithRetry(() => db.select().from(posts));
-      post = allPosts.find((p: any) => p.slug && (
-        p.slug.toLowerCase() === decodedSlug.toLowerCase() ||
-        p.slug.toLowerCase() === rawSlug.toLowerCase() ||
-        encodeURIComponent(p.slug).toLowerCase() === rawSlug.toLowerCase()
-      ));
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(sql`lower(${posts.slug}) = lower(${decodedSlug})`));
+      post = postsArr[0];
     }
 
     return post;
@@ -980,11 +958,9 @@ const generateSitemapXml = async (req: express.Request, res: express.Response) =
     const includeImages = sitemapIncludeImagesStr === 'true';
 
     // Query posts ordered by date descending
-    const allPosts = await queryWithRetry(() => 
-      db.select().from(posts).orderBy(desc(posts.id))
+    const limitedPosts = await queryWithRetry(() => 
+      db.select().from(posts).orderBy(desc(posts.id)).limit(postsLimit)
     );
-    
-    const limitedPosts = allPosts.slice(0, postsLimit);
 
     // Escape helper stripping control characters
     const escapeXml = (str: any): string => {
@@ -1083,7 +1059,7 @@ const generateNewsSitemapXml = async (req: express.Request, res: express.Respons
     const baseUrl = getBaseUrl(req, sitemapBaseUrl);
 
     const allPosts = await queryWithRetry(() => 
-      db.select().from(posts).orderBy(desc(posts.id))
+      db.select().from(posts).orderBy(desc(posts.id)).limit(200)
     );
 
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -1172,9 +1148,9 @@ const generateRssXml = async (req: express.Request, res: express.Response) => {
     const baseUrl = getBaseUrl(req, sitemapBaseUrl);
 
     const allPosts = await queryWithRetry(() => 
-      db.select().from(posts).orderBy(desc(posts.id))
+      db.select().from(posts).orderBy(desc(posts.id)).limit(50)
     );
-    const recentPosts = allPosts.slice(0, 50);
+    const recentPosts = allPosts;
 
     const escapeXml = (str: any): string => {
       if (!str) return '';
@@ -1284,7 +1260,7 @@ app.get('/api/posts', async (req, res) => {
   if (cachedData) return res.json(cachedData);
 
   try {
-    const allPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)));
+    const allPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)).limit(1000));
     const processedPosts = allPosts.map(p => ({ ...p, createdAt: p.date, updatedAt: p.updatedAt ? p.updatedAt.toISOString() : null }));
     cache.set('posts', processedPosts);
     res.json(processedPosts);
@@ -1328,12 +1304,8 @@ app.get('/api/posts/slug/:slug', async (req, res) => {
     }
     // 5. Case-insensitive fallback
     if (!post && decodedSlug) {
-      const allPosts = await queryWithRetry(() => db.select().from(posts));
-      post = allPosts.find((p: any) => p.slug && (
-        p.slug.toLowerCase() === decodedSlug.toLowerCase() ||
-        p.slug.toLowerCase() === rawSlug.toLowerCase() ||
-        encodeURIComponent(p.slug).toLowerCase() === rawSlug.toLowerCase()
-      ));
+      const postsArr = await queryWithRetry(() => db.select().from(posts).where(sql`lower(${posts.slug}) = lower(${decodedSlug})`));
+      post = postsArr[0];
     }
     
     if (!post) {
@@ -1753,7 +1725,7 @@ app.get('/api/admin/users', requireAuth, async (req: AuthRequest, res) => {
     const u = await db.select().from(users).where(eq(users.uid, String(req.user?.uid)));
     if (u[0].role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
-    const allUsers = await db.select().from(users).orderBy(desc(users.id));
+    const allUsers = await db.select().from(users).orderBy(desc(users.id)).limit(1000);
     const userIds = allUsers.map(user => user.id);
     
     // Fetch test counts efficiently
@@ -3626,8 +3598,8 @@ async function runBackgroundInitialization() {
   }
 }
 
-// Kick off non-blocking background initialization
-runBackgroundInitialization();
+async function startServer() {
+  runBackgroundInitialization();
 
 // --- Payment and Subscription Routes ---
 app.get('/api/settings/razorpay-key', async (req, res) => {
@@ -4452,10 +4424,7 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
     // Related posts for internal linking
     let relatedPostsHtml = '';
     try {
-      const allPosts = await queryWithRetry(() => db.select().from(posts));
-      const related = allPosts
-        .filter((p: any) => p.category === category && p.id !== post.id)
-        .slice(0, 4);
+      const related = await queryWithRetry(() => db.select().from(posts).where(and(eq(posts.category, category), ne(posts.id, post.id))).limit(4));
 
       if (related.length > 0) {
         relatedPostsHtml = `
@@ -4571,9 +4540,12 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
 
     let postsListingHtml = '';
     try {
-      const allPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)));
-      const filtered = isCategory ? allPosts.filter((p: any) => p.category === category) : allPosts;
-      const recentPosts = filtered.slice(0, 20);
+      let recentPosts = [];
+      if (isCategory) {
+        recentPosts = await queryWithRetry(() => db.select().from(posts).where(eq(posts.category, category)).orderBy(desc(posts.id)).limit(20));
+      } else {
+        recentPosts = await queryWithRetry(() => db.select().from(posts).orderBy(desc(posts.id)).limit(20));
+      }
 
       postsListingHtml = `
         <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;">
@@ -4800,86 +4772,73 @@ async function handleCachedHtmlRequest(
   }
 }
 
-const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    
+    app.use(async (req, res, next) => {
+      const pathLower = req.path.toLowerCase().replace(/\/$/, '');
+      const isCodeOrAsset =
+        req.path.startsWith('/api/') ||
+        req.path.startsWith('/@') ||
+        req.path.startsWith('/src/') ||
+        req.path.startsWith('/node_modules/') ||
+        /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path) ||
+        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
 
-if (process.env.NODE_ENV !== 'production' && !isVercel) {
-  (async () => {
-    try {
-      const { createServer: createViteServer } = await import('vite');
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: 'spa',
-      });
-      
-      app.use(async (req, res, next) => {
-        const pathLower = req.path.toLowerCase().replace(/\/$/, '');
-        const isCodeOrAsset =
-          req.path.startsWith('/api/') ||
-          req.path.startsWith('/@') ||
-          req.path.startsWith('/src/') ||
-          req.path.startsWith('/node_modules/') ||
-          /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path) ||
-          ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+      const isHtmlRequest =
+        req.method === 'GET' &&
+        !isCodeOrAsset &&
+        (req.headers.accept?.includes('text/html') || req.path === '/' || !req.path.includes('.'));
 
-        const isHtmlRequest =
-          req.method === 'GET' &&
-          !isCodeOrAsset &&
-          (req.headers.accept?.includes('text/html') || req.path === '/' || !req.path.includes('.'));
-
-        if (!isHtmlRequest) {
-          return vite.middlewares(req, res, next);
-        }
-
-        await handleCachedHtmlRequest(req, res, next, async () => {
-          let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
-          return await vite.transformIndexHtml(req.url, html);
-        });
-      });
-
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Development server running on http://localhost:${PORT}`);
-      });
-    } catch (err) {
-      console.error('[Dev Server Error]', err);
-    }
-  })();
-} else {
-  const distPath = path.join(process.cwd(), 'dist');
-
-  // Handle HTML Prerendering BEFORE express.static so /index.html is always server-side cached
-  app.use(async (req, res, next) => {
-    const pathLower = req.path.toLowerCase().replace(/\/$/, '');
-    const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
-    const isApiOrSpecial =
-      req.path.startsWith('/api/') ||
-      req.path.toLowerCase().endsWith('.xml') ||
-      req.path.toLowerCase().endsWith('.txt') ||
-      ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
-
-    if (isApiOrSpecial || isStaticAsset) {
-      return next();
-    }
-
-    await handleCachedHtmlRequest(req, res, next, async () => {
-      const candidatePaths = [
-        path.join(distPath, 'index.html'),
-        path.join(process.cwd(), 'dist', 'index.html'),
-        path.join(process.cwd(), 'index.html'),
-        path.join(__dirname, 'index.html'),
-        path.join(__dirname, 'dist', 'index.html'),
-        path.join(__dirname, '../dist', 'index.html')
-      ];
-
-      let html = '';
-      for (const candidate of candidatePaths) {
-        if (fs.existsSync(candidate)) {
-          html = fs.readFileSync(candidate, 'utf-8');
-          break;
-        }
+      if (!isHtmlRequest) {
+        return vite.middlewares(req, res, next);
       }
 
-      if (!html) {
-        html = `<!doctype html>
+      await handleCachedHtmlRequest(req, res, next, async () => {
+        let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
+        return await vite.transformIndexHtml(req.url, html);
+      });
+    });
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+
+    // Handle HTML Prerendering BEFORE express.static so /index.html is always server-side cached
+    app.use(async (req, res, next) => {
+      const pathLower = req.path.toLowerCase().replace(/\/$/, '');
+      const isStaticAsset = /\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|svg|ico|webp|json|xml|txt|woff2?|ttf|map|pdf)$/i.test(req.path);
+      const isApiOrSpecial =
+        req.path.startsWith('/api/') ||
+        req.path.toLowerCase().endsWith('.xml') ||
+        req.path.toLowerCase().endsWith('.txt') ||
+        ['/rss', '/feed', '/sitemap', '/sitemap_index', '/news-sitemap', '/robots.txt'].includes(pathLower);
+
+      if (isApiOrSpecial || isStaticAsset) {
+        return next();
+      }
+
+      await handleCachedHtmlRequest(req, res, next, async () => {
+        const candidatePaths = [
+          path.join(distPath, 'index.html'),
+          path.join(process.cwd(), 'dist', 'index.html'),
+          path.join(process.cwd(), 'index.html'),
+          path.join(__dirname, 'index.html'),
+          path.join(__dirname, 'dist', 'index.html'),
+          path.join(__dirname, '../dist', 'index.html')
+        ];
+
+        let html = '';
+        for (const candidate of candidatePaths) {
+          if (fs.existsSync(candidate)) {
+            html = fs.readFileSync(candidate, 'utf-8');
+            break;
+          }
+        }
+
+        if (!html) {
+          html = `<!doctype html>
 <html lang="gu">
   <head>
     <meta charset="UTF-8" />
@@ -4896,25 +4855,20 @@ if (process.env.NODE_ENV !== 'production' && !isVercel) {
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`;
-      }
+        }
 
-      return html;
+        return html;
+      });
     });
-  });
 
-  const publicPath = path.join(process.cwd(), 'public');
-  if (fs.existsSync(publicPath)) {
-    app.use(express.static(publicPath, { index: false }));
-  }
-
-  if (fs.existsSync(distPath)) {
     app.use(express.static(distPath, { index: false }));
   }
 
-  // Only bind port when running standalone in container or Node, NOT on serverless Vercel
-  if (!isVercel) {
+  if (!process.env.VERCEL) {
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Production server running on http://localhost:${PORT}`);
+      console.log(`Server running on http://localhost:${PORT}`);
     });
   }
 }
+
+startServer();

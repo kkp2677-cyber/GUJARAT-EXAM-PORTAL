@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "dist/**,public/**,index.html"
+      "includeFiles": "dist/**"
     }
   },
   "rewrites": [

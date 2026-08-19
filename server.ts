@@ -28,7 +28,11 @@ function getLogoPngBuffer(size: 192 | 512 = 512): Buffer {
   if (size === 512 && cachedLogoPng512 && cachedLogoPng512.length > 0) return cachedLogoPng512;
 
   try {
-    const pngPath = path.join(process.cwd(), 'public', size === 192 ? 'logo-192.png' : 'logo.png');
+    const fileName = size === 192 ? 'logo-192.png' : 'logo.png';
+    const pngPathPublic = path.join(process.cwd(), 'public', fileName);
+    const pngPathDist = path.join(process.cwd(), 'dist', fileName);
+    const pngPath = fs.existsSync(pngPathDist) ? pngPathDist : pngPathPublic;
+
     if (fs.existsSync(pngPath)) {
       const buf = fs.readFileSync(pngPath);
       if (buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
@@ -44,7 +48,9 @@ function getLogoPngBuffer(size: 192 | 512 = 512): Buffer {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Resvg } = require('@resvg/resvg-js');
-    const svgPath = path.join(process.cwd(), 'public', 'logo.svg');
+    const svgPathPublic = path.join(process.cwd(), 'public', 'logo.svg');
+    const svgPathDist = path.join(process.cwd(), 'dist', 'logo.svg');
+    const svgPath = fs.existsSync(svgPathDist) ? svgPathDist : svgPathPublic;
     let svgContent = '';
     if (fs.existsSync(svgPath)) {
       svgContent = fs.readFileSync(svgPath, 'utf-8');
@@ -78,7 +84,9 @@ app.get('/logo-192.png', (req, res) => {
 });
 
 app.get('/logo-bw.png', (req, res) => {
-  const bwPath = path.join(process.cwd(), 'public', 'logo-bw.png');
+  const bwPathPublic = path.join(process.cwd(), 'public', 'logo-bw.png');
+  const bwPathDist = path.join(process.cwd(), 'dist', 'logo-bw.png');
+  const bwPath = fs.existsSync(bwPathDist) ? bwPathDist : bwPathPublic;
   if (fs.existsSync(bwPath)) {
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -91,7 +99,9 @@ app.get('/logo-bw.png', (req, res) => {
 });
 
 app.get('/logo.svg', (req, res) => {
-  const svgPath = path.join(process.cwd(), 'public', 'logo.svg');
+  const svgPathPublic = path.join(process.cwd(), 'public', 'logo.svg');
+  const svgPathDist = path.join(process.cwd(), 'dist', 'logo.svg');
+  const svgPath = fs.existsSync(svgPathDist) ? svgPathDist : svgPathPublic;
   if (fs.existsSync(svgPath)) {
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=86400');

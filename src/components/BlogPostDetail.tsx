@@ -421,12 +421,6 @@ export default function BlogPostDetail({ post, onBack, onPostClick }: BlogPostDe
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 animate-fade-in py-0 sm:py-4 px-0 sm:px-6" id="blog-post-detail">
-      {/* Schema.org BlogPosting Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: getSchemaJson() }}
-      />
-
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-bold px-4 sm:px-0 pt-4 sm:pt-0">
         <button

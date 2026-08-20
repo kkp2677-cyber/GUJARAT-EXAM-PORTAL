@@ -4441,16 +4441,27 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
 
       if (related.length > 0) {
         relatedPostsHtml = `
-          <aside class="ssr-related-section" style="margin-top:2.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;">
-            <h3 style="font-size:1.25rem;font-weight:700;color:#111827;margin-bottom:1rem;">સંબંધિત અન્ય મહત્વપૂર્ણ અપડેટ્સ (${catLabel})</h3>
-            <ul style="list-style:disc;padding-left:1.5rem;line-height:1.8;">
+          <section class="space-y-4 px-4 sm:px-0 mt-8" id="related-articles">
+            <h3 class="text-lg md:text-xl font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-blue-600 dark:text-blue-400"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              <span>સંબંધિત અન્ય માહિતી અને સમાચાર</span>
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               ${related.map((rp: any) => {
                 const rpSlug = rp.slug && rp.slug.trim() !== '' ? rp.slug.trim() : String(rp.id);
                 const rpUrl = `${siteUrl}/${rp.category || 'job'}/${encodeURIComponent(rpSlug)}/`;
-                return `<li style="margin-bottom:0.5rem;"><a href="${rpUrl}" style="color:#2563eb;text-decoration:none;font-weight:600;">${rp.title}</a></li>`;
+                return `
+                  <a href="${rpUrl}" class="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group justify-between">
+                    <div class="p-4 space-y-2">
+                      <h4 class="font-extrabold text-xs text-gray-800 dark:text-slate-200 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        ${rp.title}
+                      </h4>
+                    </div>
+                  </a>
+                `;
               }).join('')}
-            </ul>
-          </aside>
+            </div>
+          </section>
         `;
       }
     } catch (e) {
@@ -4459,80 +4470,88 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
 
     bodyContent = `
       <div id="root">
-        <header class="ssr-site-header" style="background:#1e40af;color:#fff;padding:1rem;margin-bottom:1.5rem;">
-          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
-            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:0.5rem;">
-              <img src="${siteUrl}/logo.png" alt="OJAS EXAM" width="32" height="32" style="border-radius:6px;" onerror="this.onerror=null;this.src='${siteUrl}/logo.svg';" />
-              <span>OJAS EXAM</span>
-            </a>
-            <nav style="display:flex;gap:1rem;margin-top:0.25rem;flex-wrap:wrap;font-size:0.9rem;">
-              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">મુખ્ય પૃષ્ઠ</a>
-              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">નવી ભરતી</a>
-              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">આન્સર કી</a>
-              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પરિણામ</a>
-              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પસંદગી યાદી</a>
-              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">ન્યૂઝ</a>
-            </nav>
-          </div>
-        </header>
-
-        <main style="max-width:900px;margin:0 auto;padding:0 1rem 3rem;">
-          <!-- Breadcrumbs -->
-          <nav aria-label="breadcrumb" style="font-size:0.875rem;color:#4b5563;margin-bottom:1rem;">
-            <a href="${siteUrl}/" style="color:#2563eb;text-decoration:none;">મુખ્ય પૃષ્ઠ</a> &gt; 
-            <a href="${siteUrl}/${category}/" style="color:#2563eb;text-decoration:none;">${catLabel}</a> &gt; 
-            <span style="color:#6b7280;">${escTitle}</span>
-          </nav>
-
-          <article class="ssr-article-card" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:0.75rem;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-            <header>
-              <span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:0.75rem;font-weight:700;padding:0.25rem 0.75rem;border-radius:9999px;margin-bottom:0.75rem;text-transform:uppercase;">
-                ${catLabel}
-              </span>
-              <h1 style="font-size:1.875rem;font-weight:800;line-height:1.3;color:#111827;margin-bottom:0.75rem;">
-                ${escTitle}
-              </h1>
-              <div style="font-size:0.875rem;color:#6b7280;margin-bottom:1.5rem;border-bottom:1px solid #f3f4f6;padding-bottom:0.75rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
-                <span><strong>લેખક:</strong> OJAS EXAM ટીમ</span>
-                <span><strong>તારીખ:</strong> <time dateTime="${isoPublishedTime}">${publishedTime}</time></span>
-                ${updatedTime !== publishedTime ? `<span><strong>છેલ્લું અપડેટ:</strong> ${updatedTime}</span>` : ''}
-              </div>
-            </header>
-
-            ${imageUrl ? `
-              <figure style="margin:0 0 1.5rem 0;">
-                <img src="${imageUrl}" alt="${escTitle}" style="max-width:100%;height:auto;border-radius:0.5rem;border:1px solid #e5e7eb;" />
-              </figure>
-            ` : ''}
-
-            <!-- Main Post Body (Tables, Links, Headings, Lists) -->
-            <div class="ssr-post-body" style="font-size:1.05rem;line-height:1.8;color:#1f2937;">
-              ${post.content || ''}
+        <div class="min-h-screen flex flex-col bg-[#F8FAFC] dark:bg-[#0B1121] transition-colors duration-300">
+          <header class="sticky top-0 z-50 bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+              <a href="${siteUrl}/" class="flex items-center gap-3">
+                <img src="${siteUrl}/logo.png" alt="OJAS EXAM" class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800" onerror="this.onerror=null;this.src='${siteUrl}/logo.svg';" />
+                <div class="flex flex-col">
+                  <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-white leading-none">
+                    OJAS <span class="text-blue-600 dark:text-blue-500">EXAM</span>
+                  </span>
+                  <span class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">
+                    EXAM PREPARATION
+                  </span>
+                </div>
+              </a>
             </div>
+          </header>
 
-            ${post.tags ? `
-              <div style="margin-top:2rem;padding-top:1rem;border-top:1px dashed #e5e7eb;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
-                <span style="font-size:0.875rem;font-weight:700;color:#4b5563;">ટેગ્સ:</span>
-                ${String(post.tags).split(',').map((t: string) => `<span style="background:#f3f4f6;color:#374151;font-size:0.8rem;padding:0.2rem 0.6rem;border-radius:0.25rem;">#${t.trim()}</span>`).join(' ')}
+          <main class="max-w-7xl mx-auto px-0 py-4 sm:px-6 lg:px-8 sm:py-10 flex-grow w-full">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 relative items-start">
+              <div class="lg:col-span-8 space-y-6">
+                <!-- Breadcrumbs -->
+                <nav class="flex px-4 sm:px-0 text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 overflow-x-auto whitespace-nowrap hide-scrollbar pb-1">
+                  <a href="${siteUrl}/" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5">મુખ્ય પૃષ્ઠ</a>
+                  <span class="mx-2 text-slate-300 dark:text-slate-700">/</span>
+                  <a href="${siteUrl}/${category}/" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5">${catLabel}</a>
+                  <span class="mx-2 text-slate-300 dark:text-slate-700">/</span>
+                  <span class="text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-md">${escTitle}</span>
+                </nav>
+
+                <article class="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 p-5 sm:p-8 lg:p-10 shadow-sm relative overflow-hidden">
+                  <header>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold tracking-wide uppercase bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 mb-4 sm:mb-6">
+                      ${catLabel}
+                    </span>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white leading-tight mb-4 sm:mb-6 mt-2">
+                      ${escTitle}
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-y-3 gap-x-6 pb-6 mb-6 border-b border-gray-150 dark:border-slate-800">
+                      <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
+                          <span class="text-white text-xs font-bold">OE</span>
+                        </div>
+                        <div class="flex flex-col">
+                          <span class="text-sm font-bold text-slate-700 dark:text-slate-200">OJAS EXAM ટીમ</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                        <time dateTime="${isoPublishedTime}">${publishedTime}</time>
+                      </div>
+                    </div>
+                  </header>
+
+                  ${imageUrl ? `
+                    <div class="mb-8 rounded-2xl overflow-hidden border border-gray-150 dark:border-slate-800 shadow-sm">
+                      <img src="${imageUrl}" alt="${escTitle}" class="w-full h-auto object-cover max-h-[500px]" />
+                    </div>
+                  ` : ''}
+
+                  <div class="pt-2 pb-4">
+                    <div class="prose max-w-none text-slate-800 dark:text-slate-200 font-sans text-base md:text-lg leading-relaxed space-y-6 focus:outline-none blog-news-content ssr-post-body">
+                      ${post.content || ''}
+                    </div>
+                  </div>
+
+                  ${post.tags ? `
+                    <div class="border-t border-dashed border-gray-200 dark:border-slate-800 pt-6 space-y-4">
+                      <div class="flex flex-col sm:flex-row sm:items-start gap-2 text-xs">
+                        <span class="font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider min-w-[120px] pt-1 flex items-center gap-1.5">
+                          🏷️ ટેગ્સ (Tags):
+                        </span>
+                        <div class="flex flex-wrap gap-2">
+                          ${String(post.tags).split(',').map((t: string) => `<span class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1 rounded-xl font-bold transition-all hover:scale-[1.02]">#${t.trim()}</span>`).join('')}
+                        </div>
+                      </div>
+                    </div>
+                  ` : ''}
+                </article>
+                ${relatedPostsHtml}
               </div>
-            ` : ''}
-
-            ${relatedPostsHtml}
-          </article>
-        </main>
-
-        <footer style="background:#111827;color:#9ca3af;padding:2rem 1rem;text-align:center;font-size:0.875rem;margin-top:3rem;">
-          <div style="max-width:900px;margin:0 auto;">
-            <p style="color:#ffffff;font-weight:700;margin-bottom:0.5rem;">OJAS EXAM - ગુજરાત સરકારી ભરતી અને સ્પર્ધાત્મક પરીક્ષા પોર્ટલ</p>
-            <p style="margin-bottom:1rem;">સર્વાધિકાર સુરક્ષિત &copy; ${new Date().getFullYear()} OJAS EXAM.</p>
-            <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;">
-              <a href="${siteUrl}/about" style="color:#9ca3af;text-decoration:none;">અમારા વિશે</a>
-              <a href="${siteUrl}/privacy" style="color:#9ca3af;text-decoration:none;">પ્રાઈવસી પોલિસી</a>
-              <a href="${siteUrl}/terms" style="color:#9ca3af;text-decoration:none;">નિયમો અને શરતો</a>
-              <a href="${siteUrl}/disclaimer" style="color:#9ca3af;text-decoration:none;">ડિસ્ક્લેમર</a>
             </div>
-          </div>
-        </footer>
+          </main>
+        </div>
       </div>
     `;
   } else {
@@ -4561,7 +4580,7 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
       }
 
       postsListingHtml = `
-        <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           ${recentPosts.map((p: any) => {
             const pSlug = p.slug && p.slug.trim() !== '' ? p.slug.trim() : String(p.id);
             const pCat = p.category || 'job';
@@ -4569,17 +4588,22 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
             const pDate = p.date || p.createdAt ? new Date(p.date || p.createdAt).toLocaleDateString('gu-IN') : '';
             const plainContent = (p.content || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 160);
             return `
-              <article style="background:#fff;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1.25rem;box-shadow:0 1px 2px rgba(0,0,0,0.04);">
-                <span style="font-size:0.75rem;font-weight:700;color:#1e40af;background:#dbeafe;padding:0.2rem 0.5rem;border-radius:0.25rem;text-transform:uppercase;">${categoryNamesGu[pCat] || pCat}</span>
-                <h2 style="font-size:1.25rem;font-weight:700;margin:0.5rem 0;line-height:1.4;">
-                  <a href="${pUrl}" style="color:#111827;text-decoration:none;">${p.title}</a>
-                </h2>
-                <p style="font-size:0.875rem;color:#4b5563;line-height:1.6;margin-bottom:0.75rem;">${plainContent}...</p>
-                <div style="font-size:0.8rem;color:#9ca3af;display:flex;justify-content:space-between;align-items:center;">
-                  <span>તારીખ: ${pDate}</span>
-                  <a href="${pUrl}" style="color:#2563eb;font-weight:600;text-decoration:none;">વધુ વાંચો &rarr;</a>
+              <a href="${pUrl}" class="group bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-slate-700 transition-all flex flex-col justify-between">
+                <div class="p-5 sm:p-6 space-y-4">
+                  <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      ${categoryNamesGu[pCat] || pCat}
+                    </span>
+                    <span class="text-xs font-bold text-gray-400 dark:text-slate-500">${pDate}</span>
+                  </div>
+                  <h3 class="text-lg font-extrabold text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    ${p.title}
+                  </h3>
+                  <p class="text-sm text-gray-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    ${plainContent}...
+                  </p>
                 </div>
-              </article>
+              </a>
             `;
           }).join('')}
         </div>
@@ -4590,29 +4614,38 @@ async function generateUnifiedHtml(rawHtml: string, req: express.Request, post: 
 
     bodyContent = `
       <div id="root">
-        <header class="ssr-site-header" style="background:#1e40af;color:#fff;padding:1rem;margin-bottom:1.5rem;">
-          <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
-            <a href="${siteUrl}/" style="color:#fff;font-size:1.5rem;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:0.5rem;">
-              <img src="${siteUrl}/logo.png" alt="OJAS EXAM" width="32" height="32" style="border-radius:6px;" onerror="this.onerror=null;this.src='${siteUrl}/logo.svg';" />
-              <span>OJAS EXAM</span>
-            </a>
-            <nav style="display:flex;gap:1rem;margin-top:0.25rem;flex-wrap:wrap;font-size:0.9rem;">
-              <a href="${siteUrl}/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">મુખ્ય પૃષ્ઠ</a>
-              <a href="${siteUrl}/job/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">નવી ભરતી</a>
-              <a href="${siteUrl}/answer_key/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">આન્સર કી</a>
-              <a href="${siteUrl}/result/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પરિણામ</a>
-              <a href="${siteUrl}/selection_list/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">પસંદગી યાદી</a>
-              <a href="${siteUrl}/news/" style="color:#e0e7ff;text-decoration:none;font-weight:600;">ન્યૂઝ</a>
-            </nav>
-          </div>
-        </header>
+        <div class="min-h-screen flex flex-col bg-[#F8FAFC] dark:bg-[#0B1121] transition-colors duration-300">
+          <header class="sticky top-0 z-50 bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+              <a href="${siteUrl}/" class="flex items-center gap-3">
+                <img src="${siteUrl}/logo.png" alt="OJAS EXAM" class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800" onerror="this.onerror=null;this.src='${siteUrl}/logo.svg';" />
+                <div class="flex flex-col">
+                  <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-white leading-none">
+                    OJAS <span class="text-blue-600 dark:text-blue-500">EXAM</span>
+                  </span>
+                  <span class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">
+                    EXAM PREPARATION
+                  </span>
+                </div>
+              </a>
+            </div>
+          </header>
 
-        <main style="max-width:900px;margin:0 auto;padding:0 1rem 3rem;">
-          <h1 style="font-size:1.75rem;font-weight:800;color:#111827;margin-bottom:1.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:0.5rem;">
-            ${headingTitle}
-          </h1>
-          ${postsListingHtml}
-        </main>
+          <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
+            <div class="space-y-8">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-150 dark:border-slate-800 pb-5">
+                <div class="flex items-center gap-3">
+                  <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight font-sans">
+                      ${headingTitle}
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              ${postsListingHtml}
+            </div>
+          </main>
+        </div>
       </div>
     `;
   }

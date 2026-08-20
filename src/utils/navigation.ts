@@ -12,7 +12,7 @@ export const navigateToPost = (post: { id: string; slug?: string; category?: str
 };
 
 export const navigateToCategory = (category: string) => {
-  const url = `/blog/${category}`;
+  const url = `/${category}/`;
   window.history.pushState({}, '', url);
   window.dispatchEvent(new Event('popstate'));
   window.scrollTo(0, 0);

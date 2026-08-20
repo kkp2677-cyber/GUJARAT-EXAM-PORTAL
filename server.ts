@@ -76,9 +76,9 @@ app.get(['/logo.png', '/logo-512.png'], (req, res) => {
   res.send(buf);
 });
 
-app.get('/logo-192.png', (req, res) => {
+app.get(['/logo-192.png', '/favicon.ico'], (req, res) => {
   const buf = getLogoPngBuffer(192);
-  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Content-Type', 'image/png'); // Browsers handle PNG favicons fine
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(buf);
 });

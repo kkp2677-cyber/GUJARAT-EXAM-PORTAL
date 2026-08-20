@@ -1,7 +1,6 @@
 /**
  * Utility functions for handling images and bypassing hotlink protection/mixed content issues.
  */
-
 export const getProxiedImageUrl = (url: string, defaultWidth?: number): string => {
   if (!url) return '';
   
@@ -20,7 +19,13 @@ export const getProxiedImageUrl = (url: string, defaultWidth?: number): string =
     return url;
   }
   
-  // Clean the protocol for images.weserv.nl proxy
+  // Bypass proxy for ibb.co or standard HTTPS URLs to prevent Google Search Console from blocking weserv.nl
+  // GSC bots often block third-party proxies, causing the onError fallback image to trigger.
+  if (url.includes('ibb.co') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Clean the protocol for images.weserv.nl proxy (mainly used for HTTP to prevent mixed content)
   let cleanUrl = url.trim();
   
   // Some URLs might be double-slashed or malformed, normalize it
